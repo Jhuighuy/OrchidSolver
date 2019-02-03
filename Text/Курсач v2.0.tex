@@ -1,0 +1,71 @@
+\documentclass[12pt, a4paper, fleqn]{extreport}
+
+\usepackage{amsthm,amsfonts,amsmath,amssymb,amscd}
+\usepackage[T2A]{fontenc}                         
+\usepackage[utf8]{inputenc}                      
+\usepackage[english, russian]{babel}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+\usepackage{cite} 
+\usepackage{psfrag}
+\usepackage{subcaption}
+\usepackage[top=2cm,bottom=2cm,left=2.5cm,right=1cm]{geometry}
+
+\linespread{1.3} 
+
+\usepackage{ucs}
+\usepackage{lineno}
+\usepackage{graphicx}
+
+\usepackage{float}
+
+\begin{document}
+	
+	\newcommand{\round}[1]{\stackrel{o}{#1}}
+	
+	\tableofcontents
+	\clearpage
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\chapter*{Введение}
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\addcontentsline{toc}{chapter}{Введение} 
+	
+	
+	
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\chapter{Разностные схемы для уравений Эйлера в сферической системе координат.}
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	\section{Аппроксимация уравнения неразрывности.}
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	
+	Уравнение неразрывности в сферических координатах
+	$x = r\sin\theta\cos\phi, y = r\sin\theta\sin\phi, z = r\cos\theta$
+	может быть записано в следующем виде:
+	\begin{equation*}
+	\begin{split}
+		\dfrac{\partial \rho}{\partial t}
+			= \dfrac{1}{r^2}\dfrac{\partial}{\partial r}\bigg(r^2\rho\upsilon_r\bigg)
+			+ \dfrac{1}{r\sin\theta}\dfrac{\partial}{\partial\theta}\bigg(\sin\theta\rho\upsilon_\theta\bigg)
+			+ \dfrac{1}{r\sin\theta}\dfrac{\partial}{\partial\phi}\bigg(\rho\upsilon_\phi\bigg).
+	\end{split}
+	\end{equation*}
+	
+	Рассмотрим сферическую ячейку $\Omega$,
+	на которой введем систему ортонормированных функций 
+	$\psi^m(r, \theta, \phi), m=0..M$.
+	Искомые поля будем искать в виде комбинации этих функций:
+	\begin{equation*}
+	\begin{split}
+		\rho \approx \sum\limits_{m=0}^{M} \rho^m(t)\psi^m(r, \theta, \phi).
+	\end{split}
+	\end{equation*}
+	
+\end{document}
