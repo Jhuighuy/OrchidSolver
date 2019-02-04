@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.168
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "SMHDSolver", "SMHDSolver\SMHDSolver.vfproj", "{60299A0B-7751-4D1C-B467-39B46F20DE7E}"
+Project("{6989167D-11E4-40FE-8C1A-2192A86A7E90}") = "OrchidSolver", "OrchidSolver\OrchidSolver.vfproj", "{60299A0B-7751-4D1C-B467-39B46F20DE7E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

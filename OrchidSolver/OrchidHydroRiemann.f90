@@ -1,16 +1,8 @@
-!########################################################################################################
+!> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver in spherical/polar coorinates.
 !> Copyright (C) Butakov Oleg 2019.
-!> 3D MagnetoHydroDynamics solver in spherical coorinates.
-!>
-!> Riemann Fluxes for the Euler Equations in general geometries.
-!> Contains:
-!> 1. Roe-Einfeldt Fluxes in 1D,2D,3D.
-!>    See "Axel Rohde, Eigenvalues and Eigenvectors of the Euler Equations in general geometries."
-!>
-!> 2. HLLC Fluxes in 1D,2D,3D.
-!########################################################################################################
-Module mhd_solver_hydro_roe
-Use mhd_solver_params
+
+Module orchid_solver_hydro_roe
+Use orchid_solver_params
 Implicit None
 Contains
 !########################################################################################################
@@ -317,9 +309,10 @@ End Subroutine mhd_hydro_calc_flux_roe3D
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-End Module mhd_solver_hydro_roe
-Module mhd_solver_hydro_hllc
-Use mhd_solver_params
+End Module orchid_solver_hydro_roe
+
+Module orchid_solver_hydro_hllc
+Use orchid_solver_params
 Implicit None
 Contains
 !########################################################################################################
@@ -382,4 +375,4 @@ End Subroutine mhd_hydro_calc_flux_hllc3D
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-End Module mhd_solver_hydro_hllc
+End Module orchid_solver_hydro_hllc

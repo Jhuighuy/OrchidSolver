@@ -1,12 +1,12 @@
+!> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver in spherical/polar coorinates.
 !> Copyright (C) Butakov Oleg 2019.
-!> 3D MagnetoHydroDynamics solver in spherical coorinates.
 #define MHD_DIM 1
 
-Module mhd_solver_hydro
-    Use mhd_solver_grid
-    Use mhd_solver_params
-    Use mhd_solver_hydro_roe
-    Use mhd_solver_hydro_hllc
+Module orchid_solver_hydro
+    Use orchid_solver_grid
+    Use orchid_solver_params
+    Use orchid_solver_hydro_roe
+    Use orchid_solver_hydro_hllc
     Implicit None
     
 Contains
@@ -486,4 +486,4 @@ End Subroutine mhd_hydro_update
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-End Module mhd_solver_hydro
+End Module orchid_solver_hydro
