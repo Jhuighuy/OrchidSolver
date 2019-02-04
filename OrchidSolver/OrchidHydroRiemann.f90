@@ -1,7 +1,7 @@
 !> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver in spherical/polar coorinates.
 !> Copyright (C) Butakov Oleg 2019.
 
-Module orchid_solver_hydro_roe
+Module orchid_solver_hydro_flux_roe
 Use orchid_solver_params
 Implicit None
 Contains
@@ -271,7 +271,7 @@ Subroutine mhd_hydro_calc_flux_roe3D(nx, ny, nz, &
                 Dot_Product([ v_s - c_s*ny, v_s, v_s + c_s*ny, -nx,   +nz   ], q_s), &
                 Dot_Product([ w_s - c_s*nz, w_s, w_s + c_s*nz, 0.0D0, -ny   ], q_s), &
                 Dot_Product([ h_s - c_s*a_s, e_s, h_s + c_s*a_s, u_s*ny - v_s*nx, v_s*nz - w_s*ny ], q_s) ]
-    Else
+    Else If ( Abs(nz) .GE. Max(Abs(nx), Abs(ny)) ) Then
         !> Select case with Nz!=0 to prevent singularities.
         !> Multiply by the Left Eigenvectors.
         q_s = [ Dot_Product([ Gamma1*e_s + c_s*a_s, &
@@ -309,9 +309,9 @@ End Subroutine mhd_hydro_calc_flux_roe3D
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-End Module orchid_solver_hydro_roe
+End Module orchid_solver_hydro_flux_roe
 
-Module orchid_solver_hydro_hllc
+Module orchid_solver_hydro_flux_hllc
 Use orchid_solver_params
 Implicit None
 Contains
@@ -375,4 +375,4 @@ End Subroutine mhd_hydro_calc_flux_hllc3D
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-End Module orchid_solver_hydro_hllc
+End Module orchid_solver_hydro_flux_hllc

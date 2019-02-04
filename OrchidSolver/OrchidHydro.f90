@@ -3,11 +3,11 @@
 #define MHD_DIM 1
 
 Module orchid_solver_hydro
-    Use orchid_solver_grid
-    Use orchid_solver_params
-    Use orchid_solver_hydro_roe
-    Use orchid_solver_hydro_hllc
-    Implicit None
+Use orchid_solver_grid
+Use orchid_solver_params
+Use orchid_solver_hydro_flux_roe
+Use orchid_solver_hydro_flux_hllc
+Implicit None
     
 Contains
     
