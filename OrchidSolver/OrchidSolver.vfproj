@@ -48,6 +48,7 @@
 		<Filter Name="Source">
 		<Filter Name="Hydro">
 		<File RelativePath=".\OrchidHydro.f90"/>
-		<File RelativePath=".\OrchidHydroRiemann.f90"/></Filter>
+		<File RelativePath=".\OrchidHydroFlux.f90"/>
+		<File RelativePath=".\OrchidHydroFluxGodunov.f90"/></Filter>
 		<File RelativePath=".\OrchidMain.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

@@ -19,6 +19,7 @@ Module orchid_solver_params
     Integer, Parameter :: N_r = 200, N_theta = 1, N_phi = 200, N_funcs=1
     Real(8), Parameter :: L_r = 1.0D0, L_theta = Pi, L_phi = 2.0D0*Pi
     Real(8), Parameter :: h_r = 7.0D0/N_r, h_t = 1+0*L_theta/N_theta, h_tt=2.0D0*Sin(0.5D0*h_t), h_p = L_phi/N_phi
+    Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
     
     Contains
     
