@@ -18,8 +18,8 @@ Subroutine mhd_hydro_calc_flux1D(nx, &
     Real(8), Intent(In) :: nx
     Real(8), Intent(In) :: ip
     Real(8), Intent(In) :: im
-    Real(8), Dimension(:), Intent(In) :: rho_vp, nrg_vp, u_vp
-    Real(8), Dimension(:), Intent(In) :: rho_vm, nrg_vm, u_vm
+    Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vp, nrg_vp, u_vp
+    Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vm, nrg_vm, u_vm
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u
     !> }}}
     Real(8) :: x
@@ -69,8 +69,8 @@ Subroutine mhd_hydro_calc_flux2D(nx, ny, &
     Real(8), Intent(In) :: nx, ny
     Real(8), Intent(In) :: ip, jp
     Real(8), Intent(In) :: im, jm
-    Real(8), Dimension(:), Intent(In) :: rho_vp, nrg_vp, u_vp, v_vp
-    Real(8), Dimension(:), Intent(In) :: rho_vm, nrg_vm, u_vm, v_vm
+    Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vp, nrg_vp, u_vp, v_vp
+    Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vm, nrg_vm, u_vm, v_vm
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_v, flux_u
     !> }}}
     Real(8) :: x, y
@@ -134,8 +134,8 @@ Subroutine mhd_hydro_calc_flux3D(nx, ny, nz, &
     Real(8), Intent(In) :: nx, ny, nz
     Real(8), Intent(In) :: ip, jp, kp
     Real(8), Intent(In) :: im, jm, km
-    Real(8), Dimension(:), Intent(In) :: rho_vp, nrg_vp, u_vp, v_vp, w_vp
-    Real(8), Dimension(:), Intent(In) :: rho_vm, nrg_vm, u_vm, v_vm, w_vm
+    Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vp, nrg_vp, u_vp, v_vp, w_vp
+    Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vm, nrg_vm, u_vm, v_vm, w_vm
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w
     !> }}}
     Real(8) :: x, y, z
