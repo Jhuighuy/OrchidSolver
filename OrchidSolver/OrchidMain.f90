@@ -87,8 +87,9 @@ Subroutine print_grid(g, l)
     Real(8) :: v_r, v_t, v_p
     Real(8) :: v_x, v_y, v_z, v_l
     Real(8) :: vxy(2), vrp(2), a(2,2), vvv
-    Open(NewUnit=output, file='../Results/fields-'//Trim(to_str(l))//'.dat', Status='replace')
+    Open(NewUnit=output, file='../Results/fields-'//Trim(to_str(l))//'.csv', Status='replace')
     If ( dim==2 ) Then
+        Write (output,*) 'x,y,u,v,r,e'
         Do i = 1, N_r
         Do j = 1, N_phi
             r = r_0 + (i - 0.5D0)*h_r
@@ -99,10 +100,10 @@ Subroutine print_grid(g, l)
         a(2,:) = [Sin(Phi), Cos(Phi)]
         a = Transpose(a)
         vxy = MatMul(a, [g%v_r(i, j, 1, 0)/g%rho(i, j, 1, 0), g%v_p(i, j, 1, 0)/g%rho(i, j, 1, 0)])*0.5
-            Write (output, '(40e,40e,40e,40e,40e,40e,40e)') &
-                x, y, &!r, phi,&!
-                vxy(1), vxy(2), &
-                g%rho(i, j, 1, 0), g%nrg(i, j, 1, 0)/g%rho(i, j, 1, 0)
+            Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
+                x, ',', y, ',', &!r, phi,&!
+                vxy(1), ',', vxy(2), ',', &
+                g%rho(i, j, 1, 0), ',', g%nrg(i, j, 1, 0)/g%rho(i, j, 1, 0)
         End Do 
         End Do
     Else
