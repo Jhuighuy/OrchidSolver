@@ -21,7 +21,37 @@ Module orchid_solver_params
     Real(8), Parameter :: h_r = 7.0D0/N_r, h_t = 1+0*L_theta/N_theta, h_tt=2.0D0*Sin(0.5D0*h_t), h_p = L_phi/N_phi
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
     
+    Real(8), Dimension(0:0, 0:0), Parameter :: Gauss_x = [0.0D0]
+    Real(8), Dimension(0:0, 0:0), Parameter :: Gauss_w = [1.0D0]
+    
     Contains
+    Pure Function mhd_eval1D(vc, i, x) result(v)
+        ! {{{
+        Real(8), Intent(In) :: i
+        Real(8), Intent(In) :: x
+        Real(8), Dimension(m_min:m_max), Intent(In) :: vc
+        ! }}}
+        Real(8) :: v
+        v = vc(m_min)
+    End Function mhd_eval1D
+    Pure Function mhd_eval2D(vc, i, j, x, y) result(v)
+        ! {{{
+        Real(8), Intent(In) :: i, j
+        Real(8), Intent(In) :: x, y
+        Real(8), Dimension(m_min:m_max), Intent(In) :: vc
+        ! }}}
+        Real(8) :: v
+        v = vc(m_min)
+    End Function mhd_eval2D
+    Pure Function mhd_eval3D(vc, i, j, k, x, y, z) result(v)
+        ! {{{
+        Real(8), Intent(In) :: i, j, k
+        Real(8), Intent(In) :: x, y, z
+        Real(8), Dimension(m_min:m_max), Intent(In) :: vc
+        ! }}}
+        Real(8) :: v
+        v = vc(m_min)
+    End Function mhd_eval3D
     
     Pure Function minmod2(x, y)
         ! {{{
@@ -54,8 +84,8 @@ Module orchid_solver_grid
         !> Velocity components.
         !> Density, pressure and internal energy.
         !> @{
-        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 1:1) :: rho, nrg, p
-        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 1:1) :: v_r, v_t, v_p
+        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 1:1, 0:0, 0:0) :: rho, nrg, p
+        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 1:1, 0:0, 0:0) :: v_r, v_t, v_p
         !> @}
     End Type mhd_grid
     
@@ -67,8 +97,8 @@ Module orchid_solver_grid
         !> Velocity components.
         !> Density, pressure and internal energy.
         !> @{
-        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 0:N_theta+1, 0:N_funcs) :: rho, nrg, p
-        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 0:N_theta+1, 0:N_funcs) :: v_r, v_t, v_p
+        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 0:N_theta+1, 0:0) :: rho, nrg, p
+        Real(8), Dimension(0:N_r+1, 0:N_phi+1, 0:N_theta+1, 0:0) :: v_r, v_t, v_p
         !> @}
     End Type mhd_grid_dg
 End Module orchid_solver_grid

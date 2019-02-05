@@ -5,8 +5,7 @@
 Module orchid_solver_hydro
 Use orchid_solver_grid
 Use orchid_solver_params
-Use orchid_solver_hydro_flux_roe
-Use orchid_solver_hydro_flux_hllc
+Use orchid_solver_hydro_flux
 Implicit None
     
 Contains
@@ -112,10 +111,11 @@ Subroutine mhd_hydro_calc_flux_single(g, fl, ip, jp, kp, &
     Integer, Intent(In), Optional :: ii, jj, kk
     Real(8), Intent(In), Optional :: aap, aam
     !> }}}
-    Integer :: m
     Integer :: i, j, k
-    Real(8) :: rho_p, nrg_p, u_p, v_p, w_p, ap, bp, cp, &
-               rho_m, nrg_m, u_m, v_m, w_m, am, bm, cm
+    Real(8) :: ap, bp, cp, &
+               am, bm, cm
+    Real(8), Dimension(0:0) :: rho_p, nrg_p, u_p, v_p, w_p, &
+               rho_m, nrg_m, u_m, v_m, w_m
     If ( Present(ii) ) Then
         i = ii; j = jj; k = kk
     Else
@@ -132,40 +132,39 @@ Subroutine mhd_hydro_calc_flux_single(g, fl, ip, jp, kp, &
     !> For DG, we need to calculate the values and
     !> estimate the integration, using e.g. Gauss
     !> quadratures.
-    m = 0
-    rho_p = g%rho(ip, jp, kp, m)
-    nrg_p = g%nrg(ip, jp, kp, m)/rho_p
-    u_p   = g%v_r(ip, jp, kp, m)/rho_p*ap
-    rho_m = g%rho(im, jm, km, m)
-    nrg_m = g%nrg(im, jm, km, m)/rho_m
-    u_m   = g%v_r(im, jm, km, m)/rho_m*am
+    rho_p = g%rho(ip, jp, kp, :)
+    nrg_p = g%nrg(ip, jp, kp, :)
+    u_p   = g%v_r(ip, jp, kp, :)*ap
+    rho_m = g%rho(im, jm, km, :)
+    nrg_m = g%nrg(im, jm, km, :)
+    u_m   = g%v_r(im, jm, km, :)*am
     If ( dim == 1 ) Then
         !> 1D Case.
-        Call mhd_hydro_calc_flux_single1D(Dble(nr), &
-                rho_p, nrg_p, u_p, &
-                rho_m, nrg_m, u_m, &
-                fl%rho(i, j, k), fl%nrg(i, j, k), &
-                fl%v_r(i, j, k))
+        Call mhd_hydro_calc_dg_flux1D(Dble(nr), &
+                Dble(ip), rho_p, nrg_p, u_p, &
+                Dble(im), rho_m, nrg_m, u_m, &
+                fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
+                fl%v_r(i, j, k, :, :))
     Else
         !> Polar Or Spherical Case.
-        v_p = g%v_p(ip, jp, kp, m)/rho_p*bp
-        v_m = g%v_p(im, jm, km, m)/rho_m*bm
+        v_p = g%v_p(ip, jp, kp, :)*bp
+        v_m = g%v_p(im, jm, km, :)*bm
         If ( dim == 2 ) Then
             !> Polar Case.
-            Call mhd_hydro_calc_flux_single2D(Dble(nr), Dble(np), &
-                    rho_p, nrg_p, u_p, v_p, &
-                    rho_m, nrg_m, u_m, v_m, &
-                    fl%rho(i, j, k), fl%nrg(i, j, k), &
-                    fl%v_r(i, j, k), fl%v_p(i, j, k))
+            Call mhd_hydro_calc_dg_flux2D(Dble(nr), Dble(np), &
+                    Dble(ip), Dble(jp), rho_p, nrg_p, u_p, v_p, &
+                    Dble(im), Dble(jm), rho_m, nrg_m, u_m, v_m, &
+                    fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
+                    fl%v_r(i, j, k, :, :), fl%v_p(i, j, k, :, :))
         Else
             !> Spherical Case.
-            w_p = g%v_t(ip, jp, kp, m)/rho_p*cp
-            w_m = g%v_t(im, jm, km, m)/rho_m*cm
-            Call mhd_hydro_calc_flux_single3D(Dble(nr), Dble(np), Dble(nt), &
-                    rho_p, nrg_p, u_p, v_p, w_p, &
-                    rho_m, nrg_m, u_m, v_m, w_m, &
-                    fl%rho(i, j, k), fl%nrg(i, j, k), &
-                    fl%v_r(i, j, k), fl%v_p(i, j, k), fl%v_t(i, j, k))
+            w_p = g%v_t(ip, jp, kp, :)/rho_p*cp
+            w_m = g%v_t(im, jm, km, :)/rho_m*cm
+            Call mhd_hydro_calc_dg_flux3D(Dble(nr), Dble(np), Dble(nt), &
+                    Dble(ip), Dble(jp), Dble(kp), rho_p, nrg_p, u_p, v_p, w_p, &
+                    Dble(im), Dble(jm), Dble(km), rho_m, nrg_m, u_m, v_m, w_m, &
+                    fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
+                    fl%v_r(i, j, k, :, :), fl%v_p(i, j, k, :, :), fl%v_t(i, j, k, :, :))
         End If
     End If
 End Subroutine mhd_hydro_calc_flux_single
@@ -224,15 +223,15 @@ Subroutine mhd_hydro_calc_fluxes(g, fl)
                 !> Periodic BC. Makes sense only in 1D case.
                 Call mhd_hydro_calc_flux_single(g, fl%r, 0+1, j, k, &
                                                 1, 0, 0, i+0, j, k)
-                fl%r%rho(0, j, k) = fl%r%rho(i, j, k)
-                fl%r%nrg(0, j, k) = fl%r%nrg(i, j, k)
-                fl%r%v_r(0, j, k) = fl%r%v_r(i, j, k)
+                fl%r%rho(0, j, k, :, :) = fl%r%rho(i, j, k, :, :)
+                fl%r%nrg(0, j, k, :, :) = fl%r%nrg(i, j, k, :, :)
+                fl%r%v_r(0, j, k, :, :) = fl%r%v_r(i, j, k, :, :)
                 If ( dim >= 2 ) Then
                     !> Polar Or Spherical Case.
-                    fl%r%v_p(0, j, k) = fl%r%v_p(i, j, k)
+                    fl%r%v_p(0, j, k, :, :) = fl%r%v_p(i, j, k, :, :)
                     If ( dim >= 3 ) Then
                         !> Spherical Case.
-                        fl%r%v_t(0, j, k) = fl%r%v_t(i, j, k)
+                        fl%r%v_t(0, j, k, :, :) = fl%r%v_t(i, j, k, :, :)
                     End If
                 End If
             End If
@@ -256,13 +255,13 @@ Subroutine mhd_hydro_calc_fluxes(g, fl)
                 !> Force periodic BC for Phi.
                 Call mhd_hydro_calc_flux_single(g, fl%p, i, 0+1, k, &
                                                0, 1, 0, i, j+0, k)
-                fl%p%rho(i, 0, k) = fl%p%rho(i, j, k)
-                fl%p%nrg(i, 0, k) = fl%p%nrg(i, j, k)
-                fl%p%v_r(i, 0, k) = fl%p%v_r(i, j, k)
-                fl%p%v_p(i, 0, k) = fl%p%v_p(i, j, k)
+                fl%p%rho(i, 0, k, :, :) = fl%p%rho(i, j, k, :, :)
+                fl%p%nrg(i, 0, k, :, :) = fl%p%nrg(i, j, k, :, :)
+                fl%p%v_r(i, 0, k, :, :) = fl%p%v_r(i, j, k, :, :)
+                fl%p%v_p(i, 0, k, :, :) = fl%p%v_p(i, j, k, :, :)
                 If ( dim >= 3 ) Then
                    !> Spherical Case.
-                   fl%p%v_t(i, 0, k) = fl%p%v_t(i, j, k)
+                   fl%p%v_t(i, 0, k, :, :) = fl%p%v_t(i, j, k, :, :)
                 End If
             End If
         End If
@@ -358,24 +357,24 @@ Subroutine mhd_hydro_update(Tau, g, gp, fl)
         !>-------------------------------------------------------------------------------
 
         gp%rho(i, j, k, m) = gp%rho(i, j, k, m)&
-                + ( fl%r%rho(i, j, k) - fl%r%rho(i-1, j, k) )/h_r &
-                + ( fl%p%rho(i, j, k) - fl%p%rho(i, j-1, k) )/h_p/r_i &
-                + ( fl%r%rho(i, j, k) + fl%r%rho(i-1, j, k) )/(2*r_i)
+                + ( fl%r%rho(i, j, k, 0, 0) - fl%r%rho(i-1, j, k, 0, 0) )/h_r &
+                + ( fl%p%rho(i, j, k, 0, 0) - fl%p%rho(i, j-1, k, 0, 0) )/h_p/r_i &
+                + ( fl%r%rho(i, j, k, 0, 0) + fl%r%rho(i-1, j, k, 0, 0) )/(2*r_i)
         gp%nrg(i, j, k, m) = gp%nrg(i, j, k, m)&
-                + ( fl%r%nrg(i, j, k) - fl%r%nrg(i-1, j, k) )/h_r &
-                + ( fl%p%nrg(i, j, k) - fl%p%nrg(i, j-1, k) )/h_p/r_i &
-                + ( fl%r%nrg(i, j, k) + fl%r%nrg(i-1, j, k) )/(2*r_i)
+                + ( fl%r%nrg(i, j, k, 0, 0) - fl%r%nrg(i-1, j, k, 0, 0) )/h_r &
+                + ( fl%p%nrg(i, j, k, 0, 0) - fl%p%nrg(i, j-1, k, 0, 0) )/h_p/r_i &
+                + ( fl%r%nrg(i, j, k, 0, 0) + fl%r%nrg(i-1, j, k, 0, 0) )/(2*r_i)
         
         gp%v_r(i, j, k, m) = gp%v_r(i, j, k, m)&
-                + ( fl%r%v_r(i, j, k) - fl%r%v_r(i-1, j, k) )/h_r &
-                + ( fl%p%v_r(i, j, k) - fl%p%v_r(i, j-1, k) )/h_p/r_i &
-                + ( fl%r%v_r(i, j, k) + fl%r%v_r(i-1, j, k) )/(2*r_i) &
-                - ( fl%p%v_p(i, j, k) + fl%p%v_p(i, j-1, k) )/(2*r_i)
+                + ( fl%r%v_r(i, j, k, 0, 0) - fl%r%v_r(i-1, j, k, 0, 0) )/h_r &
+                + ( fl%p%v_r(i, j, k, 0, 0) - fl%p%v_r(i, j-1, k, 0, 0) )/h_p/r_i &
+                + ( fl%r%v_r(i, j, k, 0, 0) + fl%r%v_r(i-1, j, k, 0, 0) )/(2*r_i) &
+                - ( fl%p%v_p(i, j, k, 0, 0) + fl%p%v_p(i, j-1, k, 0, 0) )/(2*r_i)
         gp%v_p(i, j, k, m) = gp%v_p(i, j, k, m)&
-                + ( fl%r%v_p(i, j, k) - fl%r%v_p(i-1, j, k) )/h_r &
-                + ( fl%p%v_p(i, j, k) - fl%p%v_p(i, j-1, k) )/h_p/r_i &
-                + ( fl%r%v_p(i, j, k) + fl%r%v_p(i-1, j, k) )/(2*r_i) &
-                + ( fl%p%v_r(i, j, k) + fl%p%v_r(i, j-1, k) )/(2*r_i)
+                + ( fl%r%v_p(i, j, k, 0, 0) - fl%r%v_p(i-1, j, k, 0, 0) )/h_r &
+                + ( fl%p%v_p(i, j, k, 0, 0) - fl%p%v_p(i, j-1, k, 0, 0) )/h_p/r_i &
+                + ( fl%r%v_p(i, j, k, 0, 0) + fl%r%v_p(i-1, j, k, 0, 0) )/(2*r_i) &
+                + ( fl%p%v_r(i, j, k, 0, 0) + fl%p%v_r(i, j-1, k, 0, 0) )/(2*r_i)
                 
         !>-------------------------------------------------------------------------------
         !> Calculate the increment:
