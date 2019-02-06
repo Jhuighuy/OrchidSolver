@@ -472,7 +472,7 @@ Subroutine mhd_hydro_update(Tau, g, gp, fl)
                 If ( verbose ) Then
                     Write (0,*) 'Invalid flow paramaters were detected at: ', i, j, k
                 End If
-                Stop
+                Stop 1
             End If
         End If
         !>-------------------------------------------------------------------------------

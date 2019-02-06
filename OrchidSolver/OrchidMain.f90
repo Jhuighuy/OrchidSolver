@@ -7,7 +7,7 @@ Module orchid_solver_params
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
     
-    Character(Len=10) :: hydro_flux = 'roe'
+    Character(Len=10) :: hydro_flux = 'hllc'
     Character(Len=10) :: hydro_flux_limiter = 'none'
 
     Character(Len=10) :: R0_bc = 'wall' ! 'periodic'

@@ -21,7 +21,6 @@ Subroutine mhd_hydro_calc_dg_flux1D(nx, &
     Real(8), Dimension(m_min:m_min, m_min:m_min), Intent(Out) :: flux_rho, flux_nrg, flux_u
     !> }}}
     Integer :: m1, m2
-    Real(8) :: x
     Real(8), Dimension(m_min:m_max) :: basis
     Real(8) :: rho_p, nrg_p, u_p, &
                rho_m, nrg_m, u_m
