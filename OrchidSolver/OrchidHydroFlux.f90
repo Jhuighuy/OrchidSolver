@@ -160,7 +160,7 @@ Subroutine mhd_hydro_calc_dg_flux3D(nx, ny, nz, &
                     rho_p, nrg_p, u_p, v_p, w_p, &
                     rho_m, nrg_m, u_m, v_m, w_m, &
                     flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2), flux_w(m1, m2))
-        Else If ( hydro_flux == 'roe' ) Then
+        Else If ( hydro_flux == 'hllc' ) Then
             Call mhd_hydro_calc_flux_hllc3D(Dble(nx), Dble(ny), Dble(nz), &
                     rho_p, nrg_p, u_p, v_p, w_p, &
                     rho_m, nrg_m, u_m, v_m, w_m, &
