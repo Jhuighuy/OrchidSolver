@@ -18,42 +18,37 @@ Subroutine mhd_hydro_calc_dg_flux1D(nx, &
     Integer, Intent(In) :: nx
     Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vp, nrg_vp, u_vp
     Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vm, nrg_vm, u_vm
-    Real(8), Dimension(m_min:m_min, m_min:m_min), Intent(Out) :: flux_rho, flux_nrg, flux_u
+    Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u
     !> }}}
-    Integer :: m1, m2
     Real(8), Dimension(m_min:m_max) :: basis
     Real(8) :: rho_p, nrg_p, u_p, &
                rho_m, nrg_m, u_m
-    Do m1 = m_min, m_min
-    Do m2 = m_min, m_min
-        !> Calculate +Values.
-        basis = GaussLegendreEdge1D(:)
-        rho_p = Dot_Product(rho_vp, basis)
-        nrg_p = Dot_Product(nrg_vp, basis)/rho_p
-        u_p = Dot_Product(u_vp, basis)/rho_p
-        !> Calculate -Values.
-        basis = GaussLegendreEdge1D(:)
-        rho_m = Dot_Product(rho_vm, basis)
-        nrg_m = Dot_Product(nrg_vm, basis)/rho_m
-        u_m = Dot_Product(u_vm, basis)/rho_m
-        !> Calculate the Fluxes.
-        If ( hydro_flux == 'roe' ) Then
-             Call mhd_hydro_calc_flux_roe1D(Dble(nx), &
-                    rho_p, nrg_p, u_p, &
-                    rho_m, nrg_m, u_m, &
-                    flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2))
-        Else If ( hydro_flux == 'hllc' ) Then
-             Call mhd_hydro_calc_flux_hllc1D(Dble(nx), &
-                    rho_p, nrg_p, u_p, &
-                    rho_m, nrg_m, u_m, &
-                    flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2))
-        Else
-            Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
-                        ' is not implemented for 1D.'
-            Stop 1
-        End If
-    End Do
-    End Do
+    !> Calculate +Values.
+    basis = GaussLegendreEdge1D(:)
+    rho_p = Dot_Product(rho_vp, basis)
+    nrg_p = Dot_Product(nrg_vp, basis)/rho_p
+    u_p = Dot_Product(u_vp, basis)/rho_p
+    !> Calculate -Values.
+    basis = GaussLegendreEdge1D(:)
+    rho_m = Dot_Product(rho_vm, basis)
+    nrg_m = Dot_Product(nrg_vm, basis)/rho_m
+    u_m = Dot_Product(u_vm, basis)/rho_m
+    !> Calculate the Fluxes.
+    If ( hydro_flux == 'roe' ) Then
+            Call mhd_hydro_calc_flux_roe1D(Dble(nx), &
+                rho_p, nrg_p, u_p, &
+                rho_m, nrg_m, u_m, &
+                flux_rho, flux_nrg, flux_u)
+    Else If ( hydro_flux == 'hllc' ) Then
+            Call mhd_hydro_calc_flux_hllc1D(Dble(nx), &
+                rho_p, nrg_p, u_p, &
+                rho_m, nrg_m, u_m, &
+                flux_rho, flux_nrg, flux_u)
+    Else
+        Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
+                    ' is not implemented for 1D.'
+        Stop 1
+    End If
 End Subroutine mhd_hydro_calc_dg_flux1D
 !########################################################################################################
 !########################################################################################################
@@ -68,25 +63,24 @@ Subroutine mhd_hydro_calc_dg_flux2D(nx, ny, &
     Integer, Intent(In) :: nx, ny
     Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vp, nrg_vp, u_vp, v_vp
     Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vm, nrg_vm, u_vm, v_vm
-    Real(8), Dimension(m_min:m_max, m_min:m_min), Intent(Out) :: flux_rho, flux_nrg, flux_v, flux_u
+    Real(8), Dimension(m_min:m_max), Intent(Out) :: flux_rho, flux_nrg, flux_v, flux_u
     !> }}}
+    Integer :: m
     Integer :: np, nm
-    Integer :: m1, m2
     Real(8), Dimension(m_min:m_max) :: basis
     Real(8) :: rho_p, nrg_p, u_p, v_p, &
                rho_m, nrg_m, u_m, v_m
     np = 1*nx + 2*ny
     nm = 3*nx + 4*ny
-    Do m1 = m_min, m_max
-    Do m2 = m_min, m_min
+    Do m = m_min, m_max
         !> Calculate +Values.
-        basis = GaussLegendreEdge2D(np, m1, :)
+        basis = GaussLegendreEdge2D(np, m, :)
         rho_p = Dot_Product(rho_vp, basis)
         nrg_p = Dot_Product(nrg_vp, basis)/rho_p
         u_p = Dot_Product(u_vp, basis)/rho_p
         v_p = Dot_Product(v_vp, basis)/rho_p
         !> Calculate -Values.
-        basis = GaussLegendreEdge2D(nm, m1, :)
+        basis = GaussLegendreEdge2D(nm, m, :)
         rho_m = Dot_Product(rho_vm, basis)
         nrg_m = Dot_Product(nrg_vm, basis)/rho_m
         u_m = Dot_Product(u_vm, basis)/rho_m
@@ -96,23 +90,22 @@ Subroutine mhd_hydro_calc_dg_flux2D(nx, ny, &
             Call mhd_hydro_calc_flux_roe2D(Dble(nx), Dble(ny), &
                     rho_p, nrg_p, u_p, v_p, &
                     rho_m, nrg_m, u_m, v_m, &
-                    flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2))
+                    flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
         Else If ( hydro_flux == 'hllc' ) Then
             Call mhd_hydro_calc_flux_hllc2D(Dble(nx), Dble(ny), &
                     rho_p, nrg_p, u_p, v_p, &
                     rho_m, nrg_m, u_m, v_m, &
-                    flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2))
+                    flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
         Else
             Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
                         ' is not implemented for 2D.'
             Stop 1
         End If
         !> Premultiply Fluxes by the Gauss weights.
-        flux_rho(m1, m2) = Gauss_w(m_max, m1)*flux_rho(m1, m2)
-        flux_nrg(m1, m2) = Gauss_w(m_max, m1)*flux_nrg(m1, m2)
-        flux_u(m1, m2) = Gauss_w(m_max, m1)*flux_u(m1, m2)
-        flux_v(m1, m2) = Gauss_w(m_max, m1)*flux_v(m1, m2)
-    End Do
+        flux_rho(m) = Gauss_w(m_max, m)*flux_rho(m)
+        flux_nrg(m) = Gauss_w(m_max, m)*flux_nrg(m)
+        flux_u(m) = Gauss_w(m_max, m)*flux_u(m)
+        flux_v(m) = Gauss_w(m_max, m)*flux_v(m)
     End Do
 End Subroutine mhd_hydro_calc_dg_flux2D
 !########################################################################################################
@@ -130,8 +123,8 @@ Subroutine mhd_hydro_calc_dg_flux3D(nx, ny, nz, &
     Real(8), Dimension(m_min:m_max), Intent(In) :: rho_vm, nrg_vm, u_vm, v_vm, w_vm
     Real(8), Dimension(m_min:m_max, m_min:m_max), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w
     !> }}}
-    Integer :: np, nm
     Integer :: m1, m2
+    Integer :: np, nm
     Real(8), Dimension(m_min:m_max) :: basis
     Real(8) :: rho_p, nrg_p, u_p, v_p, w_p, &
                rho_m, nrg_m, u_m, v_m, w_m
