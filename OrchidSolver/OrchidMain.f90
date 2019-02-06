@@ -24,6 +24,10 @@ Module orchid_solver_params
     Real(8), Dimension(0:0, 0:0), Parameter :: Gauss_x = [0.0D0]
     Real(8), Dimension(0:0, 0:0), Parameter :: Gauss_w = [1.0D0]
     
+    Real(8), Dimension(0:0), Parameter :: GaussLegendreEdge1D = 1.0D0
+    Real(8), Dimension(1:4, 0:0, 0:0), Parameter :: GaussLegendreEdge2D = 1.0D0
+    Real(8), Dimension(1:6, 0:0, 0:0, 0:0), Parameter :: GaussLegendreEdge3D = 1.0D0
+    
     Contains
     Pure Function mhd_eval1D(vc, i, x) result(v)
         ! {{{
@@ -53,7 +57,7 @@ Module orchid_solver_params
         v = vc(m_min)
     End Function mhd_eval3D
     
-    Pure Function minmod2(x, y)
+    Elemental Function minmod2(x, y)
         ! {{{
         Real(8), Intent(In) :: x, y
         ! }}}
@@ -169,8 +173,6 @@ Program orchid_solver
     Allocate(g)
     Allocate(gp)
     Allocate(flux)
-    
-    l = Sign(1, -10)
     
     g%rho(:, :, :, :) = 1.0D0;
     g%nrg(:, :, :, :) = 1.0D0/( Gamma1*1.0D0 );

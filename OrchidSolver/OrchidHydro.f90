@@ -151,18 +151,18 @@ Subroutine mhd_hydro_calc_flux_single(g, fl, ip, jp, kp, &
         v_m = g%v_p(im, jm, km, :)*bm
         If ( dim == 2 ) Then
             !> Polar Case.
-            Call mhd_hydro_calc_dg_flux2D(Dble(nr), Dble(np), &
-                    Dble(ip), Dble(jp), rho_p, nrg_p, u_p, v_p, &
-                    Dble(im), Dble(jm), rho_m, nrg_m, u_m, v_m, &
+            Call mhd_hydro_calc_dg_flux2D(nr, np, &
+                    rho_p, nrg_p, u_p, v_p, &
+                    rho_m, nrg_m, u_m, v_m, &
                     fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
                     fl%v_r(i, j, k, :, :), fl%v_p(i, j, k, :, :))
         Else
             !> Spherical Case.
             w_p = g%v_t(ip, jp, kp, :)/rho_p*cp
             w_m = g%v_t(im, jm, km, :)/rho_m*cm
-            Call mhd_hydro_calc_dg_flux3D(Dble(nr), Dble(np), Dble(nt), &
-                    Dble(ip), Dble(jp), Dble(kp), rho_p, nrg_p, u_p, v_p, w_p, &
-                    Dble(im), Dble(jm), Dble(km), rho_m, nrg_m, u_m, v_m, w_m, &
+            Call mhd_hydro_calc_dg_flux3D(nr, np, nt, &
+                    rho_p, nrg_p, u_p, v_p, w_p, &
+                    rho_m, nrg_m, u_m, v_m, w_m, &
                     fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
                     fl%v_r(i, j, k, :, :), fl%v_p(i, j, k, :, :), fl%v_t(i, j, k, :, :))
         End If
