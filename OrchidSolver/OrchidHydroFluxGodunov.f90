@@ -558,10 +558,10 @@ Subroutine mhd_hydro_calc_flux_hllc3D(nx, ny, nz, &
                 (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
         d_s = [ 0.0D0, nx, ny, nz, s_s ]
         If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
-            q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p ]
+            q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p ]
             f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
         Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
-            q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m ]
+            q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m ]
             f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
         End If
     End If
