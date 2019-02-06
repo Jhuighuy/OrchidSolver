@@ -143,8 +143,8 @@ Subroutine mhd_hydro_calc_flux_single(g, fl, ip, jp, kp, &
         Call mhd_hydro_calc_dg_flux1D(nr, &
                 rho_p, nrg_p, u_p, &
                 rho_m, nrg_m, u_m, &
-                fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
-                fl%v_r(i, j, k, :, :))
+                fl%rho(i, j, k, m_min, m_min), fl%nrg(i, j, k, m_min, m_min), &
+                fl%v_r(i, j, k, m_min, m_min))
     Else
         !> Polar Or Spherical Case.
         v_p = g%v_p(ip, jp, kp, :)*bp
@@ -154,8 +154,8 @@ Subroutine mhd_hydro_calc_flux_single(g, fl, ip, jp, kp, &
             Call mhd_hydro_calc_dg_flux2D(nr, np, &
                     rho_p, nrg_p, u_p, v_p, &
                     rho_m, nrg_m, u_m, v_m, &
-                    fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
-                    fl%v_r(i, j, k, :, :), fl%v_p(i, j, k, :, :))
+                    fl%rho(i, j, k, :, m_min), fl%nrg(i, j, k, :, m_min), &
+                    fl%v_r(i, j, k, :, m_min), fl%v_p(i, j, k, :, m_min))
         Else
             !> Spherical Case.
             w_p = g%v_t(ip, jp, kp, :)/rho_p*cp
