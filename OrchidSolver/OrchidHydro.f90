@@ -140,9 +140,9 @@ Subroutine mhd_hydro_calc_flux_single(g, fl, ip, jp, kp, &
     u_m   = g%v_r(im, jm, km, :)*am
     If ( dim == 1 ) Then
         !> 1D Case.
-        Call mhd_hydro_calc_dg_flux1D(Dble(nr), &
-                Dble(ip), rho_p, nrg_p, u_p, &
-                Dble(im), rho_m, nrg_m, u_m, &
+        Call mhd_hydro_calc_dg_flux1D(nr, &
+                rho_p, nrg_p, u_p, &
+                rho_m, nrg_m, u_m, &
                 fl%rho(i, j, k, :, :), fl%nrg(i, j, k, :, :), &
                 fl%v_r(i, j, k, :, :))
     Else
