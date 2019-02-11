@@ -188,8 +188,8 @@ Subroutine mhd_hydro_calc_dg_fluxes(g, fl)
     k_min = 1; k_max = 1;
     i_min = 1; i_max = N_r
     
-    !$OMP Do Private(rho_p, nrg_p, u_p, v_p, w_p, &
-                     rho_m, nrg_m, u_m, v_m, w_m)
+    !$OMP Parallel Do Private(rho_p, nrg_p, u_p, v_p, w_p, &
+                              rho_m, nrg_m, u_m, v_m, w_m)
     Do i = i_min, i_max
     Do j = j_min, j_max
     Do k = k_min, k_max
@@ -478,7 +478,7 @@ Subroutine mhd_hydro_calc_dg_fluxes(g, fl)
     End Do
     End Do
     End Do
-    !$OMP End Do
+    !$OMP End Parallel Do
 End Subroutine mhd_hydro_calc_dg_fluxes
 !########################################################################################################
 !########################################################################################################
