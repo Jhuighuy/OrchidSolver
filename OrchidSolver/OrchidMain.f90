@@ -13,8 +13,13 @@ Module orchid_solver_params
     Character(Len=10) :: R0_bc = 'wall' ! 'periodic'
     Character(Len=10) :: R1_bc = 'free'
     
+    Character(Len=10) :: MHD_R0_BOUNDARY_COND = 'wall' ! 'periodic'
+    Character(Len=10) :: MHD_R1_BOUNDARY_COND = 'free'
+    
+    
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0/3.0, Gamma1 = Gamma-1.0D0
     Real(8), Parameter :: r_0 = 3.0, r_1 = 10.0
+    Real(8), Parameter :: r0 = 3.0, r1 = 10.0
 
     Integer, Parameter :: N_r = 200, N_theta = 1, N_phi = 200, N_funcs=1
     Real(8), Parameter :: L_r = 1.0D0, L_theta = Pi, L_phi = 2.0D0*Pi
