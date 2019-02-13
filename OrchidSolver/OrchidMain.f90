@@ -110,6 +110,15 @@ Module orchid_solver_grid
         Real(8), Dimension(0:N_r+1, 0:N_phi+1, 0:N_theta+1, 0:0) :: v_r, v_t, v_p
         !> @}
     End Type mhd_grid_dg
+    
+    !> @todo Move me out of here!
+!Module orchid_solver_grid
+!Type :: MhdFields
+!    Real(8) :: rho, nrg
+!    Real(8) :: v_x, v_y, v_z
+!    Real(8) :: B_x, B_y, B_z
+!End Type MhdFields
+!End Module orchid_solver_grid
 End Module orchid_solver_grid
     
 Module orchid_solver_simulation
@@ -198,6 +207,7 @@ Program orchid_solver
     Allocate(g)
     Allocate(gp)
     Allocate(flux)
+    Allocate( MhdHydroFluxHLLC :: flll )
     
     g%rho(:, :, :, :) = 1.0D0;
     g%nrg(:, :, :, :) = 1.0D0/( Gamma1*1.0D0 );

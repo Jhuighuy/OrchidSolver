@@ -6,6 +6,7 @@ Use orchid_solver_grid
 Use orchid_solver_hydro_flux_hllc
 Use orchid_solver_hydro_flux_roe
 Implicit None
+Class(MhdHydroFlux), Allocatable :: flll
 Contains
 !########################################################################################################
 !########################################################################################################
@@ -35,21 +36,21 @@ Subroutine mhd_hydro_calc_dg_flux1D(nx, &
     nrg_m = Dot_Product(nrg_vm, basis)/rho_m
     u_m = Dot_Product(u_vm, basis)/rho_m
     !> Calculate the Fluxes.
-    If ( hydro_flux == 'hllc' ) Then
-            Call mhd_hydro_calc_flux_hllc1D(nx, &
-                    rho_p, nrg_p, u_p, &
-                    rho_m, nrg_m, u_m, &
-                    flux_rho, flux_nrg, flux_u)
-    Else If ( hydro_flux == 'roe' ) Then
-            Call mhd_hydro_calc_flux_roe1D(nx, &
-                    rho_p, nrg_p, u_p, &
-                    rho_m, nrg_m, u_m, &
-                    flux_rho, flux_nrg, flux_u)
-    Else
-        Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
-                    ' is not implemented for 1D.'
-        Stop 1
-    End If
+    !If ( hydro_flux == 'hllc' ) Then
+    !        Call mhd_hydro_calc_flux_hllc1D(nx, &
+    !                rho_p, nrg_p, u_p, &
+    !                rho_m, nrg_m, u_m, &
+    !                flux_rho, flux_nrg, flux_u)
+    !Else If ( hydro_flux == 'roe' ) Then
+    !        Call mhd_hydro_calc_flux_roe1D(nx, &
+    !                rho_p, nrg_p, u_p, &
+    !                rho_m, nrg_m, u_m, &
+    !                flux_rho, flux_nrg, flux_u)
+    !Else
+    !    Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
+    !                ' is not implemented for 1D.'
+    !    Stop 1
+    !End If
 End Subroutine mhd_hydro_calc_dg_flux1D
 !########################################################################################################
 !########################################################################################################
@@ -86,21 +87,25 @@ Subroutine mhd_hydro_calc_dg_flux2D(nx, ny, &
         u_m = Dot_Product(u_vm, basis)/rho_m
         v_m = Dot_Product(v_vm, basis)/rho_m
         !> Calculate the Fluxes.
-        If ( hydro_flux == 'hllc' ) Then
-            Call mhd_hydro_calc_flux_hllc2D(nx, ny, &
+        Call flll%calc2D(nx, ny, &
                     rho_p, nrg_p, u_p, v_p, &
                     rho_m, nrg_m, u_m, v_m, &
                     flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
-        Else If ( hydro_flux == 'roe' ) Then
-            Call mhd_hydro_calc_flux_roe2D(nx, ny, &
-                    rho_p, nrg_p, u_p, v_p, &
-                    rho_m, nrg_m, u_m, v_m, &
-                    flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
-        Else
-            Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
-                        ' is not implemented for 2D.'
-            Stop 1
-        End If
+        !If ( hydro_flux == 'hllc' ) Then
+        !    Call mhd_hydro_calc_flux_hllc2D(nx, ny, &
+        !            rho_p, nrg_p, u_p, v_p, &
+        !            rho_m, nrg_m, u_m, v_m, &
+        !            flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
+        !Else If ( hydro_flux == 'roe' ) Then
+        !    Call mhd_hydro_calc_flux_roe2D(nx, ny, &
+        !            rho_p, nrg_p, u_p, v_p, &
+        !            rho_m, nrg_m, u_m, v_m, &
+        !            flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
+        !Else
+        !    Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
+        !                ' is not implemented for 2D.'
+        !    Stop 1
+        !End If
         !> Premultiply Fluxes by the Gauss weights.
         flux_rho(m) = Gauss_w(m_max, m)*flux_rho(m)
         flux_nrg(m) = Gauss_w(m_max, m)*flux_nrg(m)
@@ -146,21 +151,21 @@ Subroutine mhd_hydro_calc_dg_flux3D(nx, ny, nz, &
         v_m = Dot_Product(v_vm, basis)/rho_m
         w_m = Dot_Product(w_vm, basis)/rho_m
         !> Calculate Fluxes.
-        If ( hydro_flux == 'hllc' ) Then
-            Call mhd_hydro_calc_flux_hllc3D(nx, ny, nz, &
-                    rho_p, nrg_p, u_p, v_p, w_p, &
-                    rho_m, nrg_m, u_m, v_m, w_m, &
-                    flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2), flux_w(m1, m2))
-        Else If ( hydro_flux == 'roe' ) Then
-            Call mhd_hydro_calc_flux_roe3D(nx, ny, nz, &
-                    rho_p, nrg_p, u_p, v_p, w_p, &
-                    rho_m, nrg_m, u_m, v_m, w_m, &
-                    flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2), flux_w(m1, m2))
-        Else
-            Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
-                        ' is not implemented for 3D.'
-            Stop 1
-        End If
+        !If ( hydro_flux == 'hllc' ) Then
+        !    Call mhd_hydro_calc_flux_hllc3D(nx, ny, nz, &
+        !            rho_p, nrg_p, u_p, v_p, w_p, &
+        !            rho_m, nrg_m, u_m, v_m, w_m, &
+        !            flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2), flux_w(m1, m2))
+        !Else If ( hydro_flux == 'roe' ) Then
+        !    Call mhd_hydro_calc_flux_roe3D(nx, ny, nz, &
+        !            rho_p, nrg_p, u_p, v_p, w_p, &
+        !            rho_m, nrg_m, u_m, v_m, w_m, &
+        !            flux_rho(m1, m2), flux_nrg(m1, m2), flux_u(m1, m2), flux_v(m1, m2), flux_w(m1, m2))
+        !Else
+        !    Write (0,*) 'Hydro flux ', Trim(hydro_flux), &
+        !                ' is not implemented for 3D.'
+        !    Stop 1
+        !End If
     End Do
     End Do
 End Subroutine mhd_hydro_calc_dg_flux3D
