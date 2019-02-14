@@ -87,10 +87,10 @@ Subroutine mhd_hydro_calc_dg_flux2D(nx, ny, &
         u_m = Dot_Product(u_vm, basis)/rho_m
         v_m = Dot_Product(v_vm, basis)/rho_m
         !> Calculate the Fluxes.
-        Call flll%calc2D(nx, ny, &
-                    rho_p, nrg_p, u_p, v_p, &
-                    rho_m, nrg_m, u_m, v_m, &
-                    flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
+        !Call flll%calc2D(nx, ny, &
+        !            rho_p, nrg_p, u_p, v_p, &
+        !            rho_m, nrg_m, u_m, v_m, &
+        !            flux_rho(m), flux_nrg(m), flux_u(m), flux_v(m))
         !If ( hydro_flux == 'hllc' ) Then
         !    Call mhd_hydro_calc_flux_hllc2D(nx, ny, &
         !            rho_p, nrg_p, u_p, v_p, &
@@ -193,8 +193,8 @@ Subroutine mhd_hydro_calc_dg_fluxes(g, fl)
     k_min = 1; k_max = 1;
     i_min = 1; i_max = N_r
     
-    !$OMP Parallel Do Private(rho_p, nrg_p, u_p, v_p, w_p, &
-                              rho_m, nrg_m, u_m, v_m, w_m)
+    !!$OMP Parallel Do Private(rho_p, nrg_p, u_p, v_p, w_p, &
+    !                        & rho_m, nrg_m, u_m, v_m, w_m)
     Do i = i_min, i_max
     Do j = j_min, j_max
     Do k = k_min, k_max
@@ -483,7 +483,7 @@ Subroutine mhd_hydro_calc_dg_fluxes(g, fl)
     End Do
     End Do
     End Do
-    !$OMP End Parallel Do
+    !!$OMP End Parallel Do
 End Subroutine mhd_hydro_calc_dg_fluxes
 !########################################################################################################
 !########################################################################################################

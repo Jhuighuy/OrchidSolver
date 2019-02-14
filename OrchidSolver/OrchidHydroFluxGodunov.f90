@@ -7,11 +7,13 @@ Use orchid_solver_grid
 Implicit None
 Type, Abstract :: MhdHydroFlux
     Contains
+    Procedure, Public, Non_Overridable :: calc => mhd_hydro_calc_flux
     Procedure(mhd_hydro_calc_flux1D_t), Public, Deferred :: calc1D
     Procedure(mhd_hydro_calc_flux2D_t), Public, Deferred :: calc2D
     Procedure(mhd_hydro_calc_flux3D_t), Public, Deferred :: calc3D
 End Type MhdHydroFlux
-Private :: mhd_hydro_calc_flux1D_t, &
+Private :: mhd_hydro_calc_flux, &
+           mhd_hydro_calc_flux1D_t, &
            mhd_hydro_calc_flux2D_t, &
            mhd_hydro_calc_flux3D_t
 Interface
@@ -19,7 +21,7 @@ Interface
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux1D_t(this, &
+Subroutine mhd_hydro_calc_flux1D_t(This, &
                                    nx, &
                                    rho_p, nrg_p, u_p, &
                                    rho_m, nrg_m, u_m, &
@@ -27,7 +29,7 @@ Subroutine mhd_hydro_calc_flux1D_t(this, &
     !> Calculate the Godunov Fluxes in 1D.
     !> {{{
     Import :: MhdHydroFlux
-    Class(MhdHydroFlux), Intent(In) :: this
+    Class(MhdHydroFlux), Intent(In) :: This
     Real(8), Intent(In) :: nx
     Real(8), Intent(In) :: rho_p, nrg_p, u_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m
@@ -35,7 +37,7 @@ Subroutine mhd_hydro_calc_flux1D_t(this, &
     !> }}}
 End Subroutine mhd_hydro_calc_flux1D_t
 Pure &
-Subroutine mhd_hydro_calc_flux2D_t(this, &
+Subroutine mhd_hydro_calc_flux2D_t(This, &
                                    nx, ny, &
                                    rho_p, nrg_p, u_p, v_p, &
                                    rho_m, nrg_m, u_m, v_m, &
@@ -43,7 +45,7 @@ Subroutine mhd_hydro_calc_flux2D_t(this, &
     !> Calculate the Godunov Fluxes in 2D.
     !> {{{
     Import :: MhdHydroFlux
-    Class(MhdHydroFlux), Intent(In) :: this
+    Class(MhdHydroFlux), Intent(In) :: This
     Real(8), Intent(In) :: nx, ny
     Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m
@@ -51,7 +53,7 @@ Subroutine mhd_hydro_calc_flux2D_t(this, &
     !> }}}
 End Subroutine mhd_hydro_calc_flux2D_t
 Pure &
-Subroutine mhd_hydro_calc_flux3D_t(this, &
+Subroutine mhd_hydro_calc_flux3D_t(This, &
                                    nx, ny, nz, &
                                    rho_p, nrg_p, u_p, v_p, w_p, &
                                    rho_m, nrg_m, u_m, v_m, w_m, &
@@ -59,7 +61,7 @@ Subroutine mhd_hydro_calc_flux3D_t(this, &
     !> Calculate the Godunov Fluxes in 3D.
     !> {{{
     Import :: MhdHydroFlux
-    Class(MhdHydroFlux), Intent(In) :: this
+    Class(MhdHydroFlux), Intent(In) :: This
     Real(8), Intent(In) :: nx, ny, nz
     Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p, w_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m
@@ -70,6 +72,58 @@ End Subroutine mhd_hydro_calc_flux3D_t
 !########################################################################################################
 !########################################################################################################
 End Interface
+Contains
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
+Pure &
+Subroutine mhd_hydro_calc_flux(This, &
+                               fields_p, fields_m, flux, &
+                               nx, ny, nz)
+    !> Calculate the Godunov Fluxes in 1D/2D/3D.
+    !> {{{
+    Class(MhdHydroFlux), Intent(In) :: This
+    Real(8), Dimension(1:), Intent(In) :: fields_p, fields_m
+    Real(8), Dimension(1:), Intent(Out) :: flux
+    Real(8), Intent(In) :: nx, ny, nz
+    !> }}}
+    Real(8) :: rho_p, nrg_p, u_p, v_p, w_p, &
+               rho_m, nrg_m, u_m, v_m, w_m
+    rho_p = fields_p(1)    
+    nrg_p = fields_p(2)/rho_p
+    u_p   = fields_p(3)/rho_p
+    rho_m = fields_m(1)    
+    nrg_m = fields_m(2)/rho_m
+    u_m   = fields_m(3)/rho_m
+    If ( dim == 1 ) Then
+        !> 1D Case.
+        Call This%calc1D(nx, &
+                         rho_p, nrg_p, u_p, &
+                         rho_m, nrg_m, u_m, &
+                         flux(1), flux(2), flux(3))
+    Else
+        v_p = fields_p(4)/rho_p
+        v_m = fields_m(4)/rho_m
+        If ( dim == 2 ) Then
+            !> Polar Case.
+            Call This%calc2D(nx, ny, &
+                             rho_p, nrg_p, u_p, v_p, &
+                             rho_m, nrg_m, u_m, v_m, &
+                             flux(1), flux(2), flux(3), flux(4))
+        Else
+            !> Spherical Case.
+            w_p = fields_p(5)/rho_p
+            w_m = fields_m(5)/rho_m
+            Call This%calc3D(nx, ny, nz, &
+                             rho_p, nrg_p, u_p, v_p, w_p, &
+                             rho_m, nrg_m, u_m, v_m, w_m, &
+                             flux(1), flux(2), flux(3), flux(4), flux(5))
+        End If
+    End If
+End Subroutine mhd_hydro_calc_flux
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
 End Module orchid_solver_hydro_flux_godunov
 
 
@@ -80,9 +134,9 @@ Use orchid_solver_hydro_flux_godunov
 Implicit None
 Type, Extends(MhdHydroFlux) :: MhdHydroFluxHLLC
     Contains
-    Procedure, Public :: calc1D => mhd_hydro_calc_flux_hllc1D
-    Procedure, Public :: calc2D => mhd_hydro_calc_flux_hllc2D
-    Procedure, Public :: calc3D => mhd_hydro_calc_flux_hllc3D
+    Procedure, Public, Non_Overridable :: calc1D => mhd_hydro_calc_flux_hllc1D
+    Procedure, Public, Non_Overridable :: calc2D => mhd_hydro_calc_flux_hllc2D
+    Procedure, Public, Non_Overridable :: calc3D => mhd_hydro_calc_flux_hllc3D
 End Type MhdHydroFluxHLLC
 Private :: mhd_hydro_calc_flux_hllc1D, &
            mhd_hydro_calc_flux_hllc2D, &
@@ -92,14 +146,14 @@ Contains
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_hllc1D(this, &
+Subroutine mhd_hydro_calc_flux_hllc1D(This, &
                                       nx, &
                                       rho_p, nrg_p, u_p, &
                                       rho_m, nrg_m, u_m, &
                                       flux_rho, flux_nrg, flux_u)
     !> Calculate the HLLC Fluxes in 1D.
     !> {{{
-    Class(MhdHydroFluxHLLC), Intent(In) :: this
+    Class(MhdHydroFluxHLLC), Intent(In) :: This
     Real(8), Intent(In) :: nx
     Real(8), Intent(In) :: rho_p, nrg_p, u_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m
@@ -177,14 +231,14 @@ End Subroutine mhd_hydro_calc_flux_hllc1D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_hllc2D(this, &
+Subroutine mhd_hydro_calc_flux_hllc2D(This, &
                                       nx, ny, &
                                       rho_p, nrg_p, u_p, v_p, &
                                       rho_m, nrg_m, u_m, v_m, &
                                       flux_rho, flux_nrg, flux_u, flux_v)
     !> Calculate the HLLC Fluxes in 2D.
     !> {{{ 
-    Class(MhdHydroFluxHLLC), Intent(In) :: this
+    Class(MhdHydroFluxHLLC), Intent(In) :: This
     Real(8), Intent(In) :: nx, ny
     Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m
@@ -263,14 +317,14 @@ End Subroutine mhd_hydro_calc_flux_hllc2D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_hllc3D(this, &
+Subroutine mhd_hydro_calc_flux_hllc3D(This, &
                                       nx, ny, nz, &
                                       rho_p, nrg_p, u_p, v_p, w_p, &
                                       rho_m, nrg_m, u_m, v_m, w_m, &
                                       flux_rho, flux_nrg, flux_u, flux_v, flux_w)
     !> Calculate the HLLC Fluxes in 3D.
     !> {{{
-    Class(MhdHydroFluxHLLC), Intent(In) :: this
+    Class(MhdHydroFluxHLLC), Intent(In) :: This
     Real(8), Intent(In) :: nx, ny, nz
     Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p, w_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m
@@ -361,9 +415,9 @@ Use orchid_solver_hydro_flux_godunov
 Implicit None
 Type, Extends(MhdHydroFlux) :: MhdHydroFluxRoe
     Contains
-    Procedure, Public :: calc1D => mhd_hydro_calc_flux_roe1D
-    Procedure, Public :: calc2D => mhd_hydro_calc_flux_roe2D
-    Procedure, Public :: calc3D => mhd_hydro_calc_flux_roe3D
+    Procedure, Public, Non_Overridable :: calc1D => mhd_hydro_calc_flux_roe1D
+    Procedure, Public, Non_Overridable :: calc2D => mhd_hydro_calc_flux_roe2D
+    Procedure, Public, Non_Overridable :: calc3D => mhd_hydro_calc_flux_roe3D
 End Type MhdHydroFluxRoe
 Private :: mhd_hydro_calc_flux_roe1D, &
            mhd_hydro_calc_flux_roe2D, &
@@ -373,14 +427,14 @@ Contains
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_roe1D(this, &
+Subroutine mhd_hydro_calc_flux_roe1D(This, &
                                      nx, &
                                      rho_p, nrg_p, u_p, &
                                      rho_m, nrg_m, u_m, &
                                      flux_rho, flux_nrg, flux_u)
     !> Calculate the Roe-Einfeldt Fluxes in 1D.
     !> {{{
-    Class(MhdHydroFluxRoe), Intent(In) :: this
+    Class(MhdHydroFluxRoe), Intent(In) :: This
     Real(8), Intent(In) :: nx
     Real(8), Intent(In) :: rho_p, nrg_p, u_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m
@@ -450,14 +504,14 @@ End Subroutine mhd_hydro_calc_flux_roe1D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_roe2D(this, &
+Subroutine mhd_hydro_calc_flux_roe2D(This, &
                                      nx, ny, &
                                      rho_p, nrg_p, u_p, v_p, &
                                      rho_m, nrg_m, u_m, v_m, &
                                      flux_rho, flux_nrg, flux_u, flux_v)
     !> Calculate the Roe-Einfeldt Fluxes in 2D.
     !> {{{
-    Class(MhdHydroFluxRoe), Intent(In) :: this
+    Class(MhdHydroFluxRoe), Intent(In) :: This
     Real(8), Intent(In) :: nx, ny
     Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m
@@ -534,14 +588,14 @@ End Subroutine mhd_hydro_calc_flux_roe2D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_roe3D(this, &
+Subroutine mhd_hydro_calc_flux_roe3D(This, &
                                      nx, ny, nz, &
                                      rho_p, nrg_p, u_p, v_p, w_p, &
                                      rho_m, nrg_m, u_m, v_m, w_m, &
                                      flux_rho, flux_nrg, flux_u, flux_v, flux_w)
     !> Calculate the Roe-Einfeldt Fluxes in 3D.
     !> {{{
-    Class(MhdHydroFluxRoe), Intent(In) :: this
+    Class(MhdHydroFluxRoe), Intent(In) :: This
     Real(8), Intent(In) :: nx, ny, nz
     Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p, w_p
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m

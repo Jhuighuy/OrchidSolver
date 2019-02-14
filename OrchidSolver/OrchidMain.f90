@@ -25,6 +25,11 @@ Module orchid_solver_params
     Real(8), Parameter :: L_r = 1.0D0, L_theta = Pi, L_phi = 2.0D0*Pi
     Real(8), Parameter :: h_r = 7.0D0/N_r, h_t = 1+0*L_theta/N_theta, h_tt=2.0D0*Sin(0.5D0*h_t), h_p = L_phi/N_phi
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
+    Integer, Parameter :: n_min = 1, n_max = 4
+    Integer, Parameter :: i_min = 1, i_max = N_r
+    Integer, Parameter :: j_min = 1, j_max = N_phi
+    Integer, Parameter :: k_min = 1, k_max = N_theta
+    Integer, Parameter :: f_min = 1, f_max = dim
     
     Real(8), Dimension(0:0, 0:0), Parameter :: Gauss_x = [0.0D0]
     Real(8), Dimension(0:0, 0:0), Parameter :: Gauss_w = [1.0D0]
@@ -170,19 +175,64 @@ Subroutine print_grid(g, l)
     End If
     Close(output)
 End Subroutine print_grid
+
+Subroutine print_grid2(g, l)
+    !> {{{
+    Integer, Intent(In) :: l
+    Real(8), Dimension(n_min:n_max, &
+                       i_min:i_max, &
+                       j_min:j_max, &
+                       k_min:k_max), Intent(In) :: g
+    !> }}}
+    Integer :: i, j, k
+    Integer :: output
+    Real(8) :: r, theta, phi
+    Real(8) :: x, y, z
+    Real(8) :: v_r, v_t, v_p
+    Real(8) :: v_x, v_y, v_z, v_l
+    Real(8) :: vxy(2), vrp(2), a(2,2), vvv
+    Open(NewUnit=output, file='../Results/fields-'//Trim(to_str(l))//'.csv', Status='replace')
+    k = 1
+    If ( dim==2 ) Then
+        Write (output,*) 'x,y,u,v,r,e'
+        Do i = 1, N_r
+        Do j = 1, N_phi
+            r = r_0 + (i - 0.5D0)*h_r
+            phi = (j - 0.5D0)*h_p
+            x = r*Cos(Phi)
+            y = r*Sin(Phi)
+            a(1,:) = [Cos(phi), -Sin(Phi)]
+            a(2,:) = [Sin(Phi), Cos(Phi)]
+            a = Transpose(a)
+            !vxy = MatMul(a, [g%v_r(i, j, 1, 0)/g%rho(i, j, 1, 0), g%v_p(i, j, 1, 0)/g%rho(i, j, 1, 0)])*0.5
+            Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
+                x, ',', y, ',', &!r, phi,&!
+                vxy(1), ',', vxy(2), ',', &
+                g(1, i, j, k), ',', g(2, i, j, k)/g(1, i, j, k)
+        End Do 
+        End Do
+    Else
+    End If
+    Close(output)
+End Subroutine print_grid2
     
 End Module orchid_solver_simulation
     
 Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro
+    Use orchid_solver_hydro2
     
     Type(mhd_grid_dg), Allocatable :: g, gp
     Type(mhd_grid_flux), Allocatable :: flux
     
+    Real(8), Dimension(:,:,:,:), Allocatable :: g2, gp2
+    Real(8), Dimension(:,:,:,:,:), Allocatable :: f2
+
     Integer::l
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
+    Class(MhdHydroSolver), Allocatable :: solver
     
     !>-------------------------------------------------------------------------------
     !> Write the damn cool Logo.
@@ -204,41 +254,75 @@ Program orchid_solver
     Write(*,*) ''
     !>-------------------------------------------------------------------------------
     
-    Allocate(g)
-    Allocate(gp)
-    Allocate(flux)
-    Allocate( MhdHydroFluxHLLC :: flll )
-    
-    g%rho(:, :, :, :) = 1.0D0;
-    g%nrg(:, :, :, :) = 1.0D0/( Gamma1*1.0D0 );
+    Allocate(solver)
+    Allocate(g2(n_min:n_max, &
+                       i_min:i_max, &
+                       j_min:j_max, &
+                       k_min:k_max))
+    Allocate(gp2(n_min:n_max, &
+                       i_min:i_max, &
+                       j_min:j_max, &
+                       k_min:k_max))
+    Allocate(f2(n_min:n_max, &
+                       i_min-1:i_max, &
+                       j_min-1:j_max, &
+                       k_min-1:k_max, f_min:f_max))
+    g2(1, :, :, :) = 1.0D0
+    g2(2, :, :, :) = 1.0D0/( Gamma1*1.0D0 )
     Do i=1,n_r
-        Do j = 1,n_phi
-            r = r_0 + (i - 0.5D0)*h_r
-            phi = (j - 0.5D0)*h_p
-            vxy = [1.0D0,0.0D0]
-            a(1,:) = [Cos(phi), -Sin(Phi)]
-            a(2,:) = [Sin(Phi), Cos(Phi)]
-            vrp = MatMul(a, vxy)
-            g%v_r(i,j,:,:)=vrp(1)
-            g%v_p(i,j,:,:)=vrp(2)
-        End Do
+    Do j = 1,n_phi
+        r = r_0 + (i - 0.5D0)*h_r
+        phi = (j - 0.5D0)*h_p
+        vxy = [1.0D0,0.0D0]
+        a(1,:) = [Cos(phi), -Sin(Phi)]
+        a(2,:) = [Sin(Phi), Cos(Phi)]
+        vrp = MatMul(a, vxy)
+        g2(3,i,j,:)=vrp(1)
+        g2(4,i,j,:)=vrp(2)
     End Do
-    
-    !g%rho(0:100,:, :, :) = 2.0D0;
-    !g%nrg(0:100,:, :, :) = 10.0D0/( Gamma1*2.0D0 );
-    !g%rho(0:100, 80:120, :, :) = 2.0D0;
-    !g%nrg(0:100, 80:120, :, :) = 10.0D0/( Gamma1*2.0D0 );
-    
-    
-    Call print_grid(g, 0)
+    End Do
+    Call solver%init()
+    Call print_grid2(g2, 0)
     Do l=1,2000000000
-        Call mhd_hydro_update(0.001D0, g, gp, flux)
+        Call solver%calc_step(0.001D0, g2, gp2, f2)
         If (Mod(l, 100) == 0) Then
             Write(*, *) 'time step:', l
-            Call print_grid(g, l)
+            Call print_grid2(g2, l)
         End If
-        g=gp
+        g2(:,:,:,:)=gp2(:,:,:,:)
     End Do
+
+    ! Allocate(g)
+    ! Allocate(gp)
+    ! Allocate(flux)
+    ! Allocate( MhdHydroFluxHLLC :: flll )
+    ! !g%rho(0:100,:, :, :) = 2.0D0;
+    ! !g%nrg(0:100,:, :, :) = 10.0D0/( Gamma1*2.0D0 );
+    ! !g%rho(0:100, 80:120, :, :) = 2.0D0;
+    ! !g%nrg(0:100, 80:120, :, :) = 10.0D0/( Gamma1*2.0D0 );
+    ! g%rho(:, :, :, :) = 1.0D0;
+    ! g%nrg(:, :, :, :) = 1.0D0/( Gamma1*1.0D0 );
+    ! Do i=1,n_r
+    !     Do j = 1,n_phi
+    !         r = r_0 + (i - 0.5D0)*h_r
+    !         phi = (j - 0.5D0)*h_p
+    !         vxy = [1.0D0,0.0D0]
+    !         a(1,:) = [Cos(phi), -Sin(Phi)]
+    !         a(2,:) = [Sin(Phi), Cos(Phi)]
+    !         vrp = MatMul(a, vxy)
+    !         g%v_r(i,j,:,:)=vrp(1)
+    !         g%v_p(i,j,:,:)=vrp(2)
+    !     End Do
+    ! End Do
+    ! Call print_grid(g, 0)
+    ! Do l=1,2000000000
+    !     Call mhd_hydro_update(0.001D0, g, gp, flux)
+    !     If (Mod(l, 100) == 0) Then
+    !         Write(*, *) 'time step:', l
+    !         Call print_grid(g, l)
+    !     End If
+    !     g=gp
+    ! End Do
     
     !g%p(:, :, :) = 1.0D0;
     !g%rho(21:101, :, :) = 3.0D0;
