@@ -269,18 +269,21 @@ Program orchid_solver
                        k_min-1:k_max, f_min:f_max))
     g2(1, :, :, :) = 1.0D0
     g2(2, :, :, :) = 1.0D0/( Gamma1*1.0D0 )
-    Do i=1,n_r
-    Do j = 1,n_phi
-        r = r_0 + (i - 0.5D0)*h_r
-        phi = (j - 0.5D0)*h_p
-        vxy = [1.0D0,0.0D0]
-        a(1,:) = [Cos(phi), -Sin(Phi)]
-        a(2,:) = [Sin(Phi), Cos(Phi)]
-        vrp = MatMul(a, vxy)
-        g2(3,i,j,:)=vrp(1)
-        g2(4,i,j,:)=vrp(2)
-    End Do
-    End Do
+    g2(3, :, :, :) = 1.0D0
+    !g2(3, :, :, :) = 0.0D0
+    g2(4, :, :, :) = 0.0D0
+    !Do i=1,n_r
+    !Do j = 1,n_phi
+    !    r = r_0 + (i - 0.5D0)*h_r
+    !    phi = (j - 0.5D0)*h_p
+    !    vxy = [1.0D0,0.0D0]
+    !    a(1,:) = [Cos(phi), -Sin(Phi)]
+    !    a(2,:) = [Sin(Phi), Cos(Phi)]
+    !    vrp = MatMul(a, vxy)
+    !    g2(3,i,j,:)=vrp(1)
+    !    g2(4,i,j,:)=vrp(2)
+    !End Do
+    !End Do
     Call solver%init()
     Call print_grid2(g2, 0)
     Do l=1,2000000000

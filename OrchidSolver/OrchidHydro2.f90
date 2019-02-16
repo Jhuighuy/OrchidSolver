@@ -57,17 +57,24 @@ Subroutine mhd_hydro_calc_flux(This, &
                        k_min-1:k_max, f_min:f_max), Intent(Out) :: f
     !> }}}
     Integer :: i, j, k
+    Real(8) :: Phi_j, Phi_jph
     Real(8) :: nx_r, nx_p, nx_t
     Real(8) :: ny_r, ny_p, ny_t
     Real(8) :: nz_r, nz_p, nz_t
-    !$OMP Parallel Do
+    !$OMP Parallel Do Private(Phi_j, Phi_jph, nx_r, nx_p, nx_t, ny_r, ny_p, ny_t, nz_r, nz_p, nz_t)
     Do i = i_min, i_max
     Do j = j_min, j_max
     Do k = k_min, k_max
-        !> @todo Real normals from the unstructured grid should be here.
-        nx_r = 1; ny_r = 0; nz_r = 0
-        nx_p = 0; ny_p = 1; nz_p = 0
+        !> @todo Move this to Grid aux info.
+        Phi_jph = Dble(j)*h_p
+        Phi_j = Phi_jph - 0.5D0*h_p
+        nx_r = Cos(Phi_j); ny_r = Sin(Phi_j); nz_r = 0
+        nx_p = -Sin(Phi_jph); ny_p = Cos(Phi_jph); nz_p = 0
         nx_t = 0; ny_t = 0; nz_t = 1
+        !nx_r = 1; ny_r = 0; nz_r = 0
+        !nx_p = 0; ny_p = 1; nz_p = 0
+        !nx_t = 0; ny_t = 0; nz_t = 1
+
         !>-------------------------------------------------------------------------------
         !> Calculate the Fluxes through R faces.
         If ( i /= i_max ) Then
@@ -149,33 +156,56 @@ Subroutine mhd_hydro_calc_step(This, Tau, g, gp, f)
                        k_min-1:k_max, f_min:f_max), Intent(Out) :: f
     !> }}}
     Integer :: i, j, k
-    Real(8) :: r_i
+    Real(8) :: r_i, r_iph, r_imh, L_rp, L_rm, L_p, S
+    Real(8) :: Phi_j, Phi_jph, Phi_jmh
+    Real(8) :: nx_r, nx_p, nx_t
+    Real(8) :: ny_r, ny_p, ny_t
+    
+    gp(:,:,:,:)=g(:,:,:,:)
     Call This%calc_flux(g, f)
-    !$OMP Parallel Do
+    !$OMP Parallel Do Private(r_i, r_iph, r_imh, Phi_jph, Phi_jmh, Phi_j, L_rp, L_rm, L_p, S)
     Do i = i_min, i_max
     Do j = j_min, j_max
     Do k = k_min, k_max
+
+        !> @todo Move this to Grid aux info.
+        !> Values below may be incorrect.
+        r_iph = r_0 + Dble(i)*h_r
+        r_imh = r_iph - h_r
+        r_i = r_iph - 0.5D0*h_r
+        Phi_jph = Dble(j)*h_p
+        Phi_jmh = Phi_jph - h_p
+        Phi_j = Phi_jph - 0.5D0*h_p
+        L_rp = 2.0D0*r_iph*Sin(0.5D0*h_p)
+        L_rm = 2.0D0*r_imh*Sin(0.5D0*h_p)
+        L_p = h_r!Sqrt(1.0D0 + Sin(0.5D0*h_p)**2)
+        S = r_i*h_r*Sin(h_p)
+        
+        gp(:, i, j, k) = &
+            ( L_rp*f(:, i, j, k, 1) - L_rm*f(:, i-1, j, k, 1) ) + &
+            ( L_p* f(:, i, j, k, 2) - L_p* f(:, i, j-1, k, 2) )
+        gp(:, i, j, k) = g(:, i, j, k) - Tau/S*gp(:, i, j, k)
+
         !> @todo The Unstructured grid should be here.
-        r_i = r_0 + (i - 0.5D0)*h_r
-        gp(1, i, j, k) = &
-            ( f(1, i, j, k, 1) - f(1, i-1, j, k, 1) )/h_r + &
-            ( f(1, i, j, k, 2) - f(1, i, j-1, k, 2) )/h_p/r_i + &
-            ( f(1, i, j, k, 1) + f(1, i-1, j, k, 1) )/(2*r_i)
-        gp(2, i, j, k) = &
-            ( f(2, i, j, k, 1) - f(2, i-1, j, k, 1) )/h_r + &
-            ( f(2, i, j, k, 2) - f(2, i, j-1, k, 2) )/h_p/r_i + &
-            ( f(2, i, j, k, 1) + f(2, i-1, j, k, 1) )/(2*r_i)
-        gp(3, i, j, k) = &
-            ( f(3, i, j, k, 1) - f(3, i-1, j, k, 1) )/h_r + &
-            ( f(3, i, j, k, 2) - f(3, i, j-1, k, 2) )/h_p/r_i + &
-            ( f(3, i, j, k, 1) + f(3, i-1, j, k, 1) )/(2*r_i) - &
-            ( f(4, i, j, k, 2) + f(4, i, j-1, k, 2) )/(2*r_i)
-        gp(4, i, j, k) = &
-            ( f(4, i, j, k, 1) - f(4, i-1, j, k, 1) )/h_r + &
-            ( f(4, i, j, k, 2) - f(4, i, j-1, k, 2) )/h_p/r_i + &
-            ( f(4, i, j, k, 1) + f(4, i-1, j, k, 1) )/(2*r_i) + &
-            ( f(3, i, j, k, 2) + f(3, i, j-1, k, 2) )/(2*r_i)
-        gp(:, i, j, k) = g(:, i, j, k) - Tau*gp(:, i, j, k)
+        ! gp(1, i, j, k) = &
+        !     ( f(1, i, j, k, 1) - f(1, i-1, j, k, 1) )/h_r + &
+        !     ( f(1, i, j, k, 2) - f(1, i, j-1, k, 2) )/h_p/r_i + &
+        !     ( f(1, i, j, k, 1) + f(1, i-1, j, k, 1) )/(2*r_i)
+        ! gp(2, i, j, k) = &
+        !     ( f(2, i, j, k, 1) - f(2, i-1, j, k, 1) )/h_r + &
+        !     ( f(2, i, j, k, 2) - f(2, i, j-1, k, 2) )/h_p/r_i + &
+        !     ( f(2, i, j, k, 1) + f(2, i-1, j, k, 1) )/(2*r_i)
+        ! gp(3, i, j, k) = &
+        !     ( f(3, i, j, k, 1) - f(3, i-1, j, k, 1) )/h_r + &
+        !     ( f(3, i, j, k, 2) - f(3, i, j-1, k, 2) )/h_p/r_i + &
+        !     ( f(3, i, j, k, 1) + f(3, i-1, j, k, 1) )/(2*r_i) - &
+        !     ( f(4, i, j, k, 2) + f(4, i, j-1, k, 2) )/(2*r_i)
+        ! gp(4, i, j, k) = &
+        !     ( f(4, i, j, k, 1) - f(4, i-1, j, k, 1) )/h_r + &
+        !     ( f(4, i, j, k, 2) - f(4, i, j-1, k, 2) )/h_p/r_i + &
+        !     ( f(4, i, j, k, 1) + f(4, i-1, j, k, 1) )/(2*r_i) + &
+        !     ( f(3, i, j, k, 2) + f(3, i, j-1, k, 2) )/(2*r_i)
+        ! gp(:, i, j, k) = g(:, i, j, k) - Tau*gp(:, i, j, k)
         If ( Any(IsNan(gp(:, i, j, k))) .OR. Any(gp(1:2,i,j,k) <= 0.0) ) Then
             If ( verbose ) Then
                 Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i, j, k)
