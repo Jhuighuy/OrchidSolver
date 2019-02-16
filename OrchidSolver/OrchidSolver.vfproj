@@ -48,7 +48,7 @@
 		<Filter Name="Source">
 		<Filter Name="Hydro">
 		<Filter Name="Flux">
-		<File RelativePath=".\OrchidHydroFluxHLLC.f90"/>
+		<File RelativePath=".\OrchidHydroFluxHLL.f90"/>
 		<File RelativePath=".\OrchidHydroFluxLLF.f90"/>
 		<File RelativePath=".\OrchidHydroFluxRoe.f90"/></Filter>
 		<File RelativePath=".\OrchidHydro.f90"/>
