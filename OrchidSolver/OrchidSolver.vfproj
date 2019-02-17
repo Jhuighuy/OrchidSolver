@@ -54,7 +54,5 @@
 		<File RelativePath=".\OrchidHydro.f90"/>
 		<File RelativePath=".\OrchidHydro2.f90"/>
 		<File RelativePath=".\OrchidHydroFlux.f90"/></Filter>
-		<Filter Name="MHD">
-		<File RelativePath=".\OrchidMhdFluxGodunov.f90"/></Filter>
 		<File RelativePath=".\OrchidMain.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

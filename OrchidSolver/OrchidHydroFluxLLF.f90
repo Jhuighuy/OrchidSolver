@@ -69,6 +69,7 @@ Subroutine mhd_hydro_calc_flux3D_t(This, &
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w
     !> }}}
 End Subroutine mhd_hydro_calc_flux3D_t
+Pure &
 Subroutine mhd_hydro_calc_flux3D_mhd_t(This, &
                                        nx, ny, nz, &
                                        rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p, &
@@ -104,40 +105,62 @@ Subroutine mhd_hydro_calc_flux(This, &
     Real(8), Intent(In) :: nx, ny, nz
     !> }}}
     Real(8) :: nl
-    Real(8) :: rho_p, nrg_p, u_p, v_p, w_p, &
-               rho_m, nrg_m, u_m, v_m, w_m
+    Real(8) :: rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p, &
+               rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
     rho_p = fields_p(1)    
     nrg_p = fields_p(2)/rho_p
     u_p   = fields_p(3)/rho_p
     rho_m = fields_m(1)    
     nrg_m = fields_m(2)/rho_m
     u_m   = fields_m(3)/rho_m
-    !> @todo Add the MHD case.
-    If ( dim == 1 ) Then
-        !> 1D Case.
-        nl = Abs(nx)
-        Call This%calc1D(nx/nl, &
-                         rho_p, nrg_p, u_p, &
-                         rho_m, nrg_m, u_m, &
-                         flux(1), flux(2), flux(3))
-    Else
+    If ( dim >= 2 .OR. mhd ) Then
         v_p = fields_p(4)/rho_p
         v_m = fields_m(4)/rho_m
-        If ( dim == 2 ) Then
-            !> Polar Case.
-            nl = Sqrt(nx**2 + ny**2)
-            Call This%calc2D(nx/nl, ny/nl, &
-                             rho_p, nrg_p, u_p, v_p, &
-                             rho_m, nrg_m, u_m, v_m, &
-                             flux(1), flux(2), flux(3), flux(4))
-        Else
-            !> Spherical Case.
+        If ( dim >= 3 .or. mhd ) Then
             w_p = fields_p(5)/rho_p
             w_m = fields_m(5)/rho_m
-            Call This%calc3D(nx, ny, nz, &
-                             rho_p, nrg_p, u_p, v_p, w_p, &
-                             rho_m, nrg_m, u_m, v_m, w_m, &
-                             flux(1), flux(2), flux(3), flux(4), flux(5))
+        End If
+    End If
+    If ( mhd ) Then
+        !> MHD case.
+        bx_p = fields_p(6)
+        by_p = fields_p(7)
+        bz_p = fields_p(8)
+        bx_m = fields_m(6)
+        by_m = fields_m(7)
+        bz_m = fields_m(8)
+        Call This%calc3d_mhd(nx, ny, nz, &
+                             rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p, &
+                             rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m, &
+                             flux(1), flux(2), flux(3), flux(4), flux(5), flux(6), flux(7), flux(8))
+    Else
+        !> Euler case.
+        If ( dim == 1 ) Then
+            !> 1D Case.
+            nl = Abs(nx)
+            Call This%calc1D(nx/nl, &
+                             rho_p, nrg_p, u_p, &
+                             rho_m, nrg_m, u_m, &
+                             flux(1), flux(2), flux(3))
+        Else
+            v_p = fields_p(4)/rho_p
+            v_m = fields_m(4)/rho_m
+            If ( dim == 2 ) Then
+                !> Polar Case.
+                nl = Sqrt(nx**2 + ny**2)
+                Call This%calc2D(nx/nl, ny/nl, &
+                                 rho_p, nrg_p, u_p, v_p, &
+                                 rho_m, nrg_m, u_m, v_m, &
+                                 flux(1), flux(2), flux(3), flux(4))
+            Else
+                !> Spherical Case.
+                w_p = fields_p(5)/rho_p
+                w_m = fields_m(5)/rho_m
+                Call This%calc3D(nx, ny, nz, &
+                                 rho_p, nrg_p, u_p, v_p, w_p, &
+                                 rho_m, nrg_m, u_m, v_m, w_m, &
+                                 flux(1), flux(2), flux(3), flux(4), flux(5))
+            End If
         End If
     End If
 End Subroutine mhd_hydro_calc_flux
@@ -334,6 +357,7 @@ End Subroutine mhd_hydro_calc_flux_llf3D
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
+Pure &
 Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
                                          nx, ny, nz, &
                                          rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p, &
@@ -347,55 +371,59 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
-    Real(8) :: e_p, p_p, ent_p, a_p, b_p, c2_p, cs2_p, ca2_p, ca2n_p, cf2_p, cs_p, ca_p, cf_p, &
-               e_m, p_m, ent_m, a_m, b_m, c2_m, cs2_m, ca2_m, ca2n_m, cf2_m, cs_m, ca_m, cf_m
+    Real(8) :: e_p, p_p, pt_p, ent_p, a_p, b_p, c2_p, cs2_p, ca2_p, ca2n_p, cf2_p, cs_p, ca_p, cf_p, &
+               e_m, p_m, pt_m, ent_m, a_m, b_m, c2_m, cs2_m, ca2_m, ca2n_m, cf2_m, cs_m, ca_m, cf_m
     Real(8), Dimension(1:8) :: q_p, f_p, &
                                q_m, f_m, &
                                q_s, f_s
     !>-------------------------------------------------------------------------------
     !> Calculate +Values.
     e_p  = 0.5D0*( u_p**2 + v_p**2 + w_p**2 )
-    p_p  = Gamma1*rho_p*( nrg_p - e_p ) + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )
-    ent_p = nrg_p + p_p/rho_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )
+    p_p  = Gamma1*rho_p*( nrg_p - e_p )
+    pt_p = p_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )
+    ent_p = nrg_p + ( pt_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ) )/rho_p
     a_p  = u_p*nx + v_p*ny + w_p*nz
     b_p  = bx_p*nx + by_p*ny + bz_p*nz
     c2_p = Gamma*p_p/rho_p
-    ca2n_p = 0.25D0*Pi*b_p**2/rho_p
-    ca2_p = 0.25D0*Pi*( bx_p**2 + by_p**2 + bz_p**2 )/rho_p
+    ca2n_p = 0.25D0/Pi*b_p**2/rho_p
+    ca2_p = 0.25D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )/rho_p
     cs2_p = 0.5D0*( c2_p + ca2_p ) - 0.5D0*Sqrt(( c2_p + ca2_p )**2 - 4.0D0*c2_p*ca2n_p )
     cf2_p = 0.5D0*( c2_p + ca2_p ) + 0.5D0*Sqrt(( c2_p + ca2_p )**2 - 4.0D0*c2_p*ca2n_p )
     ca_p  = Sqrt(Max(ca2_p, 1D-10))
     cs_p  = Sqrt(Max(cs2_p, 1D-10))
     cf_p  = Sqrt(Max(cf2_p, 1D-10))
-    q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p, bx_p, by_p, bz_p ]
+    q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, &
+             rho_p*nrg_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ), bx_p, by_p, bz_p ]
     f_p  = [ rho_p*a_p, &
-             rho_p*u_p*a_p - 0.25D0/Pi*b_p*bx_p + p_p*nx, &
-             rho_p*v_p*a_p - 0.25D0/Pi*b_p*by_p + p_p*ny, &
-             rho_p*w_p*a_p - 0.25D0/Pi*b_p*by_p + p_p*nz, &
-             rho_p*a_p*ent_p - 0.25D0/Pi*b_p*( bx_p*v_p + by_p*v_p + bz_p*w_p ), &
+             rho_p*u_p*a_p - 0.25D0/Pi*b_p*bx_p + pt_p*nx, &
+             rho_p*v_p*a_p - 0.25D0/Pi*b_p*by_p + pt_p*ny, &
+             rho_p*w_p*a_p - 0.25D0/Pi*b_p*by_p + pt_p*nz, &
+             rho_p*a_p*ent_p - 0.25D0/Pi*b_p*( bx_p*u_p + by_p*v_p + bz_p*w_p ), &
              bx_p*a_p - b_p*u_p, &
              by_p*a_p - b_p*v_p, &
              bz_p*a_p - b_p*w_p ]
     !> Calculate -Values.
     e_m  = 0.5D0*( u_m**2 + v_m**2 + w_m**2 )
-    p_m  = Gamma1*rho_m*( nrg_m - e_m ) + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )
-    ent_m = nrg_m + p_m/rho_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )
+    p_m  = Gamma1*rho_m*( nrg_m - e_m )
+    pt_m  = p_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )
+    ent_m = nrg_m + ( pt_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ) )/rho_m
     a_m  = u_m*nx + v_m*ny + w_m*nz
     b_m  = bx_m*nx + by_m*ny + bz_m*nz
     c2_m = Gamma*p_m/rho_m
-    ca2n_m = 0.25D0*Pi*b_m**2/rho_m
-    ca2_m = 0.25D0*Pi*( bx_m**2 + by_m**2 + bz_m**2 )/rho_m
+    ca2n_m = 0.25D0/Pi*b_m**2/rho_m
+    ca2_m = 0.25D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )/rho_m
     cs2_m = 0.5D0*( c2_m + ca2_m ) - 0.5D0*Sqrt(( c2_m + ca2_m )**2 - 4.0D0*c2_m*ca2n_m )
     cf2_m = 0.5D0*( c2_m + ca2_m ) + 0.5D0*Sqrt(( c2_m + ca2_m )**2 - 4.0D0*c2_m*ca2n_m )
     ca_m  = Sqrt(Max(ca2_m, 1D-10))
     cs_m  = Sqrt(Max(cs2_m, 1D-10))
     cf_m  = Sqrt(Max(cf2_m, 1D-10))
-    q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m, bx_m, by_m, bz_m ]
+    q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, &
+             rho_m*nrg_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ), bx_m, by_m, bz_m ]
     f_m  = [ rho_m*a_m, &
-             rho_m*u_m*a_m - 0.25D0/Pi*b_m*bx_m + p_m*nx, &
-             rho_m*v_m*a_m - 0.25D0/Pi*b_m*by_m + p_m*ny, &
-             rho_m*w_m*a_m - 0.25D0/Pi*b_m*by_m + p_m*nz, &
-             rho_m*a_m*ent_m - 0.25D0/Pi*b_m*( bx_m*v_m + by_m*v_m + bz_m*w_m ), &
+             rho_m*u_m*a_m - 0.25D0/Pi*b_m*bx_m + pt_m*nx, &
+             rho_m*v_m*a_m - 0.25D0/Pi*b_m*by_m + pt_m*ny, &
+             rho_m*w_m*a_m - 0.25D0/Pi*b_m*by_m + pt_m*nz, &
+             rho_m*a_m*ent_m - 0.25D0/Pi*b_m*( bx_m*u_m + by_m*v_m + bz_m*w_m ), &
              bx_m*a_m - b_m*u_m, &
              by_m*a_m - b_m*v_m, &
              bz_m*a_m - b_m*w_m ]
@@ -404,13 +432,14 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     !>-------------------------------------------------------------------------------
     !> Calculate Fluxes.
     q_s = 0.5D0*( q_p - q_m )
-    q_s = Max(Abs(a_p - cf_p), Abs(a_m - cf_m), &
-              Abs(a_p - ca_p), Abs(a_m - ca_m), &
-              Abs(a_p - cs_p), Abs(a_m - cs_m), &
-              Abs(a_p), Abs(a_m), &
-              Abs(a_p + cs_p), Abs(a_m + cs_m), &
-              Abs(a_p + ca_p), Abs(a_m + ca_m), &
-              Abs(a_p + cf_p), Abs(a_m + cf_m)) * q_s
+    q_s = ( Max(a_p, a_m) + Max(cf_p, cf_m) )*q_s
+    !q_s = Max(Abs(a_p - cf_p), Abs(a_m - cf_m), &
+    !          Abs(a_p - ca_p), Abs(a_m - ca_m), &
+    !          Abs(a_p - cs_p), Abs(a_m - cs_m), &
+    !          Abs(a_p), Abs(a_m), &
+    !          Abs(a_p + cs_p), Abs(a_m + cs_m), &
+    !          Abs(a_p + ca_p), Abs(a_m + ca_m), &
+    !          Abs(a_p + cf_p), Abs(a_m + cf_m)) * q_s
     f_s = 0.5D0*( f_p + f_m ) - q_s
     flux_rho = f_s(1)
     flux_u   = f_s(2)

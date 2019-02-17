@@ -28,20 +28,20 @@ Subroutine mhd_hydro_init(This, &
     Class(MhdHydroSolver), Intent(InOut) :: This
     Character(Len=10), Intent(In), Optional :: flux_type
     !> }}}
-    If ( .NOT. Present(flux_type) .OR. flux_type == 'hllc' ) Then
-        Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
-        Allocate(MhdHydroFluxHLLC :: This%m_flux)
-    Else If ( flux_type == 'llf' ) Then
+    !If ( ( .NOT. Present(flux_type) ) .OR. flux_type == 'hllc' ) Then
+    !    Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
+    !    Allocate(MhdHydroFluxHLLC :: This%m_flux)
+    !Else If ( flux_type == 'llf' ) Then
         Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
-        Allocate(MhdHydroFluxRoe :: This%m_flux)
-    Else If ( flux_type == 'roe' ) Then
-        Write (*,*) 'Hydro solver: the Roe Flux was selected.'
-        Allocate(MhdHydroFluxRoe :: This%m_flux)
-    Else
-        Write (0,*) 'Hydro flux type ', Trim(flux_type), &
-                    'is invalid. Please, check the manual.'
-        Error Stop -100
-    End If
+        Allocate(MhdHydroFluxLLF :: This%m_flux)
+    !Else If ( flux_type == 'roe' ) Then
+    !    Write (*,*) 'Hydro solver: the Roe Flux was selected.'
+    !    Allocate(MhdHydroFluxRoe :: This%m_flux)
+    !Else
+    !    Write (0,*) 'Hydro flux type ', Trim(flux_type), &
+    !                'is invalid. Please, check the manual.'
+    !    Error Stop -100
+    !End If
 End Subroutine mhd_hydro_init
 !########################################################################################################
 !########################################################################################################
@@ -70,14 +70,19 @@ Subroutine mhd_hydro_calc_flux(This, &
     Do j = j_min, j_max
     Do k = k_min, k_max
         !> @todo Move this to Grid aux info.
-        Phi_jph = Dble(j)*h_p
-        Phi_j = Phi_jph - 0.5D0*h_p
-        nx_r = Cos(Phi_j); ny_r = Sin(Phi_j); nz_r = 0
-        nx_p = -Sin(Phi_jph); ny_p = Cos(Phi_jph); nz_p = 0
+        If ( dim == 1 ) Then
+            nx_r = 1; ny_r = 0; nz_r = 0
+        nx_p = 0; ny_p = 1; nz_p = 0
         nx_t = 0; ny_t = 0; nz_t = 1
-        !nx_r = 1; ny_r = 0; nz_r = 0
-        !nx_p = 0; ny_p = 1; nz_p = 0
-        !nx_t = 0; ny_t = 0; nz_t = 1
+        End If
+        If ( dim == 2 ) Then
+            Phi_jph = Dble(j)*h_p
+            Phi_j = Phi_jph - 0.5D0*h_p
+            nx_r = Cos(Phi_j); ny_r = Sin(Phi_j); nz_r = 0
+            nx_p = -Sin(Phi_jph); ny_p = Cos(Phi_jph); nz_p = 0
+            nx_t = 0; ny_t = 0; nz_t = 1
+        End If
+        
 
         !>-------------------------------------------------------------------------------
         !> Calculate the Fluxes through R faces.
@@ -95,7 +100,7 @@ Subroutine mhd_hydro_calc_flux(This, &
             Else If ( MHD_R0_BOUNDARY_COND == 'wall' .AND. r_0 >= 0.0D0 ) Then
                 !> Solid wall boundary conditions.
                 Call This%m_flux%calc(g(:, i_min, j, k), &
-                                      g(:, i_min, j, k)*[1.0D0, 1.0D0, 0.0D0, 0.0D0], &
+                                      g(:, i_min, j, k),&!*[1.0D0, 1.0D0, 0.0D0, 0.0D0], &
                                       f(:, i_min-1, j, k, 1), nx_r, ny_r, nz_r)
             End If
             If ( MHD_R1_BOUNDARY_COND == 'free' ) Then
@@ -105,7 +110,7 @@ Subroutine mhd_hydro_calc_flux(This, &
                                       f(:, i_max, j, k, 1), nx_r, ny_r, nz_r)
             Else If ( MHD_R1_BOUNDARY_COND == 'wall' ) Then
                 !> Solid wall boundary conditions.
-                Call This%m_flux%calc(g(:, i_max, j, k)*[1.0D0, 1.0D0, 0.0D0, 0.0D0], &
+                Call This%m_flux%calc(g(:, i_max, j, k),&!*[1.0D0, 1.0D0, 0.0D0, 0.0D0], &
                                       g(:, i_max, j, k), &
                                       f(:, i_max, j, k, 1), nx_r, ny_r, nz_r)
             End If
@@ -172,44 +177,30 @@ Subroutine mhd_hydro_calc_step(This, Tau, g, gp, f)
     Do j = j_min, j_max
     Do k = k_min, k_max
 
-        !> @todo Move this to Grid aux info.
-        !> Values below may be incorrect.
-        r_iph = r_0 + Dble(i)*h_r
-        r_imh = r_iph - h_r
-        r_i = r_iph - 0.5D0*h_r
-        Phi_jph = Dble(j)*h_p
-        Phi_jmh = Phi_jph - h_p
-        Phi_j = Phi_jph - 0.5D0*h_p
-        L_rp = 2.0D0*r_iph*Sin(0.5D0*h_p)
-        L_rm = 2.0D0*r_imh*Sin(0.5D0*h_p)
-        L_p = h_r!Sqrt(1.0D0 + Sin(0.5D0*h_p)**2)
-        S = r_i*h_r*Sin(h_p)
-        
-        gp(:, i, j, k) = &
-            ( L_rp*f(:, i, j, k, 1) - L_rm*f(:, i-1, j, k, 1) ) + &
-            ( L_p* f(:, i, j, k, 2) - L_p* f(:, i, j-1, k, 2) )
-        gp(:, i, j, k) = g(:, i, j, k) - Tau/S*gp(:, i, j, k)
+        If ( dim == 1 ) Then
+            gp(:, i, j, k) = ( f(:, i, j, k, 1) - f(:, i-1, j, k, 1) )
+            gp(:, i, j, k) = g(:, i, j, k) - Tau/h_r*gp(:, i, j, k)
+        End If
+        If ( dim == 2 ) Then
+            !> @todo Move this to Grid aux info.
+            !> Values below may be incorrect.
+            r_iph = r_0 + Dble(i)*h_r
+            r_imh = r_iph - h_r
+            r_i = r_iph - 0.5D0*h_r
+            Phi_jph = Dble(j)*h_p
+            Phi_jmh = Phi_jph - h_p
+            Phi_j = Phi_jph - 0.5D0*h_p
+            L_rp = 2.0D0*r_iph*Sin(0.5D0*h_p)
+            L_rm = 2.0D0*r_imh*Sin(0.5D0*h_p)
+            L_p = h_r!Sqrt(1.0D0 + Sin(0.5D0*h_p)**2)
+            S = r_i*h_r*Sin(h_p)
+            gp(:, i, j, k) = &
+                ( L_rp*f(:, i, j, k, 1) - L_rm*f(:, i-1, j, k, 1) ) + &
+                ( L_p* f(:, i, j, k, 2) - L_p* f(:, i, j-1, k, 2) )
+            gp(:, i, j, k) = g(:, i, j, k) - Tau/S*gp(:, i, j, k)
+        End If
 
-        !> @todo The Unstructured grid should be here.
-        ! gp(1, i, j, k) = &
-        !     ( f(1, i, j, k, 1) - f(1, i-1, j, k, 1) )/h_r + &
-        !     ( f(1, i, j, k, 2) - f(1, i, j-1, k, 2) )/h_p/r_i + &
-        !     ( f(1, i, j, k, 1) + f(1, i-1, j, k, 1) )/(2*r_i)
-        ! gp(2, i, j, k) = &
-        !     ( f(2, i, j, k, 1) - f(2, i-1, j, k, 1) )/h_r + &
-        !     ( f(2, i, j, k, 2) - f(2, i, j-1, k, 2) )/h_p/r_i + &
-        !     ( f(2, i, j, k, 1) + f(2, i-1, j, k, 1) )/(2*r_i)
-        ! gp(3, i, j, k) = &
-        !     ( f(3, i, j, k, 1) - f(3, i-1, j, k, 1) )/h_r + &
-        !     ( f(3, i, j, k, 2) - f(3, i, j-1, k, 2) )/h_p/r_i + &
-        !     ( f(3, i, j, k, 1) + f(3, i-1, j, k, 1) )/(2*r_i) - &
-        !     ( f(4, i, j, k, 2) + f(4, i, j-1, k, 2) )/(2*r_i)
-        ! gp(4, i, j, k) = &
-        !     ( f(4, i, j, k, 1) - f(4, i-1, j, k, 1) )/h_r + &
-        !     ( f(4, i, j, k, 2) - f(4, i, j-1, k, 2) )/h_p/r_i + &
-        !     ( f(4, i, j, k, 1) + f(4, i-1, j, k, 1) )/(2*r_i) + &
-        !     ( f(3, i, j, k, 2) + f(3, i, j-1, k, 2) )/(2*r_i)
-        ! gp(:, i, j, k) = g(:, i, j, k) - Tau*gp(:, i, j, k)
+
         If ( Any(IsNan(gp(:, i, j, k))) .OR. Any(gp(1:2,i,j,k) <= 0.0) ) Then
             If ( verbose ) Then
                 Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i, j, k)
