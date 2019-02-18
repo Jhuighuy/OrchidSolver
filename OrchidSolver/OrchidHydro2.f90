@@ -1,4 +1,4 @@
-!> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver in spherical/polar coorinates.
+!> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver.
 !> Copyright (C) Butakov Oleg 2019.
 
 Module orchid_solver_hydro2
@@ -72,8 +72,8 @@ Subroutine mhd_hydro_calc_flux(This, &
         !> @todo Move this to Grid aux info.
         If ( dim == 1 ) Then
             nx_r = 1; ny_r = 0; nz_r = 0
-        nx_p = 0; ny_p = 1; nz_p = 0
-        nx_t = 0; ny_t = 0; nz_t = 1
+            nx_p = 0; ny_p = 1; nz_p = 0
+            nx_t = 0; ny_t = 0; nz_t = 1
         End If
         If ( dim == 2 ) Then
             Phi_jph = Dble(j)*h_p
@@ -83,7 +83,6 @@ Subroutine mhd_hydro_calc_flux(This, &
             nx_t = 0; ny_t = 0; nz_t = 1
         End If
         
-
         !>-------------------------------------------------------------------------------
         !> Calculate the Fluxes through R faces.
         If ( i /= i_max ) Then
@@ -100,7 +99,7 @@ Subroutine mhd_hydro_calc_flux(This, &
             Else If ( MHD_R0_BOUNDARY_COND == 'wall' .AND. r_0 >= 0.0D0 ) Then
                 !> Solid wall boundary conditions.
                 Call This%m_flux%calc(g(:, i_min, j, k), &
-                                      g(:, i_min, j, k),&!*[1.0D0, 1.0D0, 0.0D0, 0.0D0], &
+                                      g(:, i_min, j, k)*[1.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0], &
                                       f(:, i_min-1, j, k, 1), nx_r, ny_r, nz_r)
             End If
             If ( MHD_R1_BOUNDARY_COND == 'free' ) Then
@@ -110,7 +109,7 @@ Subroutine mhd_hydro_calc_flux(This, &
                                       f(:, i_max, j, k, 1), nx_r, ny_r, nz_r)
             Else If ( MHD_R1_BOUNDARY_COND == 'wall' ) Then
                 !> Solid wall boundary conditions.
-                Call This%m_flux%calc(g(:, i_max, j, k),&!*[1.0D0, 1.0D0, 0.0D0, 0.0D0], &
+                Call This%m_flux%calc(g(:, i_max, j, k)*[1.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0], &
                                       g(:, i_max, j, k), &
                                       f(:, i_max, j, k, 1), nx_r, ny_r, nz_r)
             End If
