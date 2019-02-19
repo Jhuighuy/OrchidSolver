@@ -6,7 +6,7 @@ Module orchid_solver_params
     Integer, Parameter :: dim = 2
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .FALSE.
+    Logical, Parameter :: mhd = .TRUE.
     
     Character(Len=10) :: hydro_flux = 'hllc'
     Character(Len=10) :: hydro_flux_limiter = 'none'
@@ -14,7 +14,7 @@ Module orchid_solver_params
     Character(Len=10) :: R0_bc = 'free' ! 'periodic'
     Character(Len=10) :: R1_bc = 'free'
     
-    Character(Len=10) :: MHD_R0_BOUNDARY_COND = 'wall' ! 'periodic'
+    Character(Len=10) :: MHD_R0_BOUNDARY_COND = 'free' ! 'periodic'
     Character(Len=10) :: MHD_R1_BOUNDARY_COND = 'free'
     
     
@@ -45,21 +45,40 @@ Module orchid_solver_helpers
         to_str = adjustl(to_str)
     End Function to_str    
 End Module orchid_solver_helpers
-    
-Module orchid_solver_grid
-    Use orchid_solver_params
-    Use orchid_solver_helpers
-    Implicit None
 
 
-End Module orchid_solver_grid
     
 Module orchid_solver_simulation
 Use orchid_solver_grid
-Use orchid_solver_opencl
+!Use orchid_solver_opencl
 Implicit None
 
 Contains
+
+Subroutine print_grid3(ga, g, l)
+    !> {{{
+    Integer, Intent(In) :: l
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: g
+    !> }}}
+    Integer :: i, j, k
+    Integer :: output
+    Real(8) :: r, theta, phi
+    Real(8) :: x, y, z
+    Real(8) :: v_r, v_t, v_p
+    Real(8) :: v_x, v_y, v_z, v_l
+    Real(8) :: vxy(2), vrp(2), a(2,2), vvv
+    Open(NewUnit=output, file='../Results/fields-'//Trim(to_str(l))//'.csv', Status='replace')
+    Write (output, *) 'x,y,z,r,e,u,v,w,bx,by,bz'
+    Do i = ga%ncells_min, ga%ncells_max
+       Write(output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
+           ga%cells(i)%x, ',', ga%cells(i)%y, ',', ga%cells(i)%z, ',', &
+           g(1, i), ',', g(2, i)/g(1, i), ',', g(3, i)/g(1, i), ',', g(4, i)/g(1, i), ',', g(5, i)/g(1, i), ',', &
+           g(6, i)/Sqrt(4.0D0*Pi), ',', g(7, i)/Sqrt(4.0D0*Pi), ',', g(8, i)/Sqrt(4.0D0*Pi)
+    End Do
+    Close(output)
+End Subroutine print_grid3
+
 
 Subroutine print_grid2(g, l)
     !> {{{
@@ -84,7 +103,7 @@ Subroutine print_grid2(g, l)
         Do i = 1, N_r
             !x,r,e,u,v,w,bx,by,bz
             x = i*h_r
-            Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A)') &
+            Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
                 x, ',', &
                 g(1, i, j, k), ',', g(2, i, j, k)/g(1, i, j, k), ',', &
                 g(3, i, j, k)/g(1, i, j, k), ',', g(4, i, j, k)/g(1, i, j, k), ',', &
@@ -93,14 +112,14 @@ Subroutine print_grid2(g, l)
         End Do 
     End If
     If ( dim==2 ) Then
-        Write (output,*) 'x,y,r,e,u,v,w,bx,by,bz'
+        Write (output,*) 'x,y,z,r,e,u,v,w,bx,by,bz'
         Do i = 1, N_r
         Do j = 1, N_phi
             r = r_0 + (i - 0.5D0)*h_r
             phi = (j - 0.5D0)*h_p
             x = r*Cos(Phi)
             y = r*Sin(Phi)
-                Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A)') &
+                Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
                     x, ',', y, ',', &
                     g(1, i, j, k), ',', g(2, i, j, k)/g(1, i, j, k), ',', &
                     g(3, i, j, k)/g(1, i, j, k), ',', g(4, i, j, k)/g(1, i, j, k), ',', &
@@ -129,12 +148,13 @@ End Module orchid_solver_simulation
 Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro2
-    Use orchid_solver_opencl2
+    !Use orchid_solver_opencl2
     
-    Real(8), Dimension(:,:,:,:), Allocatable :: g2, gp2
-    Real(8), Dimension(:,:,:,:,:), Allocatable :: f2
+    Class(MhdGrid), Allocatable :: ga
+    Real(8), Dimension(:,:), Allocatable :: g, gp
+    Real(8), Dimension(:,:), Allocatable :: fl
 
-    Integer::l
+    Integer::l, i
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
     Class(MhdHydroSolver), Allocatable :: solver
@@ -159,49 +179,50 @@ Program orchid_solver
     Write(*,*) ''
     !>-------------------------------------------------------------------------------
     
-    Call test_opencl
+    !Call test_opencl
     
-    Allocate(solver)
-    Allocate(g2(n_min:n_max, &
-                       i_min:i_max, &
-                       j_min:j_max, &
-                       k_min:k_max))
-    Allocate(gp2(n_min:n_max, &
-                       i_min:i_max, &
-                       j_min:j_max, &
-                       k_min:k_max))
-    Allocate(f2(n_min:n_max, &
-                       i_min-1:i_max, &
-                       j_min-1:j_max, &
-                       k_min-1:k_max, f_min:f_max))
+    Allocate(MhdHydroSolver :: solver)
+    Allocate(ga)
+    !Call ga%init1D(10.0D0, 200, -1, -2)
+    Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
+    !Call ga%init2D(1.0D0, 1.0D0, 2, 2, -1, -1, -3, -3)
+    !Do i = ga%nfaces_min, ga%nfaces_max
+    !    Write(*,*) i, ga%faces(i)%ncell_m, ga%faces(i)%ncell_p
+    !End Do
+    !Stop
+    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
     
     !> Sod test case.
-    !g2(1, :, :, :) = 1.0D0
-    !g2(2, :, :, :) = 1.0D0/( Gamma1*1.0D0 )
-    !g2(6, :, :, :) = 4.0D0!/Sqrt(4.0D0*Pi)
-    !g2(7, :, :, :) = 4.0D0!/Sqrt(4.0D0*Pi)
-    !g2(8, :, :, :) = 2.0D0!/Sqrt(4.0D0*Pi)
-    !g2(1, 1:100, :, :) = 1.08D0;
-    !g2(2, 1:100, :, :) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
-    !g2(3, 1:100, :, :) = 1.08D0*1.2D0;
-    !g2(4, 1:100, :, :) = 1.08D0*0.01D0;
-    !g2(5, 1:100, :, :) = 1.08D0*0.5D0;
-    !g2(7, 1:100, :, :) = 3.6D0!/Sqrt(4.0D0*Pi)
+    !g(1, :) = 1.0D0
+    !g(2, :) = 1.0D0/( Gamma1*1.0D0 )
+    !g(6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+    !g(7, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+    !g(8, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+    !g(1, 1:100) = 1.08D0;
+    !g(2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
+    !g(3, 1:100) = 1.08D0*1.2D0;
+    !g(4, 1:100) = 1.08D0*0.01D0;
+    !g(5, 1:100) = 1.08D0*0.5D0;
+    !g(7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
     
-    g2(:, :, :, :) = 0.0D0
-    g2(1, :, :, :) = 1.0D0
-    g2(2, :, :, :) = 1.0D0/( Gamma1*1.0D0 )
-    g2(3, :, :, :) = 1.0D0
-    !g2(3, :, :, :) = 0.0D0
-    g2(4, :, :, :) = 0.0D0
+    g(:, :) = 0.0D0
+    g(1, :) = 1.0D0
+    g(2, :) = 1.0D0/( Gamma1*1.0D0 )
+    g(3, :) = 1.0D0
+    !g(3, :) = 0.0D0
+    g(4, :) = 0.0D0
+    g(7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+
     Call solver%init()
-    Call print_grid2(g2, 0)
-    Do l=1,2000000000
-        Call solver%calc_step(0.001D0, g2, gp2, f2)
+    Call print_grid3(ga, g, 0)
+    Do l=1,2000000
+        Call solver%calc_step(0.001D0, ga, g, gp, fl)
         If (Mod(l, 100) == 0) Then
             Write(*, *) 'time step:', l
-            Call print_grid2(g2, l)
+            Call print_grid3(ga, g, l)
         End If
-        g2(:,:,:,:)=gp2(:,:,:,:)
+        g(:,:)=gp(:,:)
     End Do
 End Program orchid_solver

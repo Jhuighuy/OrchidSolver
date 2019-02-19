@@ -116,7 +116,7 @@ Subroutine mhd_hydro_calc_flux(This, &
     If ( dim >= 2 .OR. mhd ) Then
         v_p = fields_p(4)/rho_p
         v_m = fields_m(4)/rho_m
-        If ( dim >= 3 .or. mhd ) Then
+        If ( dim >= 3 .OR. mhd ) Then
             w_p = fields_p(5)/rho_p
             w_m = fields_m(5)/rho_m
         End If

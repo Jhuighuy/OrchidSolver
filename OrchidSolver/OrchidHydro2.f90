@@ -3,6 +3,7 @@
 
 Module orchid_solver_hydro2
 Use orchid_solver_params
+Use orchid_solver_grid
 Use orchid_solver_hydro_flux_llf
 Use orchid_solver_hydro_flux_hllc
 Use orchid_solver_hydro_flux_roe
@@ -47,169 +48,96 @@ End Subroutine mhd_hydro_init
 !########################################################################################################
 !########################################################################################################
 Subroutine mhd_hydro_calc_flux(This, &
-                               g, f)
+                               ga, g, fl)
     !> Calculate the basic first order Fluxes.
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
-    Real(8), Dimension(n_min:n_max, &
-                       i_min:i_max, &
-                       j_min:j_max, &
-                       k_min:k_max), Intent(In) :: g
-    Real(8), Dimension(n_min:n_max, &
-                       i_min-1:i_max, &
-                       j_min-1:j_max, &
-                       k_min-1:k_max, f_min:f_max), Intent(Out) :: f
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: g
+    Real(8), Dimension(n_min:n_max, ga%nfaces_min:ga%nfaces_max), Intent(InOut) :: fl
     !> }}}
-    Integer :: i, j, k
-    Real(8) :: Phi_j, Phi_jph
-    Real(8) :: nx_r, nx_p, nx_t
-    Real(8) :: ny_r, ny_p, ny_t
-    Real(8) :: nz_r, nz_p, nz_t
-    !$OMP Parallel Do Private(Phi_j, Phi_jph, nx_r, nx_p, nx_t, ny_r, ny_p, ny_t, nz_r, nz_p, nz_t)
-    Do i = i_min, i_max
-    Do j = j_min, j_max
-    Do k = k_min, k_max
-        !> @todo Move this to Grid aux info.
-        If ( dim == 1 ) Then
-            nx_r = 1; ny_r = 0; nz_r = 0
-            nx_p = 0; ny_p = 1; nz_p = 0
-            nx_t = 0; ny_t = 0; nz_t = 1
-        End If
-        If ( dim == 2 ) Then
-            Phi_jph = Dble(j)*h_p
-            Phi_j = Phi_jph - 0.5D0*h_p
-            nx_r = Cos(Phi_j); ny_r = Sin(Phi_j); nz_r = 0
-            nx_p = -Sin(Phi_jph); ny_p = Cos(Phi_jph); nz_p = 0
-            nx_t = 0; ny_t = 0; nz_t = 1
-        End If
-        
-        !>-------------------------------------------------------------------------------
-        !> Calculate the Fluxes through R faces.
-        If ( i /= i_max ) Then
+    Integer :: ip, im, j
+    Real(8) :: nx, ny, nz
+    Real(8), Dimension(n_min:n_max) :: w
+    w(:) = 0.0D0
+    w(n_min:n_min+2) = 1.0D0
+    !>-------------------------------------------------------------------------------
+    !> Calculate the Fluxes.
+    !$OMP Parallel Do Private(ip, im, nx, ny, nz)
+    Do j = ga%nfaces_min, ga%nfaces_max
+        ip = ga%faces(j)%ncell_p
+        im = ga%faces(j)%ncell_m
+        nx = ga%faces(j)%nx
+        ny = ga%faces(j)%ny
+        nz = ga%faces(j)%nz
+        If ( ip >= 0 .AND. im >= 0 ) Then
             !> Domain Interior.
-            Call This%m_flux%calc(g(:, i+1, j, k), &
-                                  g(:, i+0, j, k), &
-                                  f(:, i+0, j, k, 1), nx_r, ny_r, nz_r)
-        Else
-            If ( MHD_R0_BOUNDARY_COND == 'free' .AND. r_0 >= 0.0D0 ) Then
-                !> Free flow boundary conditions.
-                Call This%m_flux%calc(g(:, i_min, j, k), &
-                                      g(:, i_min, j, k), &
-                                      f(:, i_min-1, j, k, 1), nx_r, ny_r, nz_r)
-            Else If ( MHD_R0_BOUNDARY_COND == 'wall' .AND. r_0 >= 0.0D0 ) Then
-                !> Solid wall boundary conditions.
-                Call This%m_flux%calc(g(:, i_min, j, k), &
-                                      g(:, i_min, j, k)*[1.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0], &
-                                      f(:, i_min-1, j, k, 1), nx_r, ny_r, nz_r)
-            End If
-            If ( MHD_R1_BOUNDARY_COND == 'free' ) Then
-                !> Free flow boundary conditions.
-                Call This%m_flux%calc(g(:, i_max, j, k), &
-                                      g(:, i_max, j, k), &
-                                      f(:, i_max, j, k, 1), nx_r, ny_r, nz_r)
-            Else If ( MHD_R1_BOUNDARY_COND == 'wall' ) Then
-                !> Solid wall boundary conditions.
-                Call This%m_flux%calc(g(:, i_max, j, k)*[1.0D0, 1.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0], &
-                                      g(:, i_max, j, k), &
-                                      f(:, i_max, j, k, 1), nx_r, ny_r, nz_r)
-            End If
-        End If
-        !> Calculate the Fluxes through Phi faces.
-        If ( dim >= 2 ) Then
-            !> Polar Or Spherical Case.
-            If ( j /= j_max ) Then
-                !> Domain Interior.
-                Call This%m_flux%calc(g(:, i, j+1, k), &
-                                      g(:, i, j+0, k), &
-                                      f(:, i, j+0, k, 2), nx_p, ny_p, nz_p)
+            Call This%m_flux%calc(g(:, ip), g(:, im), fl(:, j), nx, ny, nz)
+        Else If ( ip < 0 ) Then
+            !> Domain Boundary.
+            If ( ip == -1 ) Then
+                Call This%m_flux%calc(g(:, im), g(:, im), fl(:, j), nx, ny, nz)
             Else
-                !> Periodic boundary conditions.
-                Call This%m_flux%calc(g(:, i, j_min, k), &
-                                      g(:, i, j_max, k), &
-                                      f(:, i, j_max, k, 2), nx_p, ny_p, nz_p)
-                f(:, i, j_min-1, k, 2) = f(:, i, j_max, k, 2)
+                Call This%m_flux%calc(g(:, im)*[1.0D0,1.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0], &
+                                      g(:, im), &
+                                      fl(:, j), nx, ny, nz)
+            End If
+        Else If ( im < 0 ) Then
+            !> Domain Boundary.
+            If ( im == -1 ) Then
+                Call This%m_flux%calc(g(:, ip), g(:, ip), fl(:, j), nx, ny, nz)
+            Else
+                Call This%m_flux%calc(g(:, ip), &
+                                      g(:, ip)*[1.0D0,1.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0], &
+                                      fl(:, j), nx, ny, nz)
             End If
         End If
-        !> Calculate the Fluxes through Theta faces.
-        If ( dim >= 3 ) Then
-            !> Spherical Case.
-            If ( k /= k_max ) Then
-                !> Domain Interior.
-                Call This%m_flux%calc(g(:, i, j, k+1), &
-                                      g(:, i, j, k+0), &
-                                      f(:, i, j, k+0, 3), nx_t, ny_t, nz_t)
-            End If
-        End If
-        !>-------------------------------------------------------------------------------
-    End Do
-    End Do
     End Do
     !$OMP End Parallel Do
+    !>-------------------------------------------------------------------------------
 End Subroutine mhd_hydro_calc_flux
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-Subroutine mhd_hydro_calc_step(This, Tau, g, gp, f)
+Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp, fl)
     !> Calculate the Time Step.
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
     Real(8), Intent(In) :: Tau
-    Real(8), Dimension(n_min:n_max, &
-                       i_min:i_max, &
-                       j_min:j_max, &
-                       k_min:k_max), Intent(InOut) :: g, gp
-    Real(8), Dimension(n_min:n_max, &
-                       i_min-1:i_max, &
-                       j_min-1:j_max, &
-                       k_min-1:k_max, f_min:f_max), Intent(Out) :: f
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: g
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(Out) :: gp
+    Real(8), Dimension(n_min:n_max, ga%nfaces_min:ga%nfaces_max), Intent(InOut) :: fl
     !> }}}
     Integer :: i, j, k
-    Real(8) :: r_i, r_iph, r_imh, L_rp, L_rm, L_p, S
-    Real(8) :: Phi_j, Phi_jph, Phi_jmh
-    Real(8) :: nx_r, nx_p, nx_t
-    Real(8) :: ny_r, ny_p, ny_t
-    
-    gp(:,:,:,:)=g(:,:,:,:)
-    Call This%calc_flux(g, f)
-    !$OMP Parallel Do Private(r_i, r_iph, r_imh, Phi_jph, Phi_jmh, Phi_j, L_rp, L_rm, L_p, S)
-    Do i = i_min, i_max
-    Do j = j_min, j_max
-    Do k = k_min, k_max
-
-        If ( dim == 1 ) Then
-            gp(:, i, j, k) = ( f(:, i, j, k, 1) - f(:, i-1, j, k, 1) )
-            gp(:, i, j, k) = g(:, i, j, k) - Tau/h_r*gp(:, i, j, k)
-        End If
-        If ( dim == 2 ) Then
-            !> @todo Move this to Grid aux info.
-            !> Values below may be incorrect.
-            r_iph = r_0 + Dble(i)*h_r
-            r_imh = r_iph - h_r
-            r_i = r_iph - 0.5D0*h_r
-            Phi_jph = Dble(j)*h_p
-            Phi_jmh = Phi_jph - h_p
-            Phi_j = Phi_jph - 0.5D0*h_p
-            L_rp = 2.0D0*r_iph*Sin(0.5D0*h_p)
-            L_rm = 2.0D0*r_imh*Sin(0.5D0*h_p)
-            L_p = h_r!Sqrt(1.0D0 + Sin(0.5D0*h_p)**2)
-            S = r_i*h_r*Sin(h_p)
-            gp(:, i, j, k) = &
-                ( L_rp*f(:, i, j, k, 1) - L_rm*f(:, i-1, j, k, 1) ) + &
-                ( L_p* f(:, i, j, k, 2) - L_p* f(:, i, j-1, k, 2) )
-            gp(:, i, j, k) = g(:, i, j, k) - Tau/S*gp(:, i, j, k)
-        End If
-
-
-        If ( Any(IsNan(gp(:, i, j, k))) .OR. Any(gp(1:2,i,j,k) <= 0.0) ) Then
+    Call This%calc_flux(ga, g, fl)
+    !>-------------------------------------------------------------------------------
+    !> Calculate the new Field values.
+    !$OMP Parallel Do Private(i, j, k)
+    Do i = ga%ncells_min, ga%ncells_max
+        !> Update the values.
+        gp(:, i) = 0.0D0
+        Do k = ga%cells(i)%nface, ga%cells(i)%nface_end
+            j = ga%cell2face(k)
+            If ( ga%faces(j)%ncell_p == i ) Then
+               !> Inner normal case.
+               gp(:, i) = gp(:, i) - fl(:, j)*ga%faces(j)%Sface
+            Else
+               !> Outer normal case.
+               gp(:, i) = gp(:, i) + fl(:, j)*ga%faces(j)%Sface
+            End If
+        End Do
+        gp(:, i) = g(:, i) - Tau/ga%cells(i)%Vcell*gp(:, i)        
+        !> Check is values are correct and density and energy are positive.
+        If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
             If ( verbose ) Then
-                Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i, j, k)
+                Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i)
             End If
             Error Stop 1
         End If
     End Do
-    End Do
-    End Do
     !$OMP End Parallel Do
+    !>-------------------------------------------------------------------------------
 End Subroutine mhd_hydro_calc_step
 !########################################################################################################
 !########################################################################################################
