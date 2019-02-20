@@ -148,16 +148,20 @@ End Module orchid_solver_simulation
 Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro2
+    Use orchid_solver_poisson_stochastic
     !Use orchid_solver_opencl2
     
     Class(MhdGrid), Allocatable :: ga
     Real(8), Dimension(:,:), Allocatable :: g, gp
+    Real(8), Dimension(:), Allocatable :: u, f
     Real(8), Dimension(:,:), Allocatable :: fl
 
     Integer::l, i
+    Real(8) :: x, y
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
     Class(MhdHydroSolver), Allocatable :: solver
+    Class(MhdPoissonFixedRandomWalk), Allocatable :: pois
     
     !>-------------------------------------------------------------------------------
     !> Write the damn cool Logo.
@@ -182,15 +186,27 @@ Program orchid_solver
     !Call test_opencl
     
     Allocate(MhdHydroSolver :: solver)
+    Allocate(MhdPoissonFixedRandomWalk :: pois)
     Allocate(ga)
     !Call ga%init1D(10.0D0, 200, -1, -2)
-    Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
-    !Call ga%init2D(1.0D0, 1.0D0, 2, 2, -1, -1, -3, -3)
-    !Do i = ga%nfaces_min, ga%nfaces_max
-    !    Write(*,*) i, ga%faces(i)%ncell_m, ga%faces(i)%ncell_p
-    !End Do
-    !Stop
+    !Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
+    Call ga%init2D(1.0D0, 1.0D0, 200, 200, -2, -2)
     Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(u(ga%ncells_min:ga%ncells_max))
+    Allocate(f(ga%ncells_min:ga%ncells_max))
+    Do i = ga%ncells_min, ga%ncells_max
+        x = ga%cells(i)%x
+        y = ga%cells(i)%y
+        u(i) = 0.0D0
+        f(i) = 0.5D0*( Exp(y)*Exp(x)*x*(x+3.0d0)*( y - y**2 ) + Exp(y)*Exp(y)*y*(y+3.0d0)*( x - x**2 ) )
+        !f(i) = ( ( y - y**2 ) + ( x - x**2 ) )
+    End Do
+    Call pois%calc(ga, u, f)
+    g(1, :) = 1.0D0
+    g(2, :) = u(:)
+    Call print_grid3(ga, g, 0)
+    Stop
+    
     Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
     Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
     
