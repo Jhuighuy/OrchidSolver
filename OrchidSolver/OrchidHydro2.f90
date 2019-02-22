@@ -120,11 +120,11 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp, fl)
         Do k = ga%cells(i)%nface, ga%cells(i)%nface_end
             j = ga%cell2face(k)
             If ( ga%faces(j)%ncell_p == i ) Then
-               !> Inner normal case.
-               gp(:, i) = gp(:, i) - fl(:, j)*ga%faces(j)%Sface
+                !> Inner normal case.
+                gp(:, i) = gp(:, i) - fl(:, j)*ga%faces(j)%Sface
             Else
-               !> Outer normal case.
-               gp(:, i) = gp(:, i) + fl(:, j)*ga%faces(j)%Sface
+                !> Outer normal case.
+                gp(:, i) = gp(:, i) + fl(:, j)*ga%faces(j)%Sface
             End If
         End Do
         gp(:, i) = g(:, i) - Tau/ga%cells(i)%Vcell*gp(:, i)        
