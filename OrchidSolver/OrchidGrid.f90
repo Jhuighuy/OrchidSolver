@@ -7,22 +7,35 @@ Use orchid_solver_helpers
 Implicit None
 Type :: MhdGridCell
     Integer :: nface, nface_end
+    Integer :: nnode, nnode_end
     Real(8) :: x, y, z
     Real(8) :: Vcell
     Contains
 End Type MhdGridCell
 Type :: MhdGridFace
     Integer :: ncell_p, ncell_m
+    Real(8) :: x, y, z
     Real(8) :: nx, ny, nz
     Real(8) :: Sface
+    Contains
 End Type MhdGridFace
+Type :: MhdGridNode
+    Integer :: ncell, ncell_end    
+    Integer :: bcond
+    Real(8) :: x, y, z
+    Contains
+End Type MhdGridNode
 Type :: MhdGrid
     Integer :: ndims
     Integer :: ncells_min, ncells_max
     Integer :: nfaces_min, nfaces_max
+    Integer :: nnodes_min, nnodes_max
     Integer, Dimension(:), Allocatable :: cell2face
+    Integer, Dimension(:), Allocatable :: cell2node
+    Integer, Dimension(:), Allocatable :: node2cell
     Type(MhdGridCell), Dimension(:), Allocatable :: cells
     Type(MhdGridFace), Dimension(:), Allocatable :: faces
+    Type(MhdGridNode), Dimension(:), Allocatable :: nodes
     Contains
     Procedure, Public, Non_Overridable :: init1D => mhd_grid_init1D
     Procedure, Public, Non_Overridable :: init2D => mhd_grid_init2D
@@ -32,16 +45,31 @@ Contains
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-Subroutine mhd_grid_init1D(This, L, N, Bp, Bm)
+Subroutine mhd_grid_init1D(This, L, N, Bpp, Bmm)
     !> Initialize a simple 1D cartesian grid.
     !> {{{
     Class(MhdGrid), Intent(InOut) :: This
     Real(8), Intent(In) :: L
     Integer, Intent(In) :: N
-    Integer, Intent(In), Optional :: Bp, Bm
+    Integer, Intent(In), Optional :: Bpp, Bmm
     !> }}}
     Real(8) :: h
     Integer :: i
+    Integer :: Bp, Bm
+    !>-------------------------------------------------------------------------------
+    !> Parse the boundary conditions.
+    If ( Present(Bpp) ) Then
+        Bp = Bpp
+    Else
+        Bp = -1
+    End If
+    If ( Present(Bmm) ) Then
+        Bm = Bmm
+    Else
+        Bm = -1
+    End If
+    !>-------------------------------------------------------------------------------
+    
     !>-------------------------------------------------------------------------------
     !> Allocate the Grid.
     This%ndims = 1
@@ -49,13 +77,18 @@ Subroutine mhd_grid_init1D(This, L, N, Bp, Bm)
     This%ncells_max = N
     This%nfaces_min = 0
     This%nfaces_max = N
+    This%nnodes_min = 0
+    This%nnodes_max = N
     Allocate(This%cells(This%ncells_min:This%ncells_max))
     Allocate(This%cell2face(This%ncells_min:2*This%ncells_max))
+    Allocate(This%cell2node(This%ncells_min:2*This%ncells_max))
     Allocate(This%faces(This%nfaces_min:This%nfaces_max))
+    Allocate(This%nodes(This%nnodes_min:This%nnodes_max))
+    Allocate(This%node2cell(This%nnodes_min:2*This%nnodes_max + 1))
     !>-------------------------------------------------------------------------------
 
     !>-------------------------------------------------------------------------------
-    !> Initialize Cells and Cell2Face.
+    !> Initialize Cells, Cell2Face and Cell2Node.
     h = L/Dble(N)
     !$OMP Parallel Do
     Do i = This%ncells_min, This%ncells_max
@@ -63,6 +96,10 @@ Subroutine mhd_grid_init1D(This, L, N, Bp, Bm)
         This%cells(i)%nface_end = 2*i
         This%cell2face(This%cells(i)%nface) = i - 1
         This%cell2face(This%cells(i)%nface_end) = i
+        This%cells(i)%nnode = 2*i - 1
+        This%cells(i)%nnode_end = 2*i
+        This%cell2face(This%cells(i)%nnode) = i - 1
+        This%cell2face(This%cells(i)%nnode_end) = i
         This%cells(i)%x = h*( Dble(i) - 0.5D0 )
         This%cells(i)%y = 0.0D0
         This%cells(i)%z = 0.0D0
@@ -74,17 +111,12 @@ Subroutine mhd_grid_init1D(This, L, N, Bp, Bm)
     Do i = This%nfaces_min, This%nfaces_max
         If ( i == N ) Then
             !> Domain Boundary.
-            If ( Present(Bp) ) Then
-                If ( Bp == -3 ) Then
-                    !> Periodic boundary conditions.
-                    This%faces(i)%ncell_p = 1
-                Else
-                    !> Free flow or wall boundary conditions.
-                    This%faces(i)%ncell_p = Bp
-                End If
+            If ( Bp == -3 ) Then
+                !> Periodic boundary conditions.
+                This%faces(i)%ncell_p = 1
             Else
-                !> Force Free-Flow boundary conditions.
-                This%faces(i)%ncell_p = -1
+                !> Free flow or wall boundary conditions.
+                This%faces(i)%ncell_p = Bp
             End If
         Else
             !> Domain Interior.
@@ -92,17 +124,12 @@ Subroutine mhd_grid_init1D(This, L, N, Bp, Bm)
         End If
         If ( i == 0 ) Then
             !> Domain Boundary.
-            If ( Present(Bm) ) Then
-                If ( Bm == -3 ) Then
-                    !> Periodic boundary conditions.
-                    This%faces(i)%ncell_m = N
-                Else
-                    !> Free flow or wall boundary conditions.
-                    This%faces(i)%ncell_m = Bm
-                End If
+            If ( Bm == -3 ) Then
+                !> Periodic boundary conditions.
+                This%faces(i)%ncell_m = N
             Else
-                !> Force Free-Flow boundary conditions.
-                This%faces(i)%ncell_m = -1
+                !> Free flow or wall boundary conditions.
+                This%faces(i)%ncell_m = Bm
             End If
         Else
             !> Domain Interior.
@@ -112,6 +139,50 @@ Subroutine mhd_grid_init1D(This, L, N, Bp, Bm)
         This%faces(i)%ny = 0.0D0
         This%faces(i)%nz = 0.0D0
         This%faces(i)%Sface = 1.0D0
+    End Do
+    !$OMP End Parallel Do
+    !> Initialize Nodes.
+    !$OMP Parallel Do
+    Do i = This%nnodes_min, This%nnodes_max
+        If ( i == N ) Then
+            !> Domain Boundary.
+            If ( Bp == -3 ) Then
+                !> Periodic boundary conditions.
+                This%nodes(i)%bcond = 0
+                This%nodes(i)%ncell_end = 2*i + 1
+                This%node2cell(This%nodes(i)%ncell_end) = 1
+            Else
+                !> Free flow or wall boundary conditions.
+                This%nodes(i)%bcond = Bp
+                This%nodes(i)%ncell_end = 2*i
+            End If
+        Else
+            !> Domain Interior.
+            This%nodes(i)%bcond = 0
+            This%nodes(i)%ncell_end = 2*i + 1
+            This%node2cell(This%nodes(i)%ncell_end) = i + 1
+        End If
+        If ( i == 0 ) Then
+            !> Domain Boundary.
+            If ( Bm == -3 ) Then
+                !> Periodic boundary conditions.
+                This%nodes(i)%bcond = 0
+                This%nodes(i)%ncell = 2*i
+                This%node2cell(This%nodes(i)%ncell) = N
+            Else
+                !> Free flow or wall boundary conditions.
+                This%nodes(i)%bcond = Bp
+                This%nodes(i)%ncell = 2*i + 1
+            End If
+        Else
+            !> Domain Interior.
+            This%nodes(i)%bcond = 0
+            This%nodes(i)%ncell = 2*i
+            This%node2cell(This%nodes(i)%ncell) = i
+        End If
+        This%nodes(i)%x = h*Dble(i)
+        This%nodes(i)%y = 0.0D0
+        This%nodes(i)%z = 0.0D0
     End Do
     !$OMP End Parallel Do
     !>-------------------------------------------------------------------------------
@@ -205,6 +276,9 @@ Subroutine mhd_grid_init2D(This, Lx, Ly, Nx, Ny, Bpx, Bmx, Bpy, Bmy)
                 !> Domain Interior.
                 This%faces(n)%ncell_m = i + 0 + ( j - 1 )*Nx
             End If
+            This%faces(n)%x = hx*( Dble(i) - 0.5D0 )
+            This%faces(n)%y = hy*Dble(j)
+            This%faces(n)%z = 0.0D0
             This%faces(n)%nx = 1.0D0
             This%faces(n)%ny = 0.0D0
             This%faces(n)%nz = 0.0D0
@@ -249,7 +323,10 @@ Subroutine mhd_grid_init2D(This, Lx, Ly, Nx, Ny, Bpx, Bmx, Bpy, Bmy)
             Else
                 !> Domain Interior.
                 This%faces(n)%ncell_m = i + ( j - 1 )*Nx
-            End If            
+            End If    
+            This%faces(n)%x = hx*Dble(i)
+            This%faces(n)%y = hy*( Dble(j) - 0.5D0 )
+            This%faces(n)%z = 0.0D0
             This%faces(n)%nx = 0.0D0
             This%faces(n)%ny = 1.0D0
             This%faces(n)%nz = 0.0D0
