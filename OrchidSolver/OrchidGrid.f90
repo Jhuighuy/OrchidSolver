@@ -41,6 +41,9 @@ Type :: MhdGrid
     Procedure, Public, Non_Overridable :: init2D => mhd_grid_init2D
     Procedure, Public, Non_Overridable :: init2D_polar => mhd_grid_init2D_polar
 End Type MhdGrid
+Private :: mhd_grid_init1D, &
+           mhd_grid_init2D, &
+           mhd_grid_init2D_polar
 Contains
 !########################################################################################################
 !########################################################################################################
@@ -98,8 +101,8 @@ Subroutine mhd_grid_init1D(This, L, N, Bpp, Bmm)
         This%cell2face(This%cells(i)%nface_end) = i
         This%cells(i)%nnode = 2*i - 1
         This%cells(i)%nnode_end = 2*i
-        This%cell2face(This%cells(i)%nnode) = i - 1
-        This%cell2face(This%cells(i)%nnode_end) = i
+        This%cell2node(This%cells(i)%nnode) = i - 1
+        This%cell2node(This%cells(i)%nnode_end) = i
         This%cells(i)%x = h*( Dble(i) - 0.5D0 )
         This%cells(i)%y = 0.0D0
         This%cells(i)%z = 0.0D0
