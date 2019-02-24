@@ -24,7 +24,7 @@ Contains
 !########################################################################################################
 Subroutine mhd_hydro_init(This, &
                           flux_type)
-    !> Initialize the Hydro Solver
+    !> Initialize the Hydro Solver.
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
     Character(Len=10), Intent(In), Optional :: flux_type
@@ -76,8 +76,10 @@ Subroutine mhd_hydro_calc_flux(This, &
         Else If ( ip < 0 ) Then
             !> Domain Boundary.
             If ( ip == -1 ) Then
+                !> Free flow boundary conditions.
                 Call This%m_flux%calc(g(:, im), g(:, im), fl(:, j), nx, ny, nz)
             Else
+                !> Wall boundary conditions.
                 Call This%m_flux%calc(g(:, im)*[1.0D0,1.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0], &
                                       g(:, im), &
                                       fl(:, j), nx, ny, nz)
@@ -85,8 +87,10 @@ Subroutine mhd_hydro_calc_flux(This, &
         Else If ( im < 0 ) Then
             !> Domain Boundary.
             If ( im == -1 ) Then
+                !> Free flow boundary conditions.
                 Call This%m_flux%calc(g(:, ip), g(:, ip), fl(:, j), nx, ny, nz)
             Else
+                !> Wall boundary conditions.
                 Call This%m_flux%calc(g(:, ip), &
                                       g(:, ip)*[1.0D0,1.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0], &
                                       fl(:, j), nx, ny, nz)
@@ -103,11 +107,11 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp, fl)
     !> Calculate the Time Step.
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
-    Real(8), Intent(In) :: Tau
     Class(MhdGrid), Intent(In) :: ga
     Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: g
     Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(Out) :: gp
     Real(8), Dimension(n_min:n_max, ga%nfaces_min:ga%nfaces_max), Intent(InOut) :: fl
+    Real(8), Intent(In) :: Tau
     !> }}}
     Integer :: i, j, k
     Call This%calc_flux(ga, g, fl)
@@ -128,7 +132,7 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp, fl)
             End If
         End Do
         gp(:, i) = g(:, i) - Tau/ga%cells(i)%Vcell*gp(:, i)        
-        !> Check is values are correct and density and energy are positive.
+        !> Check if values are correct and density and energy are positive.
         If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
             If ( verbose ) Then
                 Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i)
