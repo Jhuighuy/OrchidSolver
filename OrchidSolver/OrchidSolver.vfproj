@@ -53,10 +53,6 @@
 		<File RelativePath=".\OrchidHydroFluxRoe.f90"/></Filter>
 		<File RelativePath=".\OrchidHydro2.f90"/></Filter>
 		<Filter Name="Poisson">
-		<File RelativePath=".\OrchidPoissonStochastic.f90"/></Filter>
-		<Filter Name="Utils">
-		<File RelativePath=".\OrchidUtilsOpenCL.f90"/>
-		<File RelativePath=".\OrchidUtilsOpenCL2.f90"/></Filter>
 		<File RelativePath=".\OrchidPois.f90"/></Filter>
 		<Filter Name="Utils"/>
 		<File RelativePath=".\OrchidGrid.f90"/>

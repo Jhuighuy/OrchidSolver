@@ -6,7 +6,7 @@ Module orchid_solver_params
     Integer, Parameter :: dim = 2
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .TRUE.
+    Logical, Parameter :: mhd = .FALSE.
     
     Character(Len=10) :: hydro_flux = 'hllc'
     Character(Len=10) :: hydro_flux_limiter = 'none'
@@ -30,6 +30,7 @@ Module orchid_solver_params
     Integer, Parameter :: i_min = 1, i_max = N_r
     Integer, Parameter :: j_min = 1, j_max = N_phi
     Integer, Parameter :: k_min = 1, k_max = 1
+    Integer, Parameter :: p_min = 1, p_max = 4
     Integer, Parameter :: f_min = 1, f_max = dim
 End Module orchid_solver_params
     
@@ -79,14 +80,11 @@ Subroutine print_grid3(ga, g, l)
     Close(output)
 End Subroutine print_grid3
 
-
-Subroutine print_grid2(g, l)
+Subroutine print_grid4(ga, g, l)
     !> {{{
     Integer, Intent(In) :: l
-    Real(8), Dimension(n_min:n_max, &
-                       i_min:i_max, &
-                       j_min:j_max, &
-                       k_min:k_max), Intent(In) :: g
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(In) :: g
     !> }}}
     Integer :: i, j, k
     Integer :: output
@@ -96,72 +94,34 @@ Subroutine print_grid2(g, l)
     Real(8) :: v_x, v_y, v_z, v_l
     Real(8) :: vxy(2), vrp(2), a(2,2), vvv
     Open(NewUnit=output, file='../Results/fields-'//Trim(to_str(l))//'.csv', Status='replace')
-    k = 1
-    If ( dim==1 ) Then
-        j = j_min
-        k = k_min
-        Do i = 1, N_r
-            !x,r,e,u,v,w,bx,by,bz
-            x = i*h_r
-            Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
-                x, ',', &
-                g(1, i, j, k), ',', g(2, i, j, k)/g(1, i, j, k), ',', &
-                g(3, i, j, k)/g(1, i, j, k), ',', g(4, i, j, k)/g(1, i, j, k), ',', &
-                g(5, i, j, k)/g(1, i, j, k), ',', &
-                g(6, i, j, k)/Sqrt(4.0D0*Pi), ',', g(7, i, j, k)/Sqrt(4.0D0*Pi), ',', g(8, i, j, k)/Sqrt(4.0D0*Pi)
-        End Do 
-    End If
-    If ( dim==2 ) Then
-        Write (output,*) 'x,y,z,r,e,u,v,w,bx,by,bz'
-        Do i = 1, N_r
-        Do j = 1, N_phi
-            r = r_0 + (i - 0.5D0)*h_r
-            phi = (j - 0.5D0)*h_p
-            x = r*Cos(Phi)
-            y = r*Sin(Phi)
-                Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
-                    x, ',', y, ',', &
-                    g(1, i, j, k), ',', g(2, i, j, k)/g(1, i, j, k), ',', &
-                    g(3, i, j, k)/g(1, i, j, k), ',', g(4, i, j, k)/g(1, i, j, k), ',', &
-                    g(5, i, j, k)/g(1, i, j, k), ',', &
-                    g(6, i, j, k)/Sqrt(4.0D0*Pi), ',', g(7, i, j, k)/Sqrt(4.0D0*Pi), ',', g(8, i, j, k)/Sqrt(4.0D0*Pi)
-            
-            !a(1,:) = [Cos(phi), -Sin(Phi)]
-            !a(2,:) = [Sin(Phi), Cos(Phi)]
-            !a = Transpose(a)
-            !!vxy = MatMul(a, [g%v_r(i, j, 1, 0)/g%rho(i, j, 1, 0), g%v_p(i, j, 1, 0)/g%rho(i, j, 1, 0)])*0.5
-            !Write (output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
-            !    x, ',', y, ',', &!r, phi,&!
-            !    vxy(1), ',', vxy(2), ',', &
-            !    g(1, i, j, k), ',', g(2, i, j, k)/g(1, i, j, k)
-        End Do 
-        End Do
-    Else
-    End If
+    Write (output, *) 'x,y,z,u'
+    Do i = ga%ncells_min, ga%ncells_max
+       Write(output, '(E12.6,A,E12.6,A,E12.6,A,E12.6)') &
+           ga%cells(i)%x, ',', ga%cells(i)%y, ',', ga%cells(i)%z, ',', &
+           g(i)
+    End Do
     Close(output)
-End Subroutine print_grid2
-
-
+End Subroutine print_grid4
     
 End Module orchid_solver_simulation
     
 Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro2
-    Use orchid_solver_poisson_stochastic
-    !Use orchid_solver_opencl2
+    Use orchid_solver_pois
     
     Class(MhdGrid), Allocatable :: ga
     Real(8), Dimension(:,:), Allocatable :: g, gp
-    Real(8), Dimension(:), Allocatable :: u, f
+    Real(8), Dimension(:), Allocatable :: u, up, flu
     Real(8), Dimension(:,:), Allocatable :: fl
+    Real(8), Dimension(:), Allocatable :: f
 
     Integer::l, i
-    Real(8) :: x, y
+    Real(8) :: x, y, r
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
     Class(MhdHydroSolver), Allocatable :: solver
-    Class(MhdPoissonFixedRandomWalk), Allocatable :: pois
+    Class(MhdPoisSolver), Allocatable :: pois
     
     !>-------------------------------------------------------------------------------
     !> Write the damn cool Logo.
@@ -186,27 +146,42 @@ Program orchid_solver
     !Call test_opencl
     
     Allocate(MhdHydroSolver :: solver)
-    Allocate(MhdPoissonFixedRandomWalk :: pois)
+    Allocate(MhdPoisSolver :: pois)
     Allocate(ga)
-    !Call ga%init1D(10.0D0, 200, -1, -2)
-    !Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
-    Call ga%init2D(1.0D0, 1.0D0, 200, 200, -2, -2)
-    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
-    Allocate(u(ga%ncells_min:ga%ncells_max))
-    Allocate(f(ga%ncells_min:ga%ncells_max))
-    Do i = ga%ncells_min, ga%ncells_max
-        x = ga%cells(i)%x
-        y = ga%cells(i)%y
-        u(i) = 0.0D0
-        f(i) = 0.5D0*( Exp(y)*Exp(x)*x*(x+3.0d0)*( y - y**2 ) + Exp(y)*Exp(y)*y*(y+3.0d0)*( x - x**2 ) )
-        !f(i) = ( ( y - y**2 ) + ( x - x**2 ) )
-    End Do
-    Call pois%calc(ga, u, f)
-    g(1, :) = 1.0D0
-    g(2, :) = u(:)
-    Call print_grid3(ga, g, 0)
-    Stop
     
+    !Call ga%init1D(1.0D0, 100, -2, -2)
+    
+    !Write(*,*) ga%node2cell
+    Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
+    !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
+    !Write(*, *) ga%faces
+    !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
+    
+    !Allocate(f(ga%ncells_min:ga%ncells_max))
+    !Allocate(u(ga%ncells_min:ga%ncells_max))
+    !Allocate(up(ga%ncells_min:ga%ncells_max))
+    !Allocate(flu(ga%nfaces_min:ga%nfaces_max))
+    !Do i = ga%ncells_min, ga%ncells_max
+    !    x = ga%cells(i)%x
+    !    y = ga%cells(i)%y
+    !    r = Sqrt(x**2 + y**2)
+    !    u(i) = (3.0D0 - r)*(10.0D0 - r)
+    !    !u(i) = (x - x**2)*(y - y**2)
+    !    !f(i) = Sin(4*Pi*x)!Exp(x+y)!-8*Pi**2*Sin(2*Pi*x)*Sin(2*Pi*y)
+    !    !f(i) = ( Exp(y)*Exp(x)*x*(x+3.0d0)*( y - y**2 ) + Exp(y)*Exp(x)*y*(y+3.0d0)*( x - x**2 ) )
+    !    !f(i) = +2.0D0*( ( y - y**2 ) + ( x - x**2 ) ) 
+    !    !f(i) = (Cos(r) - r*Sin(r))/r
+    !    f(i) = -(4.0D0*r-13.0D0)/r
+    !    !f(i) = 4.0D0*Pi*Pi*Sin(2*Pi*x)*Sin(2*Pi*y)
+    !    !f(i) = (x - x**2)!*(y - y**2)
+    !End Do
+    !Call pois%init()
+    !Call pois%calc(ga, u, up, flu, f)
+    !Call print_grid4(ga, up, 0)
+    !Read(*,*)
+    !Stop
+    
+    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
     Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
     Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
     
