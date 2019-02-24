@@ -78,7 +78,7 @@ Subroutine mhd_pois_calc_flux(This, &
     Class(MhdPoisSolver), Intent(InOut) :: This
     Class(MhdGrid), Intent(In) :: ga
     Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(In) :: u
-    Real(8), Dimension(ga%nfaces_min:ga%nfaces_max), Intent(InOut) :: fl
+    Real(8), Dimension(ga%nfaces_min:ga%nfaces_max), Intent(Out) :: fl
     !> }}}
     Integer :: ip, im, j
     Real(8) :: x_p, y_p, z_p, x_m, y_m, z_m
@@ -209,9 +209,9 @@ Function mhd_pois_calc_dotp(This, ga, u, v) Result(dotp)
     !>-------------------------------------------------------------------------------
     !> Calculate the Dot Product.
     dotp = 0.0D0
-    !$OMP Parallel Do Reduction(+:dotp)
+    !$OMP Parallel Do Private(i) Reduction(+:dotp) 
     Do i = ga%ncells_min, ga%ncells_max
-        dotp = dotp + ( u(i)*v(i) )/ga%cells(i)%Vcell
+        dotp = dotp + ( u(i)*v(i) )*ga%cells(i)%Vcell
     End Do
     !$OMP End Parallel Do
     !>-------------------------------------------------------------------------------
@@ -225,11 +225,10 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
     Class(MhdPoisSolver), Intent(InOut) :: This
     Class(MhdGrid), Intent(In) :: ga
     Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(In) :: f
-    Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(InOut) :: u_km
-    Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(InOut) :: u_k
+    Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(InOut) :: u_km, u_k
     Real(8), Dimension(ga%nfaces_min:ga%nfaces_max), Intent(InOut) :: fl
     !> }}}
-    Real(4) :: Tstart, Tend
+    Integer :: n, i
     Real(8) :: Rho_k, Rho_km, &
                Omega_k, Omega_km, &
                Alpha_k, Alpha_km, &
@@ -238,7 +237,6 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
                                           p_k, p_km, &
                                           v_k, v_km, &
                                           s_k, t_k
-    Call Cpu_Time(Tstart)
     
     !>-------------------------------------------------------------------------------
     !> Perallocate the intermediate fields.
@@ -258,23 +256,39 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
     Rho_km = 1.0D0
     Alpha_km = 1.0D0
     Omega_km = 1.0D0
-    v_km(:) = 0.0D0
-    p_km(:) = 0.0D0
     Call this%calc_iter(1.0D0, ga, u_km, u_k, fl)
-    r_0(:) = f(:) - u_k(:)
-    r_km(:) = r_0(:)
+    !$OMP Parallel Do
+    Do i = ga%ncells_min, ga%ncells_max
+        v_km(i) = 0.0D0
+        p_km(i) = 0.0D0
+        r_km(i) = f(i) - u_k(i)
+        r_0(i) = r_km(i)
+    End Do
+    !$OMP End Parallel Do
     Delta1 = Sqrt(This%calc_dotp(ga, f, f))
-    Do While ( .TRUE. )
+    Do n = 1, 10000000
         Rho_k = This%calc_dotp(ga, r_0, r_km)
         Beta_k = Rho_k/Rho_km * Alpha_km/Omega_km
-        p_k(:) = r_km(:) + Beta_k*( p_km(:) - Omega_km*v_km(:) )
+        !$OMP Parallel Do
+        Do i = ga%ncells_min, ga%ncells_max 
+            p_k(i) = r_km(i) + Beta_k*( p_km(i) - Omega_km*v_km(i) )
+        End Do
+        !$OMP End Parallel Do
         Call this%calc_iter(1.0D0, ga, p_k, v_k, fl)
         Alpha_k = Rho_k/This%calc_dotp(ga, r_0, v_k)
-        s_k(:) = r_km(:) - Alpha_k*v_k(:)
+        !$OMP Parallel Do
+        Do i = ga%ncells_min, ga%ncells_max 
+            s_k(i) = r_km(i) - Alpha_k*v_k(i)
+        End Do
+        !$OMP End Parallel Do
         Call this%calc_iter(1.0D0, ga, s_k, t_k, fl)
         Omega_k = This%calc_dotp(ga, t_k, s_k)/This%calc_dotp(ga, t_k, t_k)
-        u_k(:) = u_km(:) + Omega_k*s_k(:) + Alpha_k*p_k(:)
-        r_k(:) = s_k(:) - Omega_k*t_k(:)
+        !$OMP Parallel Do
+        Do i = ga%ncells_min, ga%ncells_max 
+            u_k(i) = u_km(i) + Omega_k*s_k(i) + Alpha_k*p_k(i)
+            r_k(i) = s_k(i) - Omega_k*t_k(i)
+        End Do
+        !$OMP End Parallel Do
         Delta = Sqrt(This%calc_dotp(ga, r_k, r_k))/Delta1
         If ( Delta < 1D-4 ) Then
             !> Convergence was reached.
@@ -283,10 +297,14 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
         Rho_km = Rho_k
         Alpha_km = Alpha_k
         Omega_km = Omega_k
-        p_km(:) = p_k(:)
-        r_km(:) = r_k(:)
-        v_km(:) = v_k(:)
-        u_km(:) = u_k(:)
+        !$OMP Parallel Do
+        Do i = ga%ncells_min, ga%ncells_max 
+            p_km(i) = p_k(i)
+            r_km(i) = r_k(i)
+            v_km(i) = v_k(i)
+            u_km(i) = u_k(i)
+        End Do
+        !$OMP End Parallel Do
     End Do
     !>-------------------------------------------------------------------------------
     
@@ -303,8 +321,7 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
     Deallocate(v_km)
     !>-------------------------------------------------------------------------------
     
-    Call Cpu_Time(Tend)
-    Write (*,*) Tend - TStart
+    !Write (*,*) Tend - Tstart, n, Delta
 End Subroutine mhd_pois_calc
 !########################################################################################################
 !########################################################################################################

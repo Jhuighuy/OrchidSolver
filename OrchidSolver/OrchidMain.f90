@@ -18,7 +18,7 @@ Module orchid_solver_params
     Character(Len=10) :: MHD_R1_BOUNDARY_COND = 'free'
     
     
-    Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 1.4D0, Gamma1 = Gamma-1.0D0
+    Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0D0/3.0D0, Gamma1 = Gamma-1.0D0
     Real(8), Parameter :: r_0 = 3.0, r_1 = 10.0
     Real(8), Parameter :: r0 = 3.0, r1 = 10.0
 
@@ -109,14 +109,16 @@ Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro2
     Use orchid_solver_pois
+    use omp_lib
     
     Class(MhdGrid), Allocatable :: ga
+    Real(8) :: Tstart, Tend
     Real(8), Dimension(:,:), Allocatable :: g, gp
     Real(8), Dimension(:), Allocatable :: u, up, flu
     Real(8), Dimension(:,:), Allocatable :: fl
     Real(8), Dimension(:), Allocatable :: f
 
-    Integer::l, i
+    Integer::l, i, n
     Real(8) :: x, y, r
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
@@ -146,7 +148,7 @@ Program orchid_solver
     !Call test_opencl
     
     Allocate(MhdHydroSolver :: solver)
-    Allocate(MhdPoisSolver :: pois)
+    !Allocate(MhdPoisSolver :: pois)
     Allocate(ga)
     
     !Call ga%init1D(1.0D0, 100, -2, -2)
@@ -157,26 +159,37 @@ Program orchid_solver
     !Write(*, *) ga%faces
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
     
-    !Allocate(f(ga%ncells_min:ga%ncells_max))
-    !Allocate(u(ga%ncells_min:ga%ncells_max))
-    !Allocate(up(ga%ncells_min:ga%ncells_max))
-    !Allocate(flu(ga%nfaces_min:ga%nfaces_max))
-    !Do i = ga%ncells_min, ga%ncells_max
-    !    x = ga%cells(i)%x
-    !    y = ga%cells(i)%y
-    !    r = Sqrt(x**2 + y**2)
-    !    u(i) = (3.0D0 - r)*(10.0D0 - r)
-    !    !u(i) = (x - x**2)*(y - y**2)
-    !    !f(i) = Sin(4*Pi*x)!Exp(x+y)!-8*Pi**2*Sin(2*Pi*x)*Sin(2*Pi*y)
-    !    !f(i) = ( Exp(y)*Exp(x)*x*(x+3.0d0)*( y - y**2 ) + Exp(y)*Exp(x)*y*(y+3.0d0)*( x - x**2 ) )
-    !    !f(i) = +2.0D0*( ( y - y**2 ) + ( x - x**2 ) ) 
-    !    !f(i) = (Cos(r) - r*Sin(r))/r
-    !    f(i) = -(4.0D0*r-13.0D0)/r
-    !    !f(i) = 4.0D0*Pi*Pi*Sin(2*Pi*x)*Sin(2*Pi*y)
-    !    !f(i) = (x - x**2)!*(y - y**2)
+    Allocate(f(ga%ncells_min:ga%ncells_max))
+    Allocate(u(ga%ncells_min:ga%ncells_max))
+    Allocate(up(ga%ncells_min:ga%ncells_max))
+    Allocate(flu(ga%nfaces_min:ga%nfaces_max))
+
+    Do i = ga%ncells_min, ga%ncells_max
+        x = ga%cells(i)%x
+        y = ga%cells(i)%y
+        r = Sqrt(x**2 + y**2)
+        u(i) = 0.0D0
+        up(i) = 0.0D0
+        flu(i) = 0.0D0
+        !u(i) = (3.0D0 - r)*(10.0D0 - r)
+        !u(i) = (x - x**2)*(y - y**2)
+        !f(i) = Sin(4*Pi*x)!Exp(x+y)!-8*Pi**2*Sin(2*Pi*x)*Sin(2*Pi*y)
+        !f(i) = ( Exp(y)*Exp(x)*x*(x+3.0d0)*( y - y**2 ) + Exp(y)*Exp(x)*y*(y+3.0d0)*( x - x**2 ) )
+        !f(i) = +2.0D0*( ( y - y**2 ) + ( x - x**2 ) ) 
+        !f(i) = (Cos(r) - r*Sin(r))/r
+        f(i) = -(4.0D0*r-13.0D0)/r
+        !f(i) = 4.0D0*Pi*Pi*Sin(2*Pi*x)*Sin(2*Pi*y)
+        !f(i) = (x - x**2)!*(y - y**2)
+    End Do
+    Allocate(MhdPoisSolver :: pois)
+    Call pois%init()
+    
+    !Do n = 1, 100
+    !
+    !    Call pois%calc(ga, u, up, flu, f)
+    !    Write(*,*) n
+    !    Deallocate(pois)
     !End Do
-    !Call pois%init()
-    !Call pois%calc(ga, u, up, flu, f)
     !Call print_grid4(ga, up, 0)
     !Read(*,*)
     !Stop
@@ -204,14 +217,20 @@ Program orchid_solver
     g(3, :) = 1.0D0
     !g(3, :) = 0.0D0
     g(4, :) = 0.0D0
-    g(7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+    !g(7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
 
     Call solver%init()
     Call print_grid3(ga, g, 0)
+    Tstart = omp_get_wtime()
     Do l=1,2000000
+        f(:) = g(3, :)
+        u(:) = up(:)
+        Call pois%calc(ga, u, up, flu, f)
         Call solver%calc_step(0.001D0, ga, g, gp, fl)
         If (Mod(l, 100) == 0) Then
-            Write(*, *) 'time step:', l
+            Tend = omp_get_wtime()
+            Write(*, *) 'time step:', l, TEnd - Tstart
+            Tstart = Tend
             Call print_grid3(ga, g, l)
         End If
         g(:,:)=gp(:,:)
