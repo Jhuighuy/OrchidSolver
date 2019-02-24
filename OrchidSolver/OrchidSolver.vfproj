@@ -57,6 +57,8 @@
 		<Filter Name="Utils">
 		<File RelativePath=".\OrchidUtilsOpenCL.f90"/>
 		<File RelativePath=".\OrchidUtilsOpenCL2.f90"/></Filter>
+		<File RelativePath=".\OrchidPois.f90"/></Filter>
+		<Filter Name="Utils"/>
 		<File RelativePath=".\OrchidGrid.f90"/>
 		<File RelativePath=".\OrchidMain.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>
