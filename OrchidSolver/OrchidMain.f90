@@ -50,7 +50,7 @@ End Module orchid_solver_helpers
 
     
 Module orchid_solver_simulation
-Use orchid_solver_grid
+Use orchid_solver_grid_gauss_legendre
 !Use orchid_solver_opencl
 Implicit None
 
@@ -107,11 +107,11 @@ End Module orchid_solver_simulation
     
 Program orchid_solver
     Use orchid_solver_simulation
-    Use orchid_solver_hydro2
+    Use orchid_solver_hydro_dg
     Use orchid_solver_pois
     use omp_lib
     
-    Class(MhdGrid), Allocatable :: ga
+    Class(MhdGridGaussLegendre), Allocatable :: ga
     Real(8) :: Tstart, Tend
     Real(8), Dimension(:,:), Allocatable :: g, gp
     Real(8), Dimension(:), Allocatable :: u, up, flu
@@ -122,7 +122,7 @@ Program orchid_solver
     Real(8) :: x, y, r
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
-    Class(MhdHydroSolver), Allocatable :: solver
+    Class(MhdHydroSolverDG), Allocatable :: solver
     Class(MhdPoisSolver), Allocatable :: pois
     
     !>-------------------------------------------------------------------------------
@@ -147,7 +147,7 @@ Program orchid_solver
     
     !Call test_opencl
     
-    Allocate(MhdHydroSolver :: solver)
+    Allocate(MhdHydroSolverDG :: solver)
     !Allocate(MhdPoisSolver :: pois)
     Allocate(ga)
     
@@ -158,6 +158,9 @@ Program orchid_solver
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
     !Write(*, *) ga%faces
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
+    
+    Call ga%init_gauss_dummy()
+    Call ga%init_legendre_dummy()
     
     Allocate(f(ga%ncells_min:ga%ncells_max))
     Allocate(u(ga%ncells_min:ga%ncells_max))

@@ -60,7 +60,7 @@ Subroutine mhd_hydro_calc_flux(This, &
     Real(8) :: nx, ny, nz
     Real(8), Dimension(n_min:n_max) :: w
     w(:) = 0.0D0
-    w(n_min:n_min+2) = 1.0D0
+    w(n_min:n_min+1) = 1.0D0
     !>-------------------------------------------------------------------------------
     !> Calculate the Fluxes.
     !$OMP Parallel Do Private(ip, im, nx, ny, nz)
@@ -80,7 +80,7 @@ Subroutine mhd_hydro_calc_flux(This, &
                 Call This%m_flux%calc(g(:, im), g(:, im), fl(:, j), nx, ny, nz)
             Else
                 !> Wall boundary conditions.
-                Call This%m_flux%calc(g(:, im)*[1.0D0,1.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0], &
+                Call This%m_flux%calc(g(:, im)*w, &
                                       g(:, im), &
                                       fl(:, j), nx, ny, nz)
             End If
@@ -92,7 +92,7 @@ Subroutine mhd_hydro_calc_flux(This, &
             Else
                 !> Wall boundary conditions.
                 Call This%m_flux%calc(g(:, ip), &
-                                      g(:, ip)*[1.0D0,1.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0,0.0D0], &
+                                      g(:, ip)*w, &
                                       fl(:, j), nx, ny, nz)
             End If
         End If
