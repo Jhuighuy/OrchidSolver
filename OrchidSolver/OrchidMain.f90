@@ -118,7 +118,7 @@ Program orchid_solver
     Real(8), Dimension(:,:), Allocatable :: fl
     Real(8), Dimension(:), Allocatable :: f
 
-    Integer::l, i, n
+    Integer::l, i, n, m
     Real(8) :: x, y, r
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
@@ -184,8 +184,7 @@ Program orchid_solver
     Allocate(MhdPoisSolver :: pois)
     Call pois%init()
     
-    !Do n = 1, 100
-    !
+    !Do n = 1, 1
     !    Call pois%calc(ga, u, up, flu, f)
     !    Write(*,*) n
     !    Deallocate(pois)
@@ -221,16 +220,19 @@ Program orchid_solver
 
     Call solver%init()
     Call print_grid3(ga, g, 0)
+    m = 0
     Tstart = omp_get_wtime()
     Do l=1,2000000
-        f(:) = g(3, :)
+        f(:) = g(1, :)
         u(:) = up(:)
-        Call pois%calc(ga, u, up, flu, f)
+        Call pois%calc(ga, u, up, flu, f, n)
+        m = m + n
         Call solver%calc_step(0.001D0, ga, g, gp, fl)
         If (Mod(l, 100) == 0) Then
             Tend = omp_get_wtime()
-            Write(*, *) 'time step:', l, TEnd - Tstart
+            Write(*, *) 'time step:', l, TEnd - Tstart, m, (TEnd - Tstart)/Dble(m)
             Tstart = Tend
+            m = 0
             Call print_grid3(ga, g, l)
         End If
         g(:,:)=gp(:,:)

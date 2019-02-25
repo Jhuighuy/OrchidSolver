@@ -219,7 +219,7 @@ End Function mhd_pois_calc_dotp
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
+Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f, n)
     !> Initialize the Poisson solver.
     !> {{{
     Class(MhdPoisSolver), Intent(InOut) :: This
@@ -227,101 +227,171 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f)
     Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(In) :: f
     Real(8), Dimension(ga%ncells_min:ga%ncells_max), Intent(InOut) :: u_km, u_k
     Real(8), Dimension(ga%nfaces_min:ga%nfaces_max), Intent(InOut) :: fl
+    Integer, Intent(Out) :: n
     !> }}}
-    Integer :: n, i
+    Integer :: i
+    Logical :: Symmetric
+    Real(8), Parameter :: Eps = 1D-4
     Real(8) :: Rho_k, Rho_km, &
                Omega_k, Omega_km, &
                Alpha_k, Alpha_km, &
                Beta_k, Delta, Delta1
     Real(8), Dimension(:), Allocatable :: r_k, r_km, r_0, &
+                                          z_k, z_km, Az_km, &
                                           p_k, p_km, &
                                           v_k, v_km, &
                                           s_k, t_k
     
     !>-------------------------------------------------------------------------------
     !> Perallocate the intermediate fields.
-    Allocate(r_k(ga%ncells_min:ga%ncells_max)) 
-    Allocate(p_k(ga%ncells_min:ga%ncells_max)) 
-    Allocate(v_k(ga%ncells_min:ga%ncells_max)) 
-    Allocate(s_k(ga%ncells_min:ga%ncells_max)) 
-    Allocate(t_k(ga%ncells_min:ga%ncells_max)) 
-    Allocate(r_0(ga%ncells_min:ga%ncells_max)) 
-    Allocate(r_km(ga%ncells_min:ga%ncells_max)) 
-    Allocate(p_km(ga%ncells_min:ga%ncells_max)) 
-    Allocate(v_km(ga%ncells_min:ga%ncells_max))
+    symmetric = .FALSE.
+    If ( Symmetric ) Then
+        Allocate(r_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(z_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(r_km(ga%ncells_min:ga%ncells_max)) 
+        Allocate(z_km(ga%ncells_min:ga%ncells_max)) 
+        Allocate(Az_km(ga%ncells_min:ga%ncells_max)) 
+    Else
+        Allocate(r_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(p_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(v_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(s_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(t_k(ga%ncells_min:ga%ncells_max)) 
+        Allocate(r_0(ga%ncells_min:ga%ncells_max)) 
+        Allocate(r_km(ga%ncells_min:ga%ncells_max)) 
+        Allocate(p_km(ga%ncells_min:ga%ncells_max)) 
+        Allocate(v_km(ga%ncells_min:ga%ncells_max))
+    End If
     !>-------------------------------------------------------------------------------
     
     !>-------------------------------------------------------------------------------
-    !> Solve the Linear system using the Good Old BiCGStab.
-    Rho_km = 1.0D0
-    Alpha_km = 1.0D0
-    Omega_km = 1.0D0
-    Call this%calc_iter(1.0D0, ga, u_km, u_k, fl)
-    !$OMP Parallel Do
-    Do i = ga%ncells_min, ga%ncells_max
-        v_km(i) = 0.0D0
-        p_km(i) = 0.0D0
-        r_km(i) = f(i) - u_k(i)
-        r_0(i) = r_km(i)
-    End Do
-    !$OMP End Parallel Do
     Delta1 = Sqrt(This%calc_dotp(ga, f, f))
-    Do n = 1, 10000000
-        Rho_k = This%calc_dotp(ga, r_0, r_km)
-        Beta_k = Rho_k/Rho_km * Alpha_km/Omega_km
+    If ( Symmetric ) Then
+        !> Symmetric operator. Solve the Linear system using the CG.
+        Call this%calc_iter(1.0D0, ga, u_km, u_k, fl)
         !$OMP Parallel Do
-        Do i = ga%ncells_min, ga%ncells_max 
-            p_k(i) = r_km(i) + Beta_k*( p_km(i) - Omega_km*v_km(i) )
+        Do i = ga%ncells_min, ga%ncells_max
+            r_km(i) = f(i) - u_k(i)
+            z_km(i) = r_km(i)
         End Do
         !$OMP End Parallel Do
-        Call this%calc_iter(1.0D0, ga, p_k, v_k, fl)
-        Alpha_k = Rho_k/This%calc_dotp(ga, r_0, v_k)
-        !$OMP Parallel Do
-        Do i = ga%ncells_min, ga%ncells_max 
-            s_k(i) = r_km(i) - Alpha_k*v_k(i)
-        End Do
-        !$OMP End Parallel Do
-        Call this%calc_iter(1.0D0, ga, s_k, t_k, fl)
-        Omega_k = This%calc_dotp(ga, t_k, s_k)/This%calc_dotp(ga, t_k, t_k)
-        !$OMP Parallel Do
-        Do i = ga%ncells_min, ga%ncells_max 
-            u_k(i) = u_km(i) + Omega_k*s_k(i) + Alpha_k*p_k(i)
-            r_k(i) = s_k(i) - Omega_k*t_k(i)
-        End Do
-        !$OMP End Parallel Do
-        Delta = Sqrt(This%calc_dotp(ga, r_k, r_k))/Delta1
-        If ( Delta < 1D-4 ) Then
-            !> Convergence was reached.
-            Exit
+        Delta = Sqrt(This%calc_dotp(ga, r_km, r_km))/Delta1
+        If ( Delta >= Eps ) Then
+            Do n = ga%ncells_min, 2*ga%ncells_max
+                !> Perform the iteration.
+                Call this%calc_iter(1.0D0, ga, z_km, Az_km, fl)
+                Alpha_k = This%calc_dotp(ga, r_km, r_km)/This%calc_dotp(ga, Az_km, z_km)
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max
+                    u_k(i) = u_km(i) + Alpha_k*z_km(i)
+                    r_k(i) = r_km(i) - Alpha_k*Az_km(i)
+                End Do
+                !$OMP End Parallel Do
+                Beta_k = This%calc_dotp(ga, r_k, r_k)/This%calc_dotp(ga, r_km, r_km)
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max
+                    z_k(i) = r_k(i) + Beta_k*z_km(i)
+                End Do
+                !$OMP End Parallel Do
+                !> Check convergence.
+                Delta = Sqrt(This%calc_dotp(ga, r_k, r_k))/Delta1
+                If ( Delta < Eps ) Then
+                    !> Convergence was reached.
+                    Exit
+                End If
+                !> Perpare for the next iteration.
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max 
+                    r_km(i) = r_k(i)
+                    z_km(i) = z_k(i)
+                    u_km(i) = u_k(i)
+                End Do
+                !$OMP End Parallel Do
+            End Do
         End If
-        Rho_km = Rho_k
-        Alpha_km = Alpha_k
-        Omega_km = Omega_k
+    Else
+        !> Non-Symmetric operator. Solve the Linear system using the Good Old BiCGStab.
+        Rho_km = 1.0D0
+        Alpha_km = 1.0D0
+        Omega_km = 1.0D0
+        Call this%calc_iter(1.0D0, ga, u_km, u_k, fl)
         !$OMP Parallel Do
-        Do i = ga%ncells_min, ga%ncells_max 
-            p_km(i) = p_k(i)
-            r_km(i) = r_k(i)
-            v_km(i) = v_k(i)
-            u_km(i) = u_k(i)
+        Do i = ga%ncells_min, ga%ncells_max
+            v_km(i) = 0.0D0
+            p_km(i) = 0.0D0
+            r_km(i) = f(i) - u_k(i)
+            r_0(i) = r_km(i)
         End Do
         !$OMP End Parallel Do
-    End Do
+        Delta = Sqrt(This%calc_dotp(ga, r_km, r_km))/Delta1
+        If ( Delta >= Eps ) Then
+            Do n = ga%ncells_min, 2*ga%ncells_max
+                !> Perform the iteration.
+                Rho_k = This%calc_dotp(ga, r_0, r_km)
+                Beta_k = Rho_k/Rho_km * Alpha_km/Omega_km
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max 
+                    p_k(i) = r_km(i) + Beta_k*( p_km(i) - Omega_km*v_km(i) )
+                End Do
+                !$OMP End Parallel Do
+                Call this%calc_iter(1.0D0, ga, p_k, v_k, fl)
+                Alpha_k = Rho_k/This%calc_dotp(ga, r_0, v_k)
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max 
+                    s_k(i) = r_km(i) - Alpha_k*v_k(i)
+                End Do
+                !$OMP End Parallel Do
+                Call this%calc_iter(1.0D0, ga, s_k, t_k, fl)
+                Omega_k = This%calc_dotp(ga, t_k, s_k)/This%calc_dotp(ga, t_k, t_k)
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max 
+                    u_k(i) = u_km(i) + Omega_k*s_k(i) + Alpha_k*p_k(i)
+                    r_k(i) = s_k(i) - Omega_k*t_k(i)
+                End Do
+                !> Check convergence.
+                !$OMP End Parallel Do
+                Delta = Sqrt(This%calc_dotp(ga, r_k, r_k))/Delta1
+                If ( Delta < Eps ) Then
+                    !> Convergence was reached.
+                    Exit
+                End If
+                !> Perpare for the next iteration.
+                Rho_km = Rho_k
+                Alpha_km = Alpha_k
+                Omega_km = Omega_k
+                !$OMP Parallel Do
+                Do i = ga%ncells_min, ga%ncells_max 
+                    p_km(i) = p_k(i)
+                    r_km(i) = r_k(i)
+                    v_km(i) = v_k(i)
+                    u_km(i) = u_k(i)
+                End Do
+                !$OMP End Parallel Do
+            End Do
+        End If
+    End If
     !>-------------------------------------------------------------------------------
     
     !>-------------------------------------------------------------------------------
     !> Deallocate the intermediate fields.
-    Deallocate(r_k)
-    Deallocate(p_k)
-    Deallocate(v_k)
-    Deallocate(s_k)
-    Deallocate(t_k)
-    Deallocate(r_0)
-    Deallocate(r_km)
-    Deallocate(p_km)
-    Deallocate(v_km)
+    If ( Symmetric ) Then
+        Deallocate(r_k)
+        Deallocate(r_km)
+        Deallocate(z_k)
+        Deallocate(z_km)
+        Deallocate(Az_km)
+    Else
+        Deallocate(r_k)
+        Deallocate(p_k)
+        Deallocate(v_k)
+        Deallocate(s_k)
+        Deallocate(t_k)
+        Deallocate(r_0)
+        Deallocate(r_km)
+        Deallocate(p_km)
+        Deallocate(v_km)
+    End If
     !>-------------------------------------------------------------------------------
-    
-    !Write (*,*) Tend - Tstart, n, Delta
 End Subroutine mhd_pois_calc
 !########################################################################################################
 !########################################################################################################
