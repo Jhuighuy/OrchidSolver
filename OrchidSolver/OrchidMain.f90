@@ -6,7 +6,7 @@ Module orchid_solver_params
     Integer, Parameter :: dim = 1
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .TRUE.
+    Logical, Parameter :: mhd = .FALSE.
     
     Character(Len=10) :: hydro_flux = 'roe'
     Character(Len=10) :: hydro_flux_limiter = 'none'
@@ -239,7 +239,7 @@ Program orchid_solver
     Call print_grid3(ga, g(0,:,:), 0)
     m = 1
     Tstart = omp_get_wtime()
-    Do l=1,1700
+    Do l=1,3000
         !f(:) = g(1, :)
         !u(:) = up(:)
         !Call pois%calc(ga, u, up, flu, f, n)

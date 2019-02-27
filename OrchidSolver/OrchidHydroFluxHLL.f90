@@ -300,6 +300,7 @@ Module orchid_solver_hydro_flux_hllc
 Use orchid_solver_params
 Use orchid_solver_hydro_flux_godunov
 Implicit None
+Integer, Parameter :: hllc_variation = 0
 Type, Extends(MhdHydroFlux) :: MhdHydroFluxHLLC
     Contains
     Procedure, Public, Non_Overridable :: calc1D => mhd_hydro_calc_flux_hllc1D
@@ -334,7 +335,7 @@ Subroutine mhd_hydro_calc_flux_hllc1D(This, &
                rho_s, p_s, c_s, s_s
     Real(8), Dimension(1:3) :: q_p, f_p, &
                                q_m, f_m, &
-                               f_s, d_s
+                               q_s, f_s, d_s
     !>-------------------------------------------------------------------------------
     !> Calculate +Values.
     e_p  = 0.5D0*( u_p**2 )
@@ -380,17 +381,36 @@ Subroutine mhd_hydro_calc_flux_hllc1D(This, &
         f_s = f_m
     Else
         s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/&
-              ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
-        p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
-                (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
-        d_s = [ 0.0D0, nx, s_s ]
-        If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
-            q_p = [ rho_p, rho_p*u_p, rho_p*nrg_p ]
-            f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
-        Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
-            q_m = [ rho_m, rho_m*u_m, rho_m*nrg_m ]
-            f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
-        End If
+                      ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
+        Select Case ( hllc_variation )
+        Case ( 0 )
+            !> Original HLLC.
+            If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+                q_p = [ rho_p, rho_p*u_p, rho_p*nrg_p ]
+                q_s = rho_p*( s_p - a_p )/( s_p - s_s )*[1.0D0, &
+                    u_p - a_p + s_s*nx, &
+                    nrg_p + ( s_s - a_p )*( s_s + p_p/rho_p/( s_p - a_p ) )]
+                f_s = f_p + s_p*( q_s - q_p )
+            Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+                q_m = [ rho_m, rho_m*u_m, rho_m*nrg_m ]
+                q_s = rho_m*( s_m - a_m )/( s_m - s_s )*[1.0D0, &
+                    u_m - a_m + s_s*nx, &
+                    nrg_m + ( s_s - a_m )*( s_s + p_m/rho_m/( s_m - a_m ) )]
+                f_s = f_m + s_m*( q_s - q_m )
+            End If
+        Case ( 2 )
+            !> Variation 2 of HLLC.
+            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) + &
+                    (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
+            d_s = [ 0.0D0, nx, s_s ]
+            If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+                q_p = [ rho_p, rho_p*u_p, rho_p*nrg_p ]
+                f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
+            Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+                q_m = [ rho_m, rho_m*u_m, rho_m*nrg_m ]
+                f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
+            End If
+        End Select
     End If
     flux_rho = f_s(1)
     flux_u   = f_s(2)
@@ -419,7 +439,7 @@ Subroutine mhd_hydro_calc_flux_hllc2D(This, &
                rho_s, p_s, c_s, s_s
     Real(8), Dimension(1:4) :: q_p, f_p, &
                                q_m, f_m, &
-                               f_s, d_s
+                               q_s, f_s, d_s
     !>-------------------------------------------------------------------------------
     !> Calculate +Values.
     e_p  = 0.5D0*( u_p**2 + v_p**2 )
@@ -466,16 +486,37 @@ Subroutine mhd_hydro_calc_flux_hllc2D(This, &
     Else
         s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/&
               ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
-        p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
-                (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
-        d_s = [ 0.0D0, nx, ny, s_s ]
-        If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
-            q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*nrg_p ]
-            f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
-        Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
-            q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*nrg_m ]
-            f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
-        End If
+        Select Case ( hllc_variation )
+        Case ( 0 )
+            !> Original HLLC.
+            If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+                q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*nrg_p ]
+                q_s = rho_p*( s_p - a_p )/( s_p - s_s )*[1.0D0, &
+                    u_p - a_p + s_s*nx, &
+                    v_p - a_p + s_s*ny, &
+                    nrg_p + ( s_s - a_p )*( s_s + p_p/rho_p/( s_p - a_p ) )]
+                f_s = f_p + s_p*( q_s - q_p )
+            Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+                q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*nrg_m ]
+                q_s = rho_m*( s_m - a_m )/( s_m - s_s )*[1.0D0, &
+                    u_m - a_m + s_s*nx, &
+                    v_m - a_m + s_s*ny, &
+                    nrg_m + ( s_s - a_m )*( s_s + p_m/rho_m/( s_m - a_m ) )]
+                f_s = f_m + s_m*( q_s - q_m )
+            End If
+        Case ( 2 )
+            !> Variation 2 of HLLC.
+            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
+                    (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
+            d_s = [ 0.0D0, nx, ny, s_s ]
+            If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+                q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*nrg_p ]
+                f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
+            Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+                q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*nrg_m ]
+                f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
+            End If
+        End Select
     End If
     flux_rho = f_s(1)
     flux_u   = f_s(2)
@@ -505,7 +546,7 @@ Subroutine mhd_hydro_calc_flux_hllc3D(This, &
                rho_s, p_s, c_s, s_s
     Real(8), Dimension(1:5) :: q_p, f_p, &
                                q_m, f_m, &
-                               f_s, d_s
+                               q_s, f_s, d_s
     !>-------------------------------------------------------------------------------
     !> Calculate +Values.
     e_p  = 0.5D0*( u_p**2 + v_p**2 + w_p**2 )
@@ -554,16 +595,39 @@ Subroutine mhd_hydro_calc_flux_hllc3D(This, &
     Else
         s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/&
               ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
-        p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
-                (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
-        d_s = [ 0.0D0, nx, ny, nz, s_s ]
-        If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
-            q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p ]
-            f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
-        Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
-            q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m ]
-            f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
-        End If
+        Select Case ( hllc_variation )
+        Case ( 0 )
+            !> Original HLLC.
+            If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+                q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p ]
+                q_s = rho_p*( s_p - a_p )/( s_p - s_s )*[1.0D0, &
+                    u_p - a_p + s_s*nx, &
+                    v_p - a_p + s_s*ny, &
+                    w_p - a_p + s_s*nz, &
+                    nrg_p + ( s_s - a_p )*( s_s + p_p/rho_p/( s_p - a_p ) )]
+                f_s = f_p + s_p*( q_s - q_p )
+            Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+                q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m ]
+                q_s = rho_m*( s_m - a_m )/( s_m - s_s )*[1.0D0, &
+                    u_m - a_m + s_s*nx, &
+                    v_m - a_m + s_s*ny, &
+                    w_m - a_m + s_s*nz, &
+                    nrg_m + ( s_s - a_m )*( s_s + p_m/rho_m/( s_m - a_m ) )]
+                f_s = f_m + s_m*( q_s - q_m )
+            End If
+        Case ( 2 )
+            !> Variation 2 of HLLC.
+            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
+                    (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
+            d_s = [ 0.0D0, nx, ny, nz, s_s ]
+            If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+                q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p ]
+                f_s = ( s_s*( s_p*q_p - f_p ) + s_p*p_s*d_s )/( s_p - s_s )
+            Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+                q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m ]
+                f_s = ( s_s*( s_m*q_m - f_m ) + s_m*p_s*d_s )/( s_m - s_s )
+            End If
+        End Select
     End If
     flux_rho = f_s(1)
     flux_u   = f_s(2)
