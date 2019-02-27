@@ -380,8 +380,8 @@ Subroutine mhd_hydro_calc_flux_hllc1D(This, &
     Else If ( s_m >= 0.0D0 ) Then
         f_s = f_m
     Else
-        s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/&
-                      ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
+        s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/ &
+              ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
         Select Case ( hllc_variation )
         Case ( 0 )
             !> Original HLLC.
@@ -484,7 +484,7 @@ Subroutine mhd_hydro_calc_flux_hllc2D(This, &
     Else If ( s_m >= 0.0D0 ) Then
         f_s = f_m
     Else
-        s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/&
+        s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/ &
               ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
         Select Case ( hllc_variation )
         Case ( 0 )
@@ -506,7 +506,7 @@ Subroutine mhd_hydro_calc_flux_hllc2D(This, &
             End If
         Case ( 2 )
             !> Variation 2 of HLLC.
-            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
+            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) + &
                     (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
             d_s = [ 0.0D0, nx, ny, s_s ]
             If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
@@ -593,7 +593,7 @@ Subroutine mhd_hydro_calc_flux_hllc3D(This, &
     Else If ( s_m >= 0.0D0 ) Then
         f_s = f_m
     Else
-        s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/&
+        s_s = ( ( rho_p*a_p*( s_p - a_p ) - p_p ) - ( rho_m*a_m*( s_m - a_m ) - p_m ) )/ &
               ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
         Select Case ( hllc_variation )
         Case ( 0 )
@@ -617,7 +617,7 @@ Subroutine mhd_hydro_calc_flux_hllc3D(This, &
             End If
         Case ( 2 )
             !> Variation 2 of HLLC.
-            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) +&
+            p_s = ( (p_p + rho_p*( s_p - a_p )*( s_s - a_p ) ) + &
                     (p_m + rho_m*( s_m - a_m )*( s_s - a_m ) ) )*0.5D0
             d_s = [ 0.0D0, nx, ny, nz, s_s ]
             If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
