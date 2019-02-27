@@ -371,8 +371,8 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
-    Real(8) :: e_p, p_p, pt_p, ent_p, a_p, b_p, c2_p, cs2_p, ca2_p, ca2n_p, cf2_p, cs_p, ca_p, cf_p, &
-               e_m, p_m, pt_m, ent_m, a_m, b_m, c2_m, cs2_m, ca2_m, ca2n_m, cf2_m, cs_m, ca_m, cf_m
+    Real(8) :: e_p, p_p, pt_p, ent_p, a_p, b_p, cs_p, ca_p, cf_p, c2_p, cs2_p, ca2_p, ca2n_p, cf2_p, &
+               e_m, p_m, pt_m, ent_m, a_m, b_m, cs_m, ca_m, cf_m, c2_m, cs2_m, ca2_m, ca2n_m, cf2_m
     Real(8), Dimension(1:8) :: q_p, f_p, &
                                q_m, f_m, &
                                q_s, f_s

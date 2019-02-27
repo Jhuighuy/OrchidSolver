@@ -5,6 +5,7 @@ Module orchid_solver_hydro2
 Use orchid_solver_params
 Use orchid_solver_grid
 Use orchid_solver_hydro_flux_llf
+Use orchid_solver_hydro_flux_hll
 Use orchid_solver_hydro_flux_hllc
 Use orchid_solver_hydro_flux_roe
 Implicit None
@@ -30,8 +31,11 @@ Subroutine mhd_hydro_init(This, &
     Character(Len=10), Intent(In), Optional :: flux_type
     !> }}}
     !If ( ( .NOT. Present(flux_type) ) .OR. flux_type == 'hllc' ) Then
-        Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
-        Allocate(MhdHydroFluxHLLC :: This%m_flux)
+    !    Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
+    !    Allocate(MhdHydroFluxHLLC :: This%m_flux)
+    !Else If ( flux_type == 'hll' ) Then
+        Write (*,*) 'Hydro solver: the HLL Flux was selected.'
+        Allocate(MhdHydroFluxHLL :: This%m_flux)
     !Else If ( flux_type == 'llf' ) Then
     !    Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
     !    Allocate(MhdHydroFluxLLF :: This%m_flux)
@@ -147,5 +151,6 @@ End Subroutine mhd_hydro_calc_step
 !########################################################################################################
 !########################################################################################################
 End Module orchid_solver_hydro2
+
 
 

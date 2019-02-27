@@ -6,7 +6,7 @@ Module orchid_solver_params
     Integer, Parameter :: dim = 1
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .FALSE.
+    Logical, Parameter :: mhd = .TRUE.
     
     Character(Len=10) :: hydro_flux = 'roe'
     Character(Len=10) :: hydro_flux_limiter = 'none'
@@ -22,7 +22,7 @@ Module orchid_solver_params
     Real(8), Parameter :: r_0 = 3.0, r_1 = 10.0
     Real(8), Parameter :: r0 = 3.0, r1 = 10.0
 
-    Integer, Parameter :: N_r = 200, N_theta = 1, N_phi = 200, N_funcs=2
+    Integer, Parameter :: N_r = 200, N_theta = 1, N_phi = 200, N_funcs=1
     Real(8), Parameter :: L_r = 1.0D0, L_theta = Pi, L_phi = 2.0D0*Pi
     Real(8), Parameter :: h_r = 7.0D0/N_r, h_t = 1+0*L_theta/N_theta, h_tt=2.0D0*Sin(0.5D0*h_t), h_p = L_phi/N_phi
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
@@ -205,24 +205,27 @@ Program orchid_solver
     Allocate(fl(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max))
     
     !> Sod test case.
+    If (MHD) Then
+    !> MHD Sod test case.
+    g(:, :, :) = 0.0D0
+    g(0, 1, :) = 1.0D0
+    g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+    g(0, 6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+    g(0, 7, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+    g(0, 8, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+    g(0, 1, 1:100) = 1.08D0;
+    g(0, 2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
+    g(0, 3, 1:100) = 1.08D0*1.2D0;
+    g(0, 4, 1:100) = 1.08D0*0.01D0;
+    g(0, 5, 1:100) = 1.08D0*0.5D0;
+    g(0, 7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
+    Else
     g(:, :, :) = 0.0D0
     g(0, 1, :) = 1.0D0
     g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
     g(0, 1, 1:100) = 2.0D0
     g(0, 2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
-
-    !> MHD Sod test case.
-    !g(1, :) = 1.0D0
-    !g(2, :) = 1.0D0/( Gamma1*1.0D0 )
-    !g(6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
-    !g(7, :) = 4.0D0!/Sqrt(4.0D0*Pi)
-    !g(8, :) = 2.0D0!/Sqrt(4.0D0*Pi)
-    !g(1, 1:100) = 1.08D0;
-    !g(2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
-    !g(3, 1:100) = 1.08D0*1.2D0;
-    !g(4, 1:100) = 1.08D0*0.01D0;
-    !g(5, 1:100) = 1.08D0*0.5D0;
-    !g(7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
+    End If
     
     !g(:, :, :) = 0.0D0
     !g(0, 1, :) = 1.0D0
