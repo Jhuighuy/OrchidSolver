@@ -6,7 +6,7 @@ Module orchid_solver_params
     Integer, Parameter :: dim = 1
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .FALSE.
+    Logical, Parameter :: mhd = .TRUE.
     
     Character(Len=10) :: hydro_flux = 'roe'
     Character(Len=10) :: hydro_flux_limiter = 'none'

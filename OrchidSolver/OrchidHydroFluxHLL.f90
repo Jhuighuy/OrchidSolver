@@ -273,10 +273,10 @@ Subroutine mhd_hydro_calc_flux_hll3D_mhd(This, &
     Else If ( s_m >= 0.0D0 ) Then
         f_s = f_m
     Else
-        q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, &
-                 rho_p*nrg_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ), bx_p, by_p, bz_p ]
-        q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, &
-                 rho_m*nrg_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ), bx_m, by_m, bz_m ]
+        q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, &
+                rho_p*nrg_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ), bx_p, by_p, bz_p ]
+        q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, &
+                rho_m*nrg_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ), bx_m, by_m, bz_m ]
         f_s = ( s_p*f_m - s_m*f_p + s_p*s_m*( q_p - q_m ) )/( s_p - s_m  )
     End If
     flux_rho = f_s(1)
@@ -653,7 +653,122 @@ Subroutine mhd_hydro_calc_flux_hllc3D_mhd(This, &
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
-    Error Stop 'Not implemented'
+    Real(8) :: e_p, p_p, pt_p, ent_p, a_p, b_p, cf_p, c2_p, ca2_p, ca2n_p, cf2_p, s_p, &
+               e_m, p_m, pt_m, ent_m, a_m, b_m, cf_m, c2_m, ca2_m, ca2n_m, cf2_m, s_m, &
+               p_s, s_s
+    Real(8), Dimension(1:8) :: q_p, f_p, &
+                               q_m, f_m, &
+                               q_s, f_s
+    Real(8) :: u_hll, v_hll, w_hll, b_hll, bx_hll, by_hll, bz_hll
+    !>-------------------------------------------------------------------------------
+    !> Calculate +Values.
+    e_p  = 0.5D0*( u_p**2 + v_p**2 + w_p**2 )
+    p_p  = Gamma1*rho_p*( nrg_p - e_p )
+    pt_p = p_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )
+    ent_p = nrg_p + ( pt_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ) )/rho_p
+    a_p  = u_p*nx + v_p*ny + w_p*nz
+    b_p  = bx_p*nx + by_p*ny + bz_p*nz
+    c2_p = Gamma*p_p/rho_p
+    ca2n_p = 0.25D0/Pi*b_p**2/rho_p
+    ca2_p = 0.25D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )/rho_p
+    cf2_p = 0.5D0*( c2_p + ca2_p ) + 0.5D0*Sqrt(( c2_p + ca2_p )**2 - 4.0D0*c2_p*ca2n_p )
+    cf_p  = Sqrt(Max(cf2_p, 1D-10))
+    f_p  = [ rho_p*a_p, &
+             rho_p*u_p*a_p - 0.25D0/Pi*b_p*bx_p + pt_p*nx, &
+             rho_p*v_p*a_p - 0.25D0/Pi*b_p*by_p + pt_p*ny, &
+             rho_p*w_p*a_p - 0.25D0/Pi*b_p*by_p + pt_p*nz, &
+             rho_p*a_p*ent_p - 0.25D0/Pi*b_p*( bx_p*u_p + by_p*v_p + bz_p*w_p ), &
+             bx_p*a_p - b_p*u_p, &
+             by_p*a_p - b_p*v_p, &
+             bz_p*a_p - b_p*w_p ]
+    !> Calculate -Values.
+    e_m  = 0.5D0*( u_m**2 + v_m**2 + w_m**2 )
+    p_m  = Gamma1*rho_m*( nrg_m - e_m )
+    pt_m  = p_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )
+    ent_m = nrg_m + ( pt_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ) )/rho_m
+    a_m  = u_m*nx + v_m*ny + w_m*nz
+    b_m  = bx_m*nx + by_m*ny + bz_m*nz
+    c2_m = Gamma*p_m/rho_m
+    ca2n_m = 0.25D0/Pi*b_m**2/rho_m
+    ca2_m = 0.25D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )/rho_m
+    cf2_m = 0.5D0*( c2_m + ca2_m ) + 0.5D0*Sqrt(( c2_m + ca2_m )**2 - 4.0D0*c2_m*ca2n_m )
+    cf_m  = Sqrt(Max(cf2_m, 1D-10))
+    f_m  = [ rho_m*a_m, &
+             rho_m*u_m*a_m - 0.25D0/Pi*b_m*bx_m + pt_m*nx, &
+             rho_m*v_m*a_m - 0.25D0/Pi*b_m*by_m + pt_m*ny, &
+             rho_m*w_m*a_m - 0.25D0/Pi*b_m*by_m + pt_m*nz, &
+             rho_m*a_m*ent_m - 0.25D0/Pi*b_m*( bx_m*u_m + by_m*v_m + bz_m*w_m ), &
+             bx_m*a_m - b_m*u_m, &
+             by_m*a_m - b_m*v_m, &
+             bz_m*a_m - b_m*w_m ]
+    !>-------------------------------------------------------------------------------
+    
+    !>-------------------------------------------------------------------------------
+    !> Calculate Pressure-based Wave speeds. ( @todo )
+    s_p = Max(a_p, a_m) + Max(cf_p, cf_m) 
+    s_m = Min(a_m, a_p) - Max(cf_p, cf_m)
+    !> Calculate Fluxes.
+    If ( s_p <= 0.0D0 ) Then
+        f_s = f_p
+    Else If ( s_m >= 0.0D0 ) Then
+        f_s = f_m
+    Else
+        !> Aux HLL flux (Shengtai Lu, 2003).
+        q_p = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, &
+                rho_p*nrg_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ), bx_p, by_p, bz_p ]
+        q_m = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, &
+                rho_m*nrg_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ), bx_m, by_m, bz_m ]
+        q_s = ( ( s_p*q_p - s_m*q_m ) - ( f_p - f_m ) )/( s_p - s_m )
+        u_hll = q_s(2)/q_s(1)
+        v_hll = q_s(3)/q_s(1)
+        w_hll = q_s(4)/q_s(1)
+        bx_hll = q_s(6)
+        by_hll = q_s(7)
+        bz_hll = q_s(8)
+        b_hll = bx_hll*nx + by_hll*ny + bz_hll*nz
+        !> HLLC flux.
+        s_s = ( ( rho_p*a_p*( s_p - a_p ) - pt_p + 0.25D0/Pi*b_p**2 ) - &
+                ( rho_m*a_m*( s_m - a_m ) - pt_m + 0.25D0/Pi*b_m**2 ) )/ &
+              ( rho_p*( s_p - a_p ) - rho_m*( s_m - a_m ) )
+        If ( s_s <= 0.0D0 .AND. 0.0D0 <= s_p ) Then
+            p_s = pt_p + rho_p*( s_p - a_p )*( s_s - a_p ) + 0.25/Pi*( b_hll**2 - b_p**2 )
+            q_s(1:4) = rho_p*( s_p - a_p )/( s_p - s_s )*[1.0D0, &
+                u_p - a_p + s_s*nx, &
+                v_p - a_p + s_s*ny, &
+                w_p - a_p + s_s*nz ]
+            q_s(2:4) = q_s(2:4) - 1.0D0/( s_p - s_s )*[ &
+                0.25D0/Pi*( b_hll*bx_hll - b_p*bx_p ), &
+                0.25D0/Pi*( b_hll*by_hll - b_p*by_p ), &
+                0.25D0/Pi*( b_hll*bz_hll - b_p*bz_p ) ]
+            q_s(5) = ( rho_p*nrg_p*( s_p - a_p ) + &
+                ( p_s*s_s - p_p*a_p ) - 0.25D0/Pi*( b_hll*( bx_hll*u_hll + by_hll*v_hll + bz_hll*w_hll ) - &
+                                                    b_p*( bx_p*u_p + by_p*v_p + bz_p*w_p ) ) )/( s_p - s_s ) 
+            f_s = f_p + s_p*( q_s - q_p )
+        Else If ( s_m <= 0.0D0 .AND. 0.0D0 <= s_s ) Then
+            p_s = pt_m + rho_m*( s_m - a_m )*( s_s - a_m ) + 0.25/Pi*( b_hll**2 - b_m**2 )
+            q_s(1:4) = rho_m*( s_m - a_m )/( s_m - s_s )*[1.0D0, &
+                u_m - a_m + s_s*nx, &
+                v_m - a_m + s_s*ny, &
+                w_m - a_m + s_s*nz ]
+            q_s(2:4) = q_s(2:4) - 1.0D0/( s_m - s_s )*[ &
+                0.25D0/Pi*( b_hll*bx_hll - b_m*bx_m ), &
+                0.25D0/Pi*( b_hll*by_hll - b_m*by_m ), &
+                0.25D0/Pi*( b_hll*bz_hll - b_m*bz_m ) ]
+            q_s(5) = ( rho_m*nrg_m*( s_m - a_m ) + &
+                ( p_s*s_s - p_m*a_m ) - 0.25D0/Pi*( b_hll*( bx_hll*u_hll + by_hll*v_hll + bz_hll*w_hll ) - &
+                                                    b_m*( bx_m*u_m + by_m*v_m + bz_m*w_m ) ) )/( s_m - s_s ) 
+            f_s = f_m + s_m*( q_s - q_m )
+        End If
+    End If
+    flux_rho = f_s(1)
+    flux_u   = f_s(2)
+    flux_v   = f_s(3)
+    flux_w   = f_s(4)
+    flux_nrg = f_s(5)
+    flux_bx  = f_s(6)
+    flux_by  = f_s(7)
+    flux_bz  = f_s(8)
+    !>-------------------------------------------------------------------------------
 End Subroutine mhd_hydro_calc_flux_hllc3D_mhd
 !########################################################################################################
 !########################################################################################################
