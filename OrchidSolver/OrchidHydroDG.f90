@@ -24,7 +24,7 @@ Subroutine mhd_hydro_dg_calc_flux(This, &
     Class(MhdHydroSolverDG), Intent(InOut) :: This
     Class(MhdGridGaussLegendre), Intent(In) :: ga
     Real(8), Dimension(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: g
-    Real(8), Dimension(n_min:n_max, ga%gfnodes_min:ga%gfnodes_max), Intent(InOut) :: fl
+    Real(8), Dimension(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max), Intent(InOut) :: fl
     !> }}}
     Integer :: ip, im, j, k, n
     Real(8) :: nx, ny, nz
@@ -45,8 +45,8 @@ Subroutine mhd_hydro_dg_calc_flux(This, &
             !> Domain Interior.
             Do k = ga%gfaces(j)%nnode, ga%gfaces(j)%nnode_end
                 Do n = n_min, n_max
-                    qp(n) = ga%lface_nodes(k)%calc(g(:, n, ip))
-                    qm(n) = ga%lface_nodes(k)%calc(g(:, n, im))
+                    qp(n) = Dot_Product(g(:, n, ip), ga%face_node_funcs(:, 1, k)%psi)
+                    qm(n) = Dot_Product(g(:, n, im), ga%face_node_funcs(:, 2, k)%psi)
                 End Do
                 Call This%m_flux%calc(qp, qm, fl(:, k), nx, ny, nz)
             End Do
@@ -54,7 +54,7 @@ Subroutine mhd_hydro_dg_calc_flux(This, &
             !> Domain Boundary.
             Do k = ga%gfaces(j)%nnode, ga%gfaces(j)%nnode_end
                 Do n = n_min, n_max
-                    qm(n) = ga%lface_nodes(k)%calc(g(:, n, im))
+                    qm(n) = Dot_Product(g(:, n, im), ga%face_node_funcs(:, 2, k)%psi)
                 End Do
                 If ( ip == -1 ) Then
                     !> Free flow boundary conditions.
@@ -68,7 +68,7 @@ Subroutine mhd_hydro_dg_calc_flux(This, &
             !> Domain Boundary.
             Do k = ga%gfaces(j)%nnode, ga%gfaces(j)%nnode_end
                 Do n = n_min, n_max
-                    qp(n) = ga%lface_nodes(k)%calc(g(:, n, ip))
+                    qp(n) = Dot_Product(g(:, n, ip), ga%face_node_funcs(:, 1, k)%psi)
                 End Do
                 If ( im == -1 ) Then
                     !> Free flow boundary conditions.
@@ -93,35 +93,69 @@ Subroutine mhd_hydro_dg_calc_step(This, Tau, ga, g, gp, fl)
     Class(MhdGridGaussLegendre), Intent(In) :: ga
     Real(8), Dimension(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: g
     Real(8), Dimension(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(Out) :: gp
-    Real(8), Dimension(n_min:n_max, ga%gfnodes_min:ga%gfnodes_max), Intent(InOut) :: fl
+    Real(8), Dimension(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max), Intent(InOut) :: fl
     Real(8), Intent(In) :: Tau
     !> }}}
-    Integer :: i, j, k
-    Call This%calc_flux(ga, g, fl)
+    Integer :: i, j, jj, k, n, m
+    Real(8) :: grad, grad_nx, grad_ny, grad_nz
+    Real(8), Dimension(n_min:n_max) :: qk, fk
+    Call This%calc_flux_dg(ga, g, fl)
     !>-------------------------------------------------------------------------------
     !> Calculate the new Field values.
-    !$OMP Parallel Do Private(i, j, k)
+    !$OMP Parallel Do Private(j, jj, k, n, m, grad, grad_nx, grad_ny, grad_nz, qk, fk)
     Do i = ga%ncells_min, ga%ncells_max
-        !> Update the values.
-        gp(:, i) = 0.0D0
-        Do k = ga%cells(i)%nface, ga%cells(i)%nface_end
-            j = ga%cell2face(k)
-            If ( ga%faces(j)%ncell_p == i ) Then
-                !> Inner normal case.
-                gp(:, i) = gp(:, i) - fl(:, j)*ga%faces(j)%Sface
-            Else
-                !> Outer normal case.
-                gp(:, i) = gp(:, i) + fl(:, j)*ga%faces(j)%Sface
-            End If
+        gp(:, :, i) = 0.0D0
+        !> Calculate the face flux increment.
+        Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
+            j = ga%cell2face(jj)
+            Do k = ga%gfaces(j)%nnode, ga%gfaces(j)%nnode_end
+                If ( ga%faces(j)%ncell_p == i ) Then
+                    !> Inner normal case.
+                    Do n = n_min, n_max
+                        gp(:, n, i) = gp(:, n, i) - fl(n, k)*ga%faces(j)%Sface* &
+                                                             ga%face_nodes(k)%w* &
+                                                             ga%face_node_funcs(:, 1, k)%psi
+                    End Do
+                Else
+                    !> Outer normal case.
+                    Do n = n_min, n_max
+                        gp(:, n, i) = gp(:, n, i) + fl(n, k)*ga%faces(j)%Sface* &
+                                                             ga%face_nodes(k)%w* &
+                                                             ga%face_node_funcs(:, 2, k)%psi
+                    End Do
+                End If
+            End Do
         End Do
-        gp(:, i) = g(:, i) - Tau/ga%cells(i)%Vcell*gp(:, i)        
-        !> Check if values are correct and density and energy are positive.
-        If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
-            If ( verbose ) Then
-                Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i)
-            End If
-            Error Stop 1
+        If ( m_max > m_min ) Then
+            !> Calculate the cell flux increment.
+            Do k = ga%gcells(i)%nnode, ga%gcells(i)%nnode_end
+                Do n = n_min, n_max
+                    qk(n) = Dot_Product(g(:, n, i), ga%cell_node_funcs(:, k)%psi)
+                End Do
+                Do m = m_min, m_max
+                    grad = ga%cell_node_funcs(m, k)%grad
+                    If ( grad > 0.0D0 ) Then
+                        !> Non-zero gradient.
+                        grad_nx = ga%cell_node_funcs(m, k)%grad_nx
+                        grad_ny = ga%cell_node_funcs(m, k)%grad_ny
+                        grad_nz = ga%cell_node_funcs(m, k)%grad_nz
+                        Call This%m_flux%calc(qk, qk, fk, grad_nx, grad_ny, grad_nz)
+                        Do n = n_min, n_max
+                            gp(m, n, i) = gp(m, n, i) - fk(n)*ga%cells(i)%Vcell* &
+                                                              ga%cell_nodes(k)%w*grad
+                        End Do
+                    End If
+                End Do
+            End Do
         End If
+        gp(:, :, i) = g(:, :, i) - Tau/ga%cells(i)%Vcell*gp(:, :, i)        
+        !> Check if values are correct and density and energy are positive.
+        !If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
+        !    If ( verbose ) Then
+        !        Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i)
+        !    End If
+        !    Error Stop 1
+        !End If
     End Do
     !$OMP End Parallel Do
     !>-------------------------------------------------------------------------------

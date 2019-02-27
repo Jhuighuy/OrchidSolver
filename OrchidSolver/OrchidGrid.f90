@@ -19,13 +19,23 @@ Type :: MhdGridFace
     Real(8) :: Sface
     Contains
 End Type MhdGridFace
+Type :: MhdGridNode
+    Integer :: ncell, ncell_end    
+    Integer :: bcond
+    Real(8) :: x, y, z
+    Contains
+End Type MhdGridNode
 Type :: MhdGrid
     Integer :: ndims
     Integer :: ncells_min, ncells_max
     Integer :: nfaces_min, nfaces_max
+    Integer :: nnodes_min, nnodes_max
     Integer, Dimension(:), Allocatable :: cell2face
+    Integer, Dimension(:), Allocatable :: cell2node
+    Integer, Dimension(:), Allocatable :: node2cell
     Type(MhdGridCell), Dimension(:), Allocatable :: cells
     Type(MhdGridFace), Dimension(:), Allocatable :: faces
+    Type(MhdGridNode), Dimension(:), Allocatable :: nodes
     Contains
     Procedure, Public, Non_Overridable :: init1D => mhd_grid_init1D
     Procedure, Public, Non_Overridable :: init2D => mhd_grid_init2D
@@ -70,9 +80,14 @@ Subroutine mhd_grid_init1D(This, L, N, Bpp, Bmm)
     This%ncells_max = N
     This%nfaces_min = 0
     This%nfaces_max = N
+    This%nnodes_min = 0
+    This%nnodes_max = N
     Allocate(This%cells(This%ncells_min:This%ncells_max))
     Allocate(This%cell2face(This%ncells_min:2*This%ncells_max))
+    Allocate(This%cell2node(This%ncells_min:2*This%ncells_max))
     Allocate(This%faces(This%nfaces_min:This%nfaces_max))
+    Allocate(This%nodes(This%nnodes_min:This%nnodes_max))
+    Allocate(This%node2cell(This%nnodes_min:2*This%nnodes_max + 1))
     !>-------------------------------------------------------------------------------
 
     !>-------------------------------------------------------------------------------
@@ -84,6 +99,10 @@ Subroutine mhd_grid_init1D(This, L, N, Bpp, Bmm)
         This%cells(i)%nface_end = 2*i
         This%cell2face(This%cells(i)%nface) = i - 1
         This%cell2face(This%cells(i)%nface_end) = i
+        This%cells(i)%nnode = 2*i - 1
+        This%cells(i)%nnode_end = 2*i
+        This%cell2node(This%cells(i)%nnode) = i - 1
+        This%cell2node(This%cells(i)%nnode_end) = i
         This%cells(i)%x = h*( Dble(i) - 0.5D0 )
         This%cells(i)%y = 0.0D0
         This%cells(i)%z = 0.0D0
@@ -119,13 +138,54 @@ Subroutine mhd_grid_init1D(This, L, N, Bpp, Bmm)
             !> Domain Interior.
             This%faces(i)%ncell_m = i
         End If
-        This%faces(i)%x = h*Dble(i)
-        This%faces(i)%y = 0.0D0
-        This%faces(i)%z = 0.0D0
         This%faces(i)%nx = 1.0D0
         This%faces(i)%ny = 0.0D0
         This%faces(i)%nz = 0.0D0
         This%faces(i)%Sface = 1.0D0
+    End Do
+    !$OMP End Parallel Do
+    !> Initialize Nodes.
+    !$OMP Parallel Do
+    Do i = This%nnodes_min, This%nnodes_max
+        If ( i == N ) Then
+            !> Domain Boundary.
+            If ( Bp == -3 ) Then
+                !> Periodic boundary conditions.
+                This%nodes(i)%bcond = 0
+                This%nodes(i)%ncell_end = 2*i + 1
+                This%node2cell(This%nodes(i)%ncell_end) = 1
+            Else
+                !> Free flow or wall boundary conditions.
+                This%nodes(i)%bcond = Bp
+                This%nodes(i)%ncell_end = 2*i
+            End If
+        Else
+            !> Domain Interior.
+            This%nodes(i)%bcond = 0
+            This%nodes(i)%ncell_end = 2*i + 1
+            This%node2cell(This%nodes(i)%ncell_end) = i + 1
+        End If
+        If ( i == 0 ) Then
+            !> Domain Boundary.
+            If ( Bm == -3 ) Then
+                !> Periodic boundary conditions.
+                This%nodes(i)%bcond = 0
+                This%nodes(i)%ncell = 2*i
+                This%node2cell(This%nodes(i)%ncell) = N
+            Else
+                !> Free flow or wall boundary conditions.
+                This%nodes(i)%bcond = Bp
+                This%nodes(i)%ncell = 2*i + 1
+            End If
+        Else
+            !> Domain Interior.
+            This%nodes(i)%bcond = 0
+            This%nodes(i)%ncell = 2*i
+            This%node2cell(This%nodes(i)%ncell) = i
+        End If
+        This%nodes(i)%x = h*Dble(i)
+        This%nodes(i)%y = 0.0D0
+        This%nodes(i)%z = 0.0D0
     End Do
     !$OMP End Parallel Do
     !>-------------------------------------------------------------------------------

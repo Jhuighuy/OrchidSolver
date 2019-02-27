@@ -3,12 +3,12 @@
 Module orchid_solver_params
     Implicit None
     
-    Integer, Parameter :: dim = 2
+    Integer, Parameter :: dim = 1
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
     Logical, Parameter :: mhd = .FALSE.
     
-    Character(Len=10) :: hydro_flux = 'hllc'
+    Character(Len=10) :: hydro_flux = 'roe'
     Character(Len=10) :: hydro_flux_limiter = 'none'
 
     Character(Len=10) :: R0_bc = 'free' ! 'periodic'
@@ -22,7 +22,7 @@ Module orchid_solver_params
     Real(8), Parameter :: r_0 = 3.0, r_1 = 10.0
     Real(8), Parameter :: r0 = 3.0, r1 = 10.0
 
-    Integer, Parameter :: N_r = 200, N_theta = 1, N_phi = 200, N_funcs=1
+    Integer, Parameter :: N_r = 200, N_theta = 1, N_phi = 200, N_funcs=2
     Real(8), Parameter :: L_r = 1.0D0, L_theta = Pi, L_phi = 2.0D0*Pi
     Real(8), Parameter :: h_r = 7.0D0/N_r, h_t = 1+0*L_theta/N_theta, h_tt=2.0D0*Sin(0.5D0*h_t), h_p = L_phi/N_phi
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
@@ -113,7 +113,7 @@ Program orchid_solver
     
     Class(MhdGridGaussLegendre), Allocatable :: ga
     Real(8) :: Tstart, Tend
-    Real(8), Dimension(:,:), Allocatable :: g, gp
+    Real(8), Dimension(:,:,:), Allocatable :: g, gp
     Real(8), Dimension(:), Allocatable :: u, up, flu
     Real(8), Dimension(:,:), Allocatable :: fl
     Real(8), Dimension(:), Allocatable :: f
@@ -151,16 +151,20 @@ Program orchid_solver
     !Allocate(MhdPoisSolver :: pois)
     Allocate(ga)
     
-    !Call ga%init1D(1.0D0, 100, -2, -2)
-    
+    Call ga%init1D(10.0D0, 200, -1, -1)
+    Call ga%init_gauss1D(2)
+    Call ga%init_legendre1D()
+    !Do n = ga%ncell_nodes_min, ga%ncell_nodes_max
+    !   Write(*,*) ga%cell_nodes(n)%x, ga%cell_nodes(n)%y, ga%cell_nodes(n)%z, ga%cell_nodes(n)%w
+    !End Do
+    !Stop
+   
     !Write(*,*) ga%node2cell
-    Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
+    !Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
     !Write(*, *) ga%faces
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
     
-    Call ga%init_gauss_dummy()
-    Call ga%init_legendre_dummy()
     
     Allocate(f(ga%ncells_min:ga%ncells_max))
     Allocate(u(ga%ncells_min:ga%ncells_max))
@@ -196,11 +200,18 @@ Program orchid_solver
     !Read(*,*)
     !Stop
     
-    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
-    Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
-    Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
+    Allocate(g(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(gp(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(fl(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max))
     
     !> Sod test case.
+    g(:, :, :) = 0.0D0
+    g(0, 1, :) = 1.0D0
+    g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+    g(0, 1, 1:100) = 2.0D0
+    g(0, 2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
+
+    !> MHD Sod test case.
     !g(1, :) = 1.0D0
     !g(2, :) = 1.0D0/( Gamma1*1.0D0 )
     !g(6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
@@ -213,31 +224,31 @@ Program orchid_solver
     !g(5, 1:100) = 1.08D0*0.5D0;
     !g(7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
     
-    g(:, :) = 0.0D0
-    g(1, :) = 1.0D0
-    g(2, :) = 1.0D0/( Gamma1*1.0D0 )
-    g(3, :) = 1.0D0
-    !g(3, :) = 0.0D0
-    g(4, :) = 0.0D0
-    !g(7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+    !g(:, :, :) = 0.0D0
+    !g(0, 1, :) = 1.0D0
+    !g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+    !g(0, 3, :) = 1.0D0
+    !g(0, 3, :) = 0.0D0
+    !g(0, 4, :) = 0.0D0
+    !g(0, 7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
 
     Call solver%init()
-    Call print_grid3(ga, g, 0)
-    m = 0
+    Call print_grid3(ga, g(0,:,:), 0)
+    m = 1
     Tstart = omp_get_wtime()
-    Do l=1,2000000
-        f(:) = g(1, :)
-        u(:) = up(:)
-        Call pois%calc(ga, u, up, flu, f, n)
-        m = m + n
-        Call solver%calc_step(0.001D0, ga, g, gp, fl)
+    Do l=1,1700
+        !f(:) = g(1, :)
+        !u(:) = up(:)
+        !Call pois%calc(ga, u, up, flu, f, n)
+        !m = m + n
+        Call solver%calc_step_dg(0.001D0, ga, g, gp, fl)
         If (Mod(l, 100) == 0) Then
             Tend = omp_get_wtime()
             Write(*, *) 'time step:', l, TEnd - Tstart, m, (TEnd - Tstart)/Dble(m)
             Tstart = Tend
-            m = 0
-            Call print_grid3(ga, g, l)
+            m = 1
+            Call print_grid3(ga, g(m_min,:,:), l)
         End If
-        g(:,:)=gp(:,:)
+        g(:,:,:)=gp(:,:,:)
     End Do
 End Program orchid_solver

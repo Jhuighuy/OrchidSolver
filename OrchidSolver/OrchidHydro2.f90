@@ -30,14 +30,14 @@ Subroutine mhd_hydro_init(This, &
     Character(Len=10), Intent(In), Optional :: flux_type
     !> }}}
     !If ( ( .NOT. Present(flux_type) ) .OR. flux_type == 'hllc' ) Then
-    !    Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
-    !    Allocate(MhdHydroFluxHLLC :: This%m_flux)
+        Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
+        Allocate(MhdHydroFluxHLLC :: This%m_flux)
     !Else If ( flux_type == 'llf' ) Then
     !    Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
     !    Allocate(MhdHydroFluxLLF :: This%m_flux)
     !Else If ( flux_type == 'roe' ) Then
-        Write (*,*) 'Hydro solver: the Roe Flux was selected.'
-        Allocate(MhdHydroFluxRoe :: This%m_flux)
+    !    Write (*,*) 'Hydro solver: the Roe Flux was selected.'
+    !    Allocate(MhdHydroFluxRoe :: This%m_flux)
     !Else
     !    Write (0,*) 'Hydro flux type ', Trim(flux_type), &
     !                'is invalid. Please, check the manual.'
