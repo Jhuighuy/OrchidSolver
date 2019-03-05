@@ -52,6 +52,7 @@
 		<File RelativePath=".\OrchidGridGaussLegendre.f90"/></Filter>
 		<Filter Name="Hydro">
 		<Filter Name="Flux">
+		<File RelativePath=".\OrchidHydroFlux.f90"/>
 		<File RelativePath=".\OrchidHydroFluxHLL.f90"/>
 		<File RelativePath=".\OrchidHydroFluxLLF.f90"/>
 		<File RelativePath=".\OrchidHydroFluxRoe.f90"/></Filter>
