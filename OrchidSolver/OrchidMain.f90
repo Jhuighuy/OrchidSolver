@@ -9,7 +9,7 @@ Module orchid_solver_params
     Logical, Parameter :: mhd = .TRUE.
     
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0D0/3.0D0, Gamma1 = Gamma-1.0D0
-
+    Integer, Parameter :: N_funcs = 1
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
     Integer, Parameter :: n_min = 1, n_max = 8
 End Module orchid_solver_params
@@ -215,7 +215,7 @@ Program orchid_solver
     g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
     g(0, 3, :) = 1.0D0
     g(0, 4, :) = 0.0D0
-    !g(0, 7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+    g(0, 7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
 
     Call solver%init()
     Call print_grid4(ga, g, 0)
