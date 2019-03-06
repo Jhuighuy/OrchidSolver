@@ -233,8 +233,7 @@ Subroutine mhd_hydro_calc_flux_llf1D(This, &
     !>-------------------------------------------------------------------------------
     !> Calculate Fluxes.
     q_s = 0.5D0*( q_p - q_m )
-    q_s = Max(Abs(a_p - c_p), Abs(a_m - c_m), Abs(a_p), Abs(a_m), &
-              Abs(a_p + c_p), Abs(a_m + c_m)) * q_s
+    q_s = Max(Abs(a_p) + c_p, Abs(a_m) + c_m) * q_s
     f_s = 0.5D0*( f_p + f_m ) - q_s
     flux_rho = f_s(1)
     flux_u   = f_s(2)
@@ -287,8 +286,7 @@ Subroutine mhd_hydro_calc_flux_llf2D(This, &
     !>-------------------------------------------------------------------------------
     !> Calculate Fluxes.
     q_s = 0.5D0*( q_p - q_m )
-    q_s = Max(Abs(a_p - c_p), Abs(a_m - c_m), Abs(a_p), Abs(a_m), &
-              Abs(a_p + c_p), Abs(a_m + c_m)) * q_s
+    q_s = Max(Abs(a_p) + c_p, Abs(a_m) + c_m) * q_s
     f_s = 0.5D0*( f_p + f_m ) - q_s
     flux_rho = f_s(1)
     flux_u   = f_s(2)
@@ -344,8 +342,7 @@ Subroutine mhd_hydro_calc_flux_llf3D(This, &
     !>-------------------------------------------------------------------------------
     !> Calculate Fluxes.
     q_s = 0.5D0*( q_p - q_m )
-    q_s = Max(Abs(a_p - c_p), Abs(a_m - c_m), Abs(a_p), Abs(a_m), &
-              Abs(a_p + c_p), Abs(a_m + c_m)) * q_s
+    q_s = Max(Abs(a_p) + c_p, Abs(a_m) + c_m) * q_s
     f_s = 0.5D0*( f_p + f_m ) - q_s
     flux_rho = f_s(1)
     flux_u   = f_s(2)
@@ -371,8 +368,8 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
-    Real(8) :: e_p, p_p, pt_p, ent_p, a_p, b_p, cs_p, ca_p, cf_p, c2_p, cs2_p, ca2_p, ca2n_p, cf2_p, &
-               e_m, p_m, pt_m, ent_m, a_m, b_m, cs_m, ca_m, cf_m, c2_m, cs2_m, ca2_m, ca2n_m, cf2_m
+    Real(8) :: e_p, p_p, pt_p, ent_p, a_p, b_p, cf_p, c2_p, ca2_p, ca2n_p, cf2_p, &
+               e_m, p_m, pt_m, ent_m, a_m, b_m, cf_m, c2_m, ca2_m, ca2n_m, cf2_m
     Real(8), Dimension(1:8) :: q_p, f_p, &
                                q_m, f_m, &
                                q_s, f_s
@@ -387,10 +384,7 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     c2_p = Gamma*p_p/rho_p
     ca2n_p = 0.25D0/Pi*b_p**2/rho_p
     ca2_p = 0.25D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 )/rho_p
-    cs2_p = 0.5D0*( c2_p + ca2_p ) - 0.5D0*Sqrt(( c2_p + ca2_p )**2 - 4.0D0*c2_p*ca2n_p )
     cf2_p = 0.5D0*( c2_p + ca2_p ) + 0.5D0*Sqrt(( c2_p + ca2_p )**2 - 4.0D0*c2_p*ca2n_p )
-    ca_p  = Sqrt(Max(ca2_p, 1D-10))
-    cs_p  = Sqrt(Max(cs2_p, 1D-10))
     cf_p  = Sqrt(Max(cf2_p, 1D-10))
     q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, &
              rho_p*nrg_p + 0.125D0/Pi*( bx_p**2 + by_p**2 + bz_p**2 ), bx_p, by_p, bz_p ]
@@ -412,10 +406,7 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     c2_m = Gamma*p_m/rho_m
     ca2n_m = 0.25D0/Pi*b_m**2/rho_m
     ca2_m = 0.25D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 )/rho_m
-    cs2_m = 0.5D0*( c2_m + ca2_m ) - 0.5D0*Sqrt(( c2_m + ca2_m )**2 - 4.0D0*c2_m*ca2n_m )
     cf2_m = 0.5D0*( c2_m + ca2_m ) + 0.5D0*Sqrt(( c2_m + ca2_m )**2 - 4.0D0*c2_m*ca2n_m )
-    ca_m  = Sqrt(Max(ca2_m, 1D-10))
-    cs_m  = Sqrt(Max(cs2_m, 1D-10))
     cf_m  = Sqrt(Max(cf2_m, 1D-10))
     q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, &
              rho_m*nrg_m + 0.125D0/Pi*( bx_m**2 + by_m**2 + bz_m**2 ), bx_m, by_m, bz_m ]
@@ -432,14 +423,7 @@ Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
     !>-------------------------------------------------------------------------------
     !> Calculate Fluxes.
     q_s = 0.5D0*( q_p - q_m )
-    q_s = ( Max(a_p, a_m) + Max(cf_p, cf_m) )*q_s
-    !q_s = Max(Abs(a_p - cf_p), Abs(a_m - cf_m), &
-    !          Abs(a_p - ca_p), Abs(a_m - ca_m), &
-    !          Abs(a_p - cs_p), Abs(a_m - cs_m), &
-    !          Abs(a_p), Abs(a_m), &
-    !          Abs(a_p + cs_p), Abs(a_m + cs_m), &
-    !          Abs(a_p + ca_p), Abs(a_m + ca_m), &
-    !          Abs(a_p + cf_p), Abs(a_m + cf_m)) * q_s
+    q_s = Max(Abs(a_p) + cf_p, Abs(a_m) + cf_m) * q_s
     f_s = 0.5D0*( f_p + f_m ) - q_s
     flux_rho = f_s(1)
     flux_u   = f_s(2)
