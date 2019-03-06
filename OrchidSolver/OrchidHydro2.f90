@@ -12,6 +12,7 @@ Type :: MhdHydroSolver
     Procedure, Public :: init => mhd_hydro_init
     Procedure, Public :: calc_flux => mhd_hydro_calc_flux
     Procedure, Public :: calc_step => mhd_hydro_calc_step
+    Procedure, Public :: calc_grad => mhd_hydro_calc_grad
 End Type MhdHydroSolver
 Private :: mhd_hydro_init, &
            mhd_hydro_calc_flux, &
@@ -89,7 +90,7 @@ Subroutine mhd_hydro_calc_flux(This, &
         nx = ga%faces(j)%nx
         ny = ga%faces(j)%ny
         nz = ga%faces(j)%nz
-        If ( ip >= 0 .AND. im >= 0 ) Then
+        If ( ip > 0 .AND. im > 0 ) Then
             !> Domain Interior.
             Call This%m_flux%calc(g(:, ip), g(:, im), fl(:, j), nx, ny, nz)
         Else If ( ip < 0 ) Then
@@ -153,10 +154,12 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp, fl)
         gp(:, i) = g(:, i) - Tau/ga%cells(i)%Vcell*gp(:, i)        
         !> Check if values are correct and density and energy are positive.
         If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
+            !$OMP Critical
             If ( verbose ) Then
                 Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i)
             End If
             Error Stop 1
+            !$OMP End Critical
         End If
     End Do
     !$OMP End Parallel Do
@@ -165,7 +168,94 @@ End Subroutine mhd_hydro_calc_step
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
+Subroutine mhd_hydro_calc_grad(This, ga, gp, fg, fh)
+    !> Calculate the Gradients on faces (and Hessians in cells).
+    !> {{{
+    Class(MhdHydroSolver), Intent(InOut) :: This
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(In) :: gp
+    Real(8), Dimension(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max), Intent(Out) :: fg
+    Real(8), Dimension(1:3, 1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max), Intent(Out), Optional :: fh
+    !> }}}
+    Integer :: ip, im, j, n
+    Real(8) :: d
+    Real(8) :: nx, ny, nz
+    Real(8), Dimension(1:3) :: r_p, r_m
+    Real(8), Dimension(n_min:n_max) :: w
+    w(:) = 0.0D0
+    w(n_min:n_min+1) = 1.0D0
+    !>-------------------------------------------------------------------------------
+    !> Calculate the Gradients on faces.
+    !> ( @todo This is incorrect in some cases (non-orthogonal grids), 
+    !>   interpolate to nodes and use different gradient approximation. )
+    !$OMP Parallel Do Private(ip, im, j, n, r_p, r_m, nx, ny, nz, d)
+    Do j = ga%nfaces_min, ga%nfaces_max
+        ip = ga%faces(j)%ncell_p
+        im = ga%faces(j)%ncell_m
+        nx = ga%faces(j)%nx
+        ny = ga%faces(j)%ny
+        nz = ga%faces(j)%nz
+        If ( ip > 0 ) Then
+            !> Domain Interior.
+            r_p = [ga%cells(ip)%x, ga%cells(ip)%y, ga%cells(ip)%z]
+        Else
+            !> Domain Boundary.
+            r_p = [ga%faces(j)%x, ga%faces(j)%y, ga%faces(j)%z]
+        End If
+        If ( im > 0 ) Then
+            !> Domain Interior.
+            r_m = [ga%cells(im)%x, ga%cells(im)%y, ga%cells(im)%z]
+        Else
+            !> Domain Boundary.
+            r_m = [ga%faces(j)%x, ga%faces(j)%y, ga%faces(j)%z]
+        End If
+        d = Sqrt(Dot_Product(r_p - r_m, r_p - r_m))
+        If ( ip > 0 .AND. im > 0 ) Then
+            !> Domain Interior.
+            Do n = n_min, n_max
+                fg(:, n, j) = ( gp(n, ip) - gp(n, im) )/d*[nx, ny, nz]
+            End Do
+        Else If ( ip < 0 ) Then
+            !> Domain Boundary.
+            If ( ip == -1 ) Then
+                !> Free flow boundary conditions.
+                fg(:, :, j) = 0.0D0
+            Else
+                !> Wall boundary conditions.
+                Do n = n_min, n_max
+                    fg(:, n, j) = ( gp(n, im)*w(n) - gp(n, im) )/d*[nx, ny, nz]
+                End Do
+            End If
+        Else If ( im < 0 ) Then
+            !> Domain Boundary.
+            If ( im == -1 ) Then
+                !> Free flow boundary conditions.
+                fg(:, :, j) = 0.0D0
+            Else
+                !> Wall boundary conditions.
+                Do n = n_min, n_max
+                    fg(:, n, j) = ( gp(n, ip) - gp(n, ip)*w(n) )/d*[nx, ny, nz]
+                End Do
+            End If
+        End If
+    End Do
+    !$OMP End Parallel Do
+    !>-------------------------------------------------------------------------------
+    
+    !>-------------------------------------------------------------------------------
+    !> Calculate the Hessians in cells.
+    If ( Present(fh) ) Then
+        !$OMP Parallel Do
+        Do i = ga%ncells_min, ga%ncells_max
+            !> @todo Implement me.
+        End Do
+        !$OMP End Parallel Do
+    End If
+    !>-------------------------------------------------------------------------------
+End Subroutine mhd_hydro_calc_grad
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
 End Module orchid_solver_hydro2
-
 
 

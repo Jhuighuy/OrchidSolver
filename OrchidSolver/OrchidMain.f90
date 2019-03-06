@@ -3,15 +3,29 @@
 Module orchid_solver_params
     Implicit None
     
-    Integer, Parameter :: dim = 2
+    Integer, Parameter :: dim = 1
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .TRUE.
+    Logical, Parameter :: mhd = .FALSE.
     
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0D0/3.0D0, Gamma1 = Gamma-1.0D0
-    Integer, Parameter :: N_funcs = 1
+    Integer, Parameter :: N_funcs = 2
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
     Integer, Parameter :: n_min = 1, n_max = 8
+    Contains
+Elemental &
+Function minmod2(a, b) Result(m)
+    Real(8), Intent(In) :: a, b
+    Real(8) :: m
+    m = ( Sign(1.0D0, a) + Sign(1.0D0, b) )/2.0D0*&
+        Min(Abs(a), Abs(b))
+End Function minmod2
+Function minmod3(a, b, c) Result(m)
+    Real(8), Intent(In) :: a, b, c
+    Real(8) :: m
+    m = Dble(Int( ( Sign(1.0D0, a) + Sign(1.0D0, b) + Sign(1.0D0, c) )/3.0D0))*&
+        Min(Abs(a), Abs(b), Abs(c))
+End Function minmod3
 End Module orchid_solver_params
     
 Module orchid_solver_helpers
@@ -133,8 +147,9 @@ Program orchid_solver
     Allocate(MhdHydroSolverDG :: solver)
     !Allocate(MhdPoisSolver :: pois)
     Allocate(ga)
-    
-    !Call ga%init1D(10.0D0, 200, -1, -1)
+    Call ga%init1D(10.0D0, 200, -1, -1)
+    Call ga%init_gauss1D(2)
+    Call ga%init_legendre1D()
 
     !Do n = ga%ncell_nodes_min, ga%ncell_nodes_max
     !   Write(*,*) ga%cell_nodes(n)%x, ga%cell_nodes(n)%y, ga%cell_nodes(n)%z, ga%cell_nodes(n)%w
@@ -142,9 +157,9 @@ Program orchid_solver
     !Stop
    
     !Write(*,*) ga%node2cell
-    Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
-    Call ga%init_gauss_dummy()
-    Call ga%init_legendre_dummy()
+    !Call ga%init2D_polar(3.0D0, 10.0D0, 200, 200, -1, -2)
+    !Call ga%init_gauss_dummy()
+    !Call ga%init_legendre_dummy()
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
     !Write(*, *) ga%faces
     !Call ga%init2D(1.0D0, 1.0D0, 100, 100, -2, -2, -2, -2)
@@ -187,41 +202,41 @@ Program orchid_solver
     Allocate(gp(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
     Allocate(fl(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max))
     
-    !!> Sod test case.
-    !If (MHD) Then
-    !    !> MHD Sod test case.
-    !    g(:, :, :) = 0.0D0
-    !    g(0, 1, :) = 1.0D0
-    !    g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
-    !    g(0, 6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
-    !    g(0, 7, :) = 4.0D0!/Sqrt(4.0D0*Pi)
-    !    g(0, 8, :) = 2.0D0!/Sqrt(4.0D0*Pi)
-    !    g(0, 1, 1:100) = 1.08D0;
-    !    g(0, 2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
-    !    g(0, 3, 1:100) = 1.08D0*1.2D0;
-    !    g(0, 4, 1:100) = 1.08D0*0.01D0;
-    !    g(0, 5, 1:100) = 1.08D0*0.5D0;
-    !    g(0, 7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
-    !Else
-    !    g(:, :, :) = 0.0D0
-    !    g(0, 1, :) = 1.0D0
-    !    g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
-    !    g(0, 1, 1:100) = 2.0D0
-    !    g(0, 2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
-    !End If
+    !> Sod test case.
+    If (MHD) Then
+        !> MHD Sod test case.
+        g(:, :, :) = 0.0D0
+        g(0, 1, :) = 1.0D0
+        g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(0, 6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+        g(0, 7, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+        g(0, 8, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+        g(0, 1, 1:100) = 1.08D0;
+        g(0, 2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
+        g(0, 3, 1:100) = 1.08D0*1.2D0;
+        g(0, 4, 1:100) = 1.08D0*0.01D0;
+        g(0, 5, 1:100) = 1.08D0*0.5D0;
+        g(0, 7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
+    Else
+        g(:, :, :) = 0.0D0
+        g(0, 1, :) = 1.0D0
+        g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(0, 1, 1:100) = 2.0D0
+        g(0, 2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
+    End If
     
-    g(:, :, :) = 0.0D0
-    g(0, 1, :) = 1.0D0
-    g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
-    g(0, 3, :) = 1.0D0
-    g(0, 4, :) = 0.0D0
-    g(0, 7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+    !g(:, :, :) = 0.0D0
+    !g(0, 1, :) = 1.0D0
+    !g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+    !g(0, 3, :) = 1.0D0
+    !g(0, 4, :) = 0.0D0
+    !g(0, 7, :) = 2.0D0!/Sqrt(4.0D0*Pi)
 
     Call solver%init()
     Call print_grid4(ga, g, 0)
     m = 1
     Tstart = omp_get_wtime()
-    Do l=1,300000000
+    Do l=1, 1800!300000000
         !f(:) = g(1, :)
         !u(:) = up(:)
         !Call pois%calc(ga, u, up, flu, f, n)
