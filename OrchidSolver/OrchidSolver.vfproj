@@ -55,7 +55,8 @@
 		<File RelativePath=".\OrchidHydroFlux.f90"/>
 		<File RelativePath=".\OrchidHydroFluxHLL.f90"/>
 		<File RelativePath=".\OrchidHydroFluxLLF.f90"/>
-		<File RelativePath=".\OrchidHydroFluxRoe.f90"/></Filter>
+		<File RelativePath=".\OrchidHydroFluxRoe.f90"/>
+		<File RelativePath=".\OrchidHydroFluxViscous.f90"/></Filter>
 		<File RelativePath=".\OrchidHydro2.f90"/>
 		<File RelativePath=".\OrchidHydroDG.f90"/></Filter>
 		<Filter Name="Poisson">

@@ -16,7 +16,8 @@ End Type MhdHydroFlux
 Private :: mhd_hydro_calc_flux, &
            mhd_hydro_calc_flux1D_t, &
            mhd_hydro_calc_flux2D_t, &
-           mhd_hydro_calc_flux3D_t
+           mhd_hydro_calc_flux3D_t, &
+           mhd_hydro_calc_flux3D_mhd_t
 Interface
 !########################################################################################################
 !########################################################################################################
