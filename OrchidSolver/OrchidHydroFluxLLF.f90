@@ -142,25 +142,19 @@ Subroutine mhd_hydro_calc_flux(This, &
                              rho_p, nrg_p, u_p, &
                              rho_m, nrg_m, u_m, &
                              flux(1), flux(2), flux(3))
-        Else
-            v_p = fields_p(4)/rho_p
-            v_m = fields_m(4)/rho_m
-            If ( dim == 2 ) Then
-                !> Polar Case.
-                nl = Sqrt(nx**2 + ny**2)
-                Call This%calc2D(nx/nl, ny/nl, &
-                                 rho_p, nrg_p, u_p, v_p, &
-                                 rho_m, nrg_m, u_m, v_m, &
-                                 flux(1), flux(2), flux(3), flux(4))
-            Else
-                !> Spherical Case.
-                w_p = fields_p(5)/rho_p
-                w_m = fields_m(5)/rho_m
-                Call This%calc3D(nx, ny, nz, &
-                                 rho_p, nrg_p, u_p, v_p, w_p, &
-                                 rho_m, nrg_m, u_m, v_m, w_m, &
-                                 flux(1), flux(2), flux(3), flux(4), flux(5))
-            End If
+        Else If ( dim == 2 ) Then
+            !> 2D Case.
+            nl = Sqrt(nx**2 + ny**2)
+            Call This%calc2D(nx/nl, ny/nl, &
+                             rho_p, nrg_p, u_p, v_p, &
+                             rho_m, nrg_m, u_m, v_m, &
+                             flux(1), flux(2), flux(3), flux(4))
+        Else If ( dim == 3 ) Then
+            !> 3D Case.
+            Call This%calc3D(nx, ny, nz, &
+                             rho_p, nrg_p, u_p, v_p, w_p, &
+                             rho_m, nrg_m, u_m, v_m, w_m, &
+                             flux(1), flux(2), flux(3), flux(4), flux(5))
         End If
     End If
 End Subroutine mhd_hydro_calc_flux
