@@ -157,13 +157,6 @@ Subroutine mhd_hydro_dg_calc_step(This, Tau, ga, g, gp, fl)
             End Do
         End If
         gp(:, :, i) = g(:, :, i) - Tau/ga%cells(i)%Vcell*gp(:, :, i)        
-        !> Check if values are correct and density and energy are positive.
-        !If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
-        !    If ( verbose ) Then
-        !        Write (0,*) 'Invalid flow paramaters were detected at: ', gp(:, i)
-        !    End If
-        !    Error Stop 1
-        !End If
     End Do
     !$OMP End Parallel Do
     !>-------------------------------------------------------------------------------
@@ -216,7 +209,7 @@ Subroutine mhd_hydro_dg_calc_grad(This, ga, gp, fg, fh)
         End If
     End Do
     !$OMP End Parallel Do
-    !> Calculate the Gradients and Hessians.
+    !> Calculate the Gradients and Hessians on the cell averages.
     Call This%calc_grad(ga, gc, fg, fh)
     !>-------------------------------------------------------------------------------
 End Subroutine mhd_hydro_dg_calc_grad

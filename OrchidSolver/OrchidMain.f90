@@ -7,6 +7,8 @@ Module orchid_solver_params
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
     Logical, Parameter :: mhd = .FALSE.
+
+    Real(8), Parameter :: Mu_hydro = 0.5D0
     
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0D0/3.0D0, Gamma1 = Gamma-1.0D0
     Integer, Parameter :: N_funcs = 2
@@ -100,6 +102,124 @@ Subroutine print_grid4(ga, g, l)
     Close(output)
 End Subroutine print_grid4
 End Module orchid_solver_simulation
+
+!> Sod test case (Pure FV).
+Subroutine test_sod_1D()
+    Use orchid_solver_simulation
+    Use orchid_solver_grid
+    Use orchid_solver_hydro2
+    Use omp_lib
+    Implicit None
+    Integer :: l
+    Real(8) :: Tstart, Tend
+    Class(MhdGrid), Allocatable :: ga
+    Class(MhdHydroSolver), Allocatable :: solver
+    Real(8), Dimension(:,:), Allocatable :: g, gp
+
+    Allocate(ga)
+    Call ga%init1D(10.0D0, 200, -1, -1)
+    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    
+    If (MHD) Then
+        !> MHD Sod test case.
+        g(:, :) = 0.0D0
+        g(1, :) = 1.0D0
+        g(2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(6, :) = 4.0D0
+        g(7, :) = 4.0D0
+        g(8, :) = 2.0D0
+        g(1, 1:100) = 1.08D0;
+        g(2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
+        g(3, 1:100) = 1.08D0*1.2D0;
+        g(4, 1:100) = 1.08D0*0.01D0;
+        g(5, 1:100) = 1.08D0*0.5D0;
+        g(7, 1:100) = 3.6D0
+    Else
+        g(:, :) = 0.0D0
+        g(1, :) = 1.0D0
+        g(2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(1, 1:100) = 2.0D0
+        g(2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
+    End If
+
+    Allocate(MhdHydroSolver :: solver)
+    Call solver%init()
+    Call print_grid3(ga, g, 0)
+    Tstart = omp_get_wtime()
+    Do l=1, 1800
+        Call solver%calc_step(0.001D0, ga, g, gp)
+        If (Mod(l, 100) == 0) Then
+            Tend = omp_get_wtime()
+            Write(*, *) 'time step:', l, TEnd - Tstart
+            Tstart = Tend
+            Call print_grid3(ga, g, l)
+        End If
+        g(:,:) = gp(:,:)
+    End Do
+End Subroutine test_sod_1D
+
+
+!> Sod test case (Pure FV).
+Subroutine test_sod_1D_dg()
+    Use orchid_solver_simulation
+    Use orchid_solver_grid
+    Use orchid_solver_hydro_dg
+    Use omp_lib
+    Implicit None
+    Integer :: l
+    Real(8) :: Tstart, Tend
+    Class(MhdGridGaussLegendre), Allocatable :: ga
+    Class(MhdHydroSolverDG), Allocatable :: solver
+    Real(8), Dimension(:,:,:), Allocatable :: g, gp
+    Real(8), Dimension(:,:), Allocatable :: fl
+
+    Allocate(ga)
+    Call ga%init1D(10.0D0, 200, -1, -1)
+    Call ga%init_gauss1D(2)
+    Call ga%init_legendre1D()
+    Allocate(g(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(gp(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(fl(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max))
+    
+    !> Sod test case.
+    If (MHD) Then
+        !> MHD Sod test case.
+        g(:, :, :) = 0.0D0
+        g(0, 1, :) = 1.0D0
+        g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(0, 6, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+        g(0, 7, :) = 4.0D0!/Sqrt(4.0D0*Pi)
+        g(0, 8, :) = 2.0D0!/Sqrt(4.0D0*Pi)
+        g(0, 1, 1:100) = 1.08D0;
+        g(0, 2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
+        g(0, 3, 1:100) = 1.08D0*1.2D0;
+        g(0, 4, 1:100) = 1.08D0*0.01D0;
+        g(0, 5, 1:100) = 1.08D0*0.5D0;
+        g(0, 7, 1:100) = 3.6D0!/Sqrt(4.0D0*Pi)
+    Else
+        g(:, :, :) = 0.0D0
+        g(0, 1, :) = 1.0D0
+        g(0, 2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(0, 1, 1:100) = 2.0D0
+        g(0, 2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
+    End If
+    
+    Allocate(MhdHydroSolverDG :: solver)
+    Call solver%init()
+    Call print_grid4(ga, g, 0)
+    Tstart = omp_get_wtime()
+    Do l=1, 1800
+        Call solver%calc_step_dg(0.001D0, ga, g, gp, fl)
+        If (Mod(l, 100) == 0) Then
+            Tend = omp_get_wtime()
+            Write(*, *) 'time step:', l, TEnd - Tstart
+            Tstart = Tend
+            Call print_grid4(ga, g, l)
+        End If
+        g(:,:,:) = gp(:,:,:)
+    End Do
+End Subroutine test_sod_1D_dg
     
 Program orchid_solver
     Use orchid_solver_simulation
@@ -142,6 +262,9 @@ Program orchid_solver
     Write(*,*) ''
     !>-------------------------------------------------------------------------------
     
+    Call test_sod_1D()
+    Stop
+
     !Call test_opencl
     
     Allocate(MhdHydroSolverDG :: solver)
