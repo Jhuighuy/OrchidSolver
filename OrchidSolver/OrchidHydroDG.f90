@@ -90,26 +90,28 @@ End Subroutine mhd_hydro_dg_calc_flux
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-Subroutine mhd_hydro_dg_calc_step(This, Tau, ga, g, gp, fl)
+Subroutine mhd_hydro_dg_calc_step(This, Tau, ga, g, gp)
     !> Calculate the Time Step.
     !> {{{
     Class(MhdHydroSolverDG), Intent(InOut) :: This
     Class(MhdGridGaussLegendre), Intent(In) :: ga
     Real(8), Dimension(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: g
     Real(8), Dimension(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: gp
-    Real(8), Dimension(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max), Intent(InOut) :: fl
     Real(8), Intent(In) :: Tau
     !> }}}
     Integer :: i, j, jj, k, n, m
     Real(8) :: grad, grad_nx, grad_ny, grad_nz
     Real(8), Dimension(n_min:n_max) :: qk, fk
+    Real(8), Dimension(:, :), Allocatable, Save :: fl
+    Real(8), Dimension(:, :, :), Allocatable, Save :: fg
     !>-------------------------------------------------------------------------------
-    !> Calculate the Fluxes.
+    !> Calculate the Convective Fluxes.
+    If ( .NOT. Allocated(fl) ) Then
+       Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
+       fl(:, :) = 0.0D0
+    End If
     Call This%calc_flux_dg(ga, g, fl)
-    !>-------------------------------------------------------------------------------
-
-    !>-------------------------------------------------------------------------------
-    !> Calculate the new Field values.
+    !> Calculate the updated Field values (convectivity).
     !$OMP Parallel Do Private(j, jj, k, n, m, grad, grad_nx, grad_ny, grad_nz, qk, fk)
     Do i = ga%ncells_min, ga%ncells_max
         gp(:, :, i) = 0.0D0
@@ -159,9 +161,6 @@ Subroutine mhd_hydro_dg_calc_step(This, Tau, ga, g, gp, fl)
         gp(:, :, i) = g(:, :, i) - Tau/ga%cells(i)%Vcell*gp(:, :, i)        
     End Do
     !$OMP End Parallel Do
-    !>-------------------------------------------------------------------------------
-
-    !>-------------------------------------------------------------------------------
     !> Calculate the Limited Values.
     If ( m_max > m_min ) Then
         Call This%calc_limiter_dg(ga, gp)

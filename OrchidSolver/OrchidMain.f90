@@ -8,7 +8,7 @@ Module orchid_solver_params
     Logical, Parameter :: verbose = .TRUE.
     Logical, Parameter :: mhd = .FALSE.
 
-    Real(8), Parameter :: Mu_hydro = 0.5D0
+    Real(8), Parameter :: Mu_hydro = 0.0005D0
     
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0D0/3.0D0, Gamma1 = Gamma-1.0D0
     Integer, Parameter :: N_funcs = 2
@@ -172,7 +172,6 @@ Subroutine test_sod_1D_dg()
     Class(MhdGridGaussLegendre), Allocatable :: ga
     Class(MhdHydroSolverDG), Allocatable :: solver
     Real(8), Dimension(:,:,:), Allocatable :: g, gp
-    Real(8), Dimension(:,:), Allocatable :: fl
 
     Allocate(ga)
     Call ga%init1D(10.0D0, 200, -1, -1)
@@ -180,7 +179,6 @@ Subroutine test_sod_1D_dg()
     Call ga%init_legendre1D()
     Allocate(g(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
     Allocate(gp(m_min:m_max, n_min:n_max, ga%ncells_min:ga%ncells_max))
-    Allocate(fl(n_min:n_max, ga%nface_nodes_min:ga%nface_nodes_max))
     
     !> Sod test case.
     If (MHD) Then
@@ -210,7 +208,7 @@ Subroutine test_sod_1D_dg()
     Call print_grid4(ga, g, 0)
     Tstart = omp_get_wtime()
     Do l=1, 1800
-        Call solver%calc_step_dg(0.001D0, ga, g, gp, fl)
+        Call solver%calc_step_dg(0.001D0, ga, g, gp)
         If (Mod(l, 100) == 0) Then
             Tend = omp_get_wtime()
             Write(*, *) 'time step:', l, TEnd - Tstart
@@ -364,7 +362,7 @@ Program orchid_solver
         !u(:) = up(:)
         !Call pois%calc(ga, u, up, flu, f, n)
         !m = m + n
-        Call solver%calc_step_dg(0.001D0, ga, g, gp, fl)
+        Call solver%calc_step_dg(0.001D0, ga, g, gp)
         If (Mod(l, 100) == 0) Then
             Tend = omp_get_wtime()
             Write(*, *) 'time step:', l, TEnd - Tstart, m, (TEnd - Tstart)/Dble(m)

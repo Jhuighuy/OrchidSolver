@@ -8,6 +8,7 @@ Use orchid_solver_hydro_flux
 Implicit None
 Type :: MhdHydroSolver
     Class(MhdHydroFlux), Allocatable :: m_flux
+    Class(MhdHydroViscousFlux), Allocatable :: m_visc_flux
     Contains
     Procedure, Public :: init => mhd_hydro_init
     Procedure, Public :: calc_flux => mhd_hydro_calc_flux
@@ -64,13 +65,15 @@ Subroutine mhd_hydro_init(This, &
         Error Stop -100
     End If
     !>-------------------------------------------------------------------------------
+
+    Allocate(MhdHydroViscousFluxGas :: This%m_visc_flux)
 End Subroutine mhd_hydro_init
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
 Subroutine mhd_hydro_calc_flux(This, &
                                ga, g, fl)
-    !> Calculate the basic first order Fluxes.
+    !> Calculate the Convective Fluxes.
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
     Class(MhdGrid), Intent(In) :: ga
@@ -84,7 +87,7 @@ Subroutine mhd_hydro_calc_flux(This, &
     w(n_min:n_min+1) = 1.0D0
     !>-------------------------------------------------------------------------------
     !> Calculate the Fluxes.
-    !$OMP Parallel Do Private(ip, im, nx, ny, nz)
+    !$OMP Parallel Do Private(ip, im, j, nx, ny, nz)
     Do j = ga%nfaces_min, ga%nfaces_max
         ip = ga%faces(j)%ncell_p
         im = ga%faces(j)%ncell_m
@@ -130,7 +133,7 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
     Real(8), Intent(In) :: Tau
     !> }}}
     Integer :: i, j, jj
-    Real(8), Dimension(n_min:n_max) :: dg
+    Real(8), Dimension(n_min:n_max) :: dg, df
     Real(8), Dimension(n_min:n_max) :: visc
     Real(8), Dimension(:, :), Allocatable, Save :: fl
     Real(8), Dimension(:, :, :), Allocatable, Save :: fg
@@ -173,31 +176,27 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
 
     !>-------------------------------------------------------------------------------
     !> Calculate the Viscous Fluxes (gradients).
-    visc(:) = Mu_hydro
-    visc(n_min:n_min+1) = 0.0D0
     If ( .NOT. Allocated(fg) ) Then
-       Allocate(fg(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max))
-       fg(:, :, :) = 0.0D0
+        Allocate(fg(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max))
+        fg(:, :, :) = 0.0D0
     End If
     Call This%calc_grad(ga, gp, fg)
     !> Calculate the updated Field values (viscosity).
-    !> @todo This code is incorrect, we should calculate the real viscous fluxes.
-    !$OMP Parallel Do Private(i, j, jj, dg)
+    !$OMP Parallel Do Private(i, j, jj, dg, df)
     Do i = ga%ncells_min, ga%ncells_max
         !> Update the values.
         dg(:) = 0.0D0
         Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
             j = ga%cell2face(jj)
+            Call This%m_visc_flux%calc(gp(:, i), fg(1, :, j)*ga%faces(j)%nx + &
+                                                 fg(2, :, j)*ga%faces(j)%ny + &
+                                                 fg(3, :, j)*ga%faces(j)%nz, df(:))
             If ( ga%faces(j)%ncell_p == i ) Then
                 !> Inner normal case.
-                dg(:) = dg(:) - visc(:)*( fg(1, :, j)*ga%faces(j)%nx + &
-                                          fg(2, :, j)*ga%faces(j)%ny + &
-                                          fg(3, :, j)*ga%faces(j)%nz )*ga%faces(j)%Sface
+                dg(:) = dg(:) - df(:)*ga%faces(j)%Sface
             Else
                 !> Outer normal case.
-                dg(:) = dg(:) + visc(:)*( fg(1, :, j)*ga%faces(j)%nx + &
-                                          fg(2, :, j)*ga%faces(j)%ny + &
-                                          fg(3, :, j)*ga%faces(j)%nz )*ga%faces(j)%Sface
+                dg(:) = dg(:) + df(:)*ga%faces(j)%Sface
             End If
         End Do
         dg(:) = dg(:)/ga%cells(i)%Vcell
