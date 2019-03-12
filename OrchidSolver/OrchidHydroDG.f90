@@ -4,7 +4,7 @@
 Module orchid_solver_hydro_dg
 Use orchid_solver_params
 Use orchid_solver_grid_gauss_legendre
-Use orchid_solver_hydro2
+Use orchid_solver_hydro_fv
 Implicit None
 Type, Extends(MhdHydroSolver) :: MhdHydroSolverDG
     Contains

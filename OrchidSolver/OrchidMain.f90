@@ -110,7 +110,7 @@ End Module orchid_solver_simulation
 Subroutine test_sod_1D()
     Use orchid_solver_simulation
     Use orchid_solver_grid
-    Use orchid_solver_hydro2
+    Use orchid_solver_hydro_fv
     Use omp_lib
     Implicit None
     Integer :: l

@@ -1,7 +1,7 @@
 !> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver.
 !> Copyright (C) Butakov Oleg 2019.
 
-Module orchid_solver_hydro2
+Module orchid_solver_hydro_fv
 Use orchid_solver_params
 Use orchid_solver_grid
 Use orchid_solver_hydro_flux
@@ -25,7 +25,7 @@ Contains
 !########################################################################################################
 Subroutine mhd_hydro_init(This, &
                           flux_type_opt, visc_flux_type_opt)
-    !> Initialize the Hydro Solver.
+    !> Initialize the Finite Volume Hydro Solver.
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
     Character(Len=*), Intent(In), Optional :: flux_type_opt, visc_flux_type_opt
@@ -290,7 +290,7 @@ End Subroutine mhd_hydro_calc_step
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
-End Module orchid_solver_hydro2
+End Module orchid_solver_hydro_fv
 
 
 
