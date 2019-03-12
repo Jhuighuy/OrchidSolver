@@ -128,8 +128,8 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
     !> {{{
     Class(MhdHydroSolver), Intent(InOut) :: This
     Class(MhdGrid), Intent(In) :: ga
-    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(Out) :: g
-    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(Out) :: gp
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: g
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: gp
     Real(8), Intent(In) :: Tau
     !> }}}
     Integer :: i, j, jj
@@ -147,7 +147,7 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
     !> Calculate the updated Field values (convectivity).
     !$OMP Parallel Do Private(i, j, jj, dg)
     Do i = ga%ncells_min, ga%ncells_max
-        !> Update the values.
+        !> Calculate the face flux increment.
         dg(:) = 0.0D0
         Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
             j = ga%cell2face(jj)
@@ -175,7 +175,7 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
     !>-------------------------------------------------------------------------------
 
     !>-------------------------------------------------------------------------------
-    !> Calculate the Viscous Fluxes (gradients).
+    !> Calculate the Viscous Fluxes.
     If ( .NOT. Allocated(fg) ) Then
         Allocate(fg(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max))
         fg(:, :, :) = 0.0D0

@@ -8,8 +8,11 @@ Module orchid_solver_params
     Logical, Parameter :: verbose = .TRUE.
     Logical, Parameter :: mhd = .FALSE.
 
-    Real(8), Parameter :: Mu_hydro = 0.0005D0
+    Real(8), Parameter :: Mu_hydro = 0.005D0
+    Real(8), Parameter :: Mu_magneto = 0.0D0
+    Real(8), Parameter :: Kappa = 1.0D7
     
+    Real(8), Parameter :: Rgas = 8.314459848D7
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0), Gamma = 5.0D0/3.0D0, Gamma1 = Gamma-1.0D0
     Integer, Parameter :: N_funcs = 2
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1

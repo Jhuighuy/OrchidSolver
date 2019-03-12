@@ -23,7 +23,7 @@ Contains
 !########################################################################################################
 Subroutine mhd_hydro_dg_calc_flux(This, &
                                   ga, g, fl)
-    !> Calculate the basic first order Fluxes.
+    !> Calculate the Convective Fluxes.
     !> {{{
     Class(MhdHydroSolverDG), Intent(InOut) :: This
     Class(MhdGridGaussLegendre), Intent(In) :: ga

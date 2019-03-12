@@ -179,8 +179,10 @@ Subroutine mhd_hydro_calc_viscous_flux_gas1D(This, &
     Real(8), Intent(In) :: grad_rho, grad_nrg, grad_u
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u
     !> }}}
+    Real(8) :: grad_temp
+    grad_temp = Gamma1/Rgas*( grad_nrg - u*grad_u )
     flux_rho = 0.0D0
-    flux_nrg = 0.0D0
+    flux_nrg = Kappa*grad_temp
     flux_u   = Mu_hydro*grad_u
 End Subroutine mhd_hydro_calc_viscous_flux_gas1D
 !########################################################################################################
@@ -198,6 +200,12 @@ Subroutine mhd_hydro_calc_viscous_flux_gas2D(This, &
     Real(8), Intent(In) :: grad_rho, grad_nrg, grad_u, grad_v
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v
     !> }}}
+    Real(8) :: grad_temp
+    grad_temp = Gamma1/Rgas*( grad_nrg - u*grad_u - v*grad_v )
+    flux_rho = 0.0D0
+    flux_nrg = Kappa*grad_temp
+    flux_u   = Mu_hydro*grad_u
+    flux_v   = Mu_hydro*grad_v
 End Subroutine mhd_hydro_calc_viscous_flux_gas2D
 !########################################################################################################
 !########################################################################################################
@@ -214,6 +222,13 @@ Subroutine mhd_hydro_calc_viscous_flux_gas3D(This, &
     Real(8), Intent(In) :: grad_rho, grad_nrg, grad_u, grad_v, grad_w
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w
     !> }}}
+    Real(8) :: grad_temp
+    grad_temp = Gamma1/Rgas*( grad_nrg - u*grad_u - v*grad_v - w*grad_w )
+    flux_rho = 0.0D0
+    flux_nrg = Kappa*grad_temp
+    flux_u   = Mu_hydro*grad_u
+    flux_v   = Mu_hydro*grad_v
+    flux_w   = Mu_hydro*grad_w
 End Subroutine mhd_hydro_calc_viscous_flux_gas3D
 !########################################################################################################
 !########################################################################################################
@@ -230,8 +245,21 @@ Subroutine mhd_hydro_calc_viscous_flux_gas3D_mhd(This, &
     Real(8), Intent(In) :: grad_rho, grad_nrg, grad_u, grad_v, grad_w, grad_bx, grad_by, grad_bz
     Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
+    Real(8) :: grad_temp
+    grad_temp = Gamma1/Rgas*( grad_nrg - u*grad_u - v*grad_v - w*grad_w )
+    flux_rho = 0.0D0
+    flux_nrg = Kappa*grad_temp
+    flux_u   = Mu_hydro*grad_u
+    flux_v   = Mu_hydro*grad_v
+    flux_w   = Mu_hydro*grad_w
+    flux_bx  = Mu_magneto*grad_bx
+    flux_by  = Mu_magneto*grad_by
+    flux_bz  = Mu_magneto*grad_bz
 End Subroutine mhd_hydro_calc_viscous_flux_gas3D_mhd
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
 End Module orchid_solver_hydro_flux_viscous_gas
+
+    
+    
