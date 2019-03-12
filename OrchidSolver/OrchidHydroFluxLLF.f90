@@ -3,7 +3,6 @@
 
 Module orchid_solver_hydro_flux_godunov
 Use orchid_solver_params
-Use orchid_solver_grid
 Implicit None
 Type, Abstract :: MhdHydroFlux
     Contains
