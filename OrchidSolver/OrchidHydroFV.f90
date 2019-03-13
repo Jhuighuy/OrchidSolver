@@ -12,8 +12,8 @@ Type :: MhdHydroSolver
     Contains
     Procedure, Public :: init => mhd_hydro_init
     Procedure, Public :: calc_flux => mhd_hydro_calc_flux
-    Procedure, Public :: calc_grad => mhd_hydro_calc_grad
     Procedure, Public :: calc_step => mhd_hydro_calc_step
+    Procedure, Public :: calc_grad => mhd_hydro_calc_grad
 End Type MhdHydroSolver
 Private :: mhd_hydro_init, &
            mhd_hydro_calc_flux, &
@@ -138,6 +138,70 @@ End Subroutine mhd_hydro_calc_flux
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
+Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
+    !> Calculate the Time Step.
+    !> {{{
+    Class(MhdHydroSolver), Intent(InOut) :: This
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: g
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: gp
+    Real(8), Intent(In) :: Tau
+    !> }}}
+    Integer :: i, j, jj
+    Real(8), Dimension(n_min:n_max) :: dg, df, df_conv, df_visc
+    Real(8), Dimension(:, :), Allocatable, Save :: fl
+    Real(8), Dimension(:, :, :), Allocatable, Save :: fg
+    !>-------------------------------------------------------------------------------
+    !> Calculate the Convective Fluxes and Gradients.
+    If ( .NOT. Allocated(fl) ) Then
+        Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
+        Allocate(fg(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max))
+        fl(:, :) = 0.0D0
+        fg(:, :, :) = 0.0D0
+    End If
+    Call This%calc_flux(ga, g, fl)
+    Call This%calc_grad(ga, g, fg)
+    !> Calculate the updated Field values.
+    !$OMP Parallel Do Private(i, j, jj, dg, df, df_conv, df_visc)
+    Do i = ga%ncells_min, ga%ncells_max
+        !> Update the values.
+        dg(:) = 0.0D0
+        Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
+            j = ga%cell2face(jj)
+            df_visc(:) = 0.0D0
+            df_conv(:) = fl(:, j)
+            If ( Allocated(This%m_visc_flux) ) Then
+                Call This%m_visc_flux%calc(g(:, i), fg(1, :, j)*ga%faces(j)%nx + &
+                                                    fg(2, :, j)*ga%faces(j)%ny + &
+                                                    fg(3, :, j)*ga%faces(j)%nz, df_visc(:))
+            End If
+            df = df_conv(:) - df_visc(:)
+            If ( ga%faces(j)%ncell_p == i ) Then
+                !> Inner normal case.
+                dg(:) = dg(:) - df(:)*ga%faces(j)%Sface
+            Else
+                !> Outer normal case.
+                dg(:) = dg(:) + df(:)*ga%faces(j)%Sface
+            End If
+        End Do
+        dg(:) = dg(:)/ga%cells(i)%Vcell
+        gp(:, i) = g(:, i) - Tau*dg(:)      
+        !> Check if values are correct and density and energy are positive.
+        If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
+            !$OMP Critical
+            If ( verbose ) Then
+                Write (0,*) 'Invalid flow paramaters were detected at (conv): ', gp(:, i)
+            End If
+            Error Stop 1
+            !$OMP End Critical
+        End If
+    End Do
+    !$OMP End Parallel Do
+    !>-------------------------------------------------------------------------------
+End Subroutine mhd_hydro_calc_step
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
 Subroutine mhd_hydro_calc_grad(This, ga, gp, fg, fh)
     !> Calculate the Gradients on faces (and Hessians in cells).
     !> {{{
@@ -223,70 +287,6 @@ Subroutine mhd_hydro_calc_grad(This, ga, gp, fg, fh)
     End If
     !>-------------------------------------------------------------------------------
 End Subroutine mhd_hydro_calc_grad
-!########################################################################################################
-!########################################################################################################
-!########################################################################################################
-Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
-    !> Calculate the Time Step.
-    !> {{{
-    Class(MhdHydroSolver), Intent(InOut) :: This
-    Class(MhdGrid), Intent(In) :: ga
-    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: g
-    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: gp
-    Real(8), Intent(In) :: Tau
-    !> }}}
-    Integer :: i, j, jj
-    Real(8), Dimension(n_min:n_max) :: dg, df, df_conv, df_visc
-    Real(8), Dimension(:, :), Allocatable, Save :: fl
-    Real(8), Dimension(:, :, :), Allocatable, Save :: fg
-    !>-------------------------------------------------------------------------------
-    !> Calculate the Convective Fluxes and Gradients.
-    If ( .NOT. Allocated(fl) ) Then
-        Allocate(fl(n_min:n_max, ga%nfaces_min:ga%nfaces_max))
-        Allocate(fg(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max))
-        fl(:, :) = 0.0D0
-        fg(:, :, :) = 0.0D0
-    End If
-    Call This%calc_flux(ga, g, fl)
-    Call This%calc_grad(ga, g, fg)
-    !> Calculate the updated Field values.
-    !$OMP Parallel Do Private(i, j, jj, dg, df, df_conv, df_visc)
-    Do i = ga%ncells_min, ga%ncells_max
-        !> Update the values.               .
-        dg(:) = 0.0D0
-        Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
-            j = ga%cell2face(jj)
-            df_visc(:) = 0.0D0
-            df_conv(:) = fl(:, j)
-            If ( Allocated(This%m_visc_flux) ) Then
-                Call This%m_visc_flux%calc(g(:, i), fg(1, :, j)*ga%faces(j)%nx + &
-                                                    fg(2, :, j)*ga%faces(j)%ny + &
-                                                    fg(3, :, j)*ga%faces(j)%nz, df_visc(:))
-            End If
-            df = df_conv(:) - df_visc(:)
-            If ( ga%faces(j)%ncell_p == i ) Then
-                !> Inner normal case.
-                dg(:) = dg(:) - df(:)*ga%faces(j)%Sface
-            Else
-                !> Outer normal case.
-                dg(:) = dg(:) + df(:)*ga%faces(j)%Sface
-            End If
-        End Do
-        dg(:) = dg(:)/ga%cells(i)%Vcell
-        gp(:, i) = g(:, i) - Tau*dg(:)      
-        !> Check if values are correct and density and energy are positive.
-        If ( Any(IsNan(gp(:, i))) .OR. Any(gp(1:2, i) <= 0.0) ) Then
-            !$OMP Critical
-            If ( verbose ) Then
-                Write (0,*) 'Invalid flow paramaters were detected at (conv): ', gp(:, i)
-            End If
-            Error Stop 1
-            !$OMP End Critical
-        End If
-    End Do
-    !$OMP End Parallel Do
-    !>-------------------------------------------------------------------------------
-End Subroutine mhd_hydro_calc_step
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################

@@ -8,7 +8,7 @@ Module orchid_solver_params
     Logical, Parameter :: verbose = .TRUE.
     Logical, Parameter :: mhd = .FALSE.
 
-    Real(8), Parameter :: Mu_hydro = 0.000005D0
+    Real(8), Parameter :: Mu_hydro = 0*0.000005D0
     Real(8), Parameter :: Mu_magneto = 0.0D0
     Real(8), Parameter :: Kappa = 1.0D7*0
     
@@ -18,6 +18,12 @@ Module orchid_solver_params
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
     Integer, Parameter :: n_min = 1, n_max = 8
     Contains
+Elemental &
+Function minmod1(a) Result(m)
+    Real(8), Intent(In) :: a
+    Real(8) :: m
+    m = Max(0.0D0, Min(1.0D0, a))
+End Function minmod1
 Elemental &
 Function minmod2(a, b) Result(m)
     Real(8), Intent(In) :: a, b
@@ -162,8 +168,64 @@ Subroutine test_sod_1D()
     End Do
 End Subroutine test_sod_1D
 
+!> Sod test case (MUSCL FV).
+Subroutine test_sod_1D_muscl()
+    Use orchid_solver_simulation
+    Use orchid_solver_grid_gauss
+    Use orchid_solver_hydro_fv_muscl
+    Use omp_lib
+    Implicit None
+    Integer :: l
+    Real(8) :: Tstart, Tend
+    Class(MhdGridGauss), Allocatable :: ga
+    Class(MhdHydroSolverMUSCL), Allocatable :: solver
+    Real(8), Dimension(:,:), Allocatable :: g, gp
 
-!> Sod test case (Pure FV).
+    Allocate(ga)
+    Call ga%init1D(10.0D0, 200, -1, -1)
+    Call ga%init_gauss1D(2)
+    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
+    
+    If (MHD) Then
+        !> MHD Sod test case.
+        g(:, :) = 0.0D0
+        g(1, :) = 1.0D0
+        g(2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(6, :) = 4.0D0
+        g(7, :) = 4.0D0
+        g(8, :) = 2.0D0
+        g(1, 1:100) = 1.08D0;
+        g(2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
+        g(3, 1:100) = 1.08D0*1.2D0;
+        g(4, 1:100) = 1.08D0*0.01D0;
+        g(5, 1:100) = 1.08D0*0.5D0;
+        g(7, 1:100) = 3.6D0
+    Else
+        g(:, :) = 0.0D0
+        g(1, :) = 1.0D0
+        g(2, :) = 1.0D0/( Gamma1*1.0D0 )
+        g(1, 1:100) = 2.0D0
+        g(2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
+    End If
+
+    Allocate(MhdHydroSolverMUSCL :: solver)
+    Call solver%init()
+    Call print_grid3(ga, g, 0)
+    Tstart = omp_get_wtime()
+    Do l=1, 1800
+        Call solver%calc_step_muscl(0.001D0, ga, g, gp)
+        If (Mod(l, 1) == 0) Then
+            Tend = omp_get_wtime()
+            Write(*, *) 'time step:', l, TEnd - Tstart
+            Tstart = Tend
+            Call print_grid3(ga, gp, l)
+        End If
+        g(:,:) = gp(:,:)
+    End Do
+End Subroutine test_sod_1D_muscl
+
+!> Sod test case (DG).
 Subroutine test_sod_1D_dg()
     Use orchid_solver_simulation
     Use orchid_solver_grid
@@ -263,7 +325,7 @@ Program orchid_solver
     Write(*,*) ''
     !>-------------------------------------------------------------------------------
     
-    Call test_sod_1D()
+    Call test_sod_1D_muscl()
     Stop
 
     !Call test_opencl

@@ -60,7 +60,7 @@
 		<File RelativePath=".\OrchidHydroFluxViscous.f90"/></Filter>
 		<File RelativePath=".\OrchidHydroDG.f90"/>
 		<File RelativePath=".\OrchidHydroFV.f90"/>
-		<File RelativePath=".\OrchidHydroFV_MUSCLE.f90"/>
+		<File RelativePath=".\OrchidHydroFV_MUSCL.f90"/>
 		<File RelativePath=".\OrchidHydroFV_WENO.f90"/></Filter>
 		<Filter Name="Poisson">
 		<File RelativePath=".\OrchidPois.f90"/></Filter>
