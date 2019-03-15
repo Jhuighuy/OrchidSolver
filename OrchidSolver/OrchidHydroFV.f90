@@ -44,26 +44,26 @@ Subroutine mhd_hydro_init(This, &
     Else
         flux_type(:) = flux_type_opt(:)
     End If
-    !If ( flux_type == 'llf' ) Then
-    !    Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
-    !    Allocate(MhdHydroFluxLLF :: This%m_flux)
-    !Else If ( flux_type == 'hll' ) Then
+    If ( flux_type == 'llf' ) Then
+        Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
+        Allocate(MhdHydroFluxLLF :: This%m_flux)
+    Else If ( flux_type == 'hll' ) Then
         Write (*,*) 'Hydro solver: the HLL Flux was selected.'
         Allocate(MhdHydroFluxHLL :: This%m_flux)
-    !Else If ( flux_type == 'hllc' ) Then
-    !    Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
-    !    Allocate(MhdHydroFluxHLLC :: This%m_flux)
+    Else If ( flux_type == 'hllc' ) Then
+        Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
+        Allocate(MhdHydroFluxHLLC :: This%m_flux)
     !Else If ( flux_type == 'hlld' ) Then
     !    Write (*,*) 'Hydro solver: the HLLD Flux was selected.'
     !    Allocate(MhdHydroFluxHLLD :: This%m_flux)
     !Else If ( flux_type == 'roe' ) Then
     !    Write (*,*) 'Hydro solver: the Roe Flux was selected.'
     !    Allocate(MhdHydroFluxRoe :: This%m_flux)
-    !Else
-    !    Write (0,*) 'Hydro flux type ', Trim(flux_type), &
-    !                'is invalid. Please, check the manual.'
-    !    Error Stop -100
-    !End If
+    Else
+        Write (0,*) 'Hydro flux type ', Trim(flux_type), &
+                    'is invalid. Please, check the manual.'
+        Error Stop -100
+    End If
     !>-------------------------------------------------------------------------------
 
     !>-------------------------------------------------------------------------------
