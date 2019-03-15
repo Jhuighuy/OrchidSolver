@@ -1,6 +1,6 @@
 !> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver.
 !> Copyright (C) Butakov Oleg 2019.
-
+#if 0
 Module orchid_solver_hydro_flux_roe
 Use orchid_solver_params
 Use orchid_solver_hydro_flux_godunov
@@ -350,5 +350,5 @@ End Subroutine mhd_hydro_calc_flux_roe3D_mhd
 !########################################################################################################
 !########################################################################################################
 End Module orchid_solver_hydro_flux_roe
-
+#endif
 
