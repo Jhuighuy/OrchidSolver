@@ -45,11 +45,11 @@ Subroutine mhd_hydro_init(This, &
         flux_type(:) = flux_type_opt(:)
     End If
     !If ( flux_type == 'llf' ) Then
-        Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
-        Allocate(MhdHydroFluxLLF :: This%m_flux)
+    !    Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
+    !    Allocate(MhdHydroFluxLLF :: This%m_flux)
     !Else If ( flux_type == 'hll' ) Then
-    !    Write (*,*) 'Hydro solver: the HLL Flux was selected.'
-    !    Allocate(MhdHydroFluxHLL :: This%m_flux)
+        Write (*,*) 'Hydro solver: the HLL Flux was selected.'
+        Allocate(MhdHydroFluxHLL :: This%m_flux)
     !Else If ( flux_type == 'hllc' ) Then
     !    Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
     !    Allocate(MhdHydroFluxHLLC :: This%m_flux)
