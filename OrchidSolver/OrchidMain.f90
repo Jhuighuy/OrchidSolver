@@ -3,10 +3,10 @@
 Module orchid_solver_params
     Implicit None
     
-    Integer, Parameter :: dim = 3
+    Integer, Parameter :: dim = 1
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .FALSE.
+    Logical, Parameter :: mhd = .TRUE.
 
     Real(8), Parameter :: Mu_hydro = 0*0.000005D0
     Real(8), Parameter :: Mu_magneto = 0.0D0

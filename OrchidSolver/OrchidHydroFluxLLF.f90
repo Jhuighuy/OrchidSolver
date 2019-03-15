@@ -38,6 +38,7 @@ Type :: MhdHydroVars3DMHD
     Real(8) :: ent, p, p_tot
     Real(8) :: Vx, Vy, Vz, Vn, V2
     Real(8) :: Bx, By, Bz, Bn, B2
+    Real(8) :: BV
     Real(8) :: c_snd, c2snd
     Real(8) :: c_alf, c2alf
     Real(8) :: c_sms, c2sms
@@ -254,37 +255,38 @@ Function mhd_hydro_vars_load_cons3D_mhd(q_cons, nx, ny, nz) Result(q)
     q%Vz  = q_cons(5)/q%rho
     q%Vn  = q%Vx*nx + q%Vy*ny + q%Vz*nz
     q%V2  = q%Vx**2 + q%Vy**2 + q%Vz**2
-    q%Bx  = q_cons(6)
-    q%By  = q_cons(7)
-    q%Bz  = q_cons(8)
+    q%Bx  = q_cons(6)*0.5D0/Sqrt(Pi)
+    q%By  = q_cons(7)*0.5D0/Sqrt(Pi)
+    q%Bz  = q_cons(8)*0.5D0/Sqrt(Pi)
     q%Bn  = q%Bx*nx + q%By*ny + q%Bz*nz
     q%B2  = q%Bx**2 + q%By**2 + q%Bz**2
-    q%kin = 0.5D0*( q%V2 + 0.25D0/Pi*q%B2/q%rho )
+    q%BV  = q%Bx*q%Vx + q%By*q%Vy + q%Bz*q%Vz
+    q%kin = 0.5D0*( q%V2 + q%B2/q%rho )
     q%eps = q%nrg - q%kin
     q%p   = Gamma1*q%rho*q%eps
-    q%p_tot = q%p + 0.125D0/Pi*q%B2
+    q%p_tot = q%p + 0.5D0*q%B2
     q%ent = q%nrg + q%p_tot/q%rho
     !> Sound speeds.
     q%c2snd = Gamma*q%p/q%rho
-    q%c2alf = 0.25D0/Pi*q%B2/q%rho
+    q%c2alf = q%B2/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     q%c_alf = Sqrt(Max(q%c2snd, c2min))
     q%c2sms = 0.5D0*( q%c2snd + q%c2alf - &
-                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - q%c2snd*q%Bn**2/q%rho/Pi, c2min**2)) )
+                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%Bn**2/q%rho, c2min**2)) )
     q%c2fms = 0.5D0*( q%c2snd + q%c2alf + &
-                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - q%c2snd*q%Bn**2/q%rho/Pi, c2min**2)) )
+                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%Bn**2/q%rho, c2min**2)) )
     q%c_sms = Sqrt(Max(q%c2sms, c2min))
     q%c_fms = Sqrt(Max(q%c2fms, c2min))
     !> Conservative variables and Fluxes.
     q%U(:) = q_cons(:)
     q%F(:) = [ q%rho*q%Vn, &
-               q%rho*q%Vn*q%ent - 0.25D0/Pi*q%Bn*( q%Bx*q%Vx + q%By*q%Vy + q%Bz*q%Vz ), &
-               q%rho*q%Vn*q%Vx - 0.25D0/Pi*q%Bx*q%Bn + q%p_tot*nx, &
-               q%rho*q%Vn*q%Vy - 0.25D0/Pi*q%By*q%Bn + q%p_tot*ny, &
-               q%rho*q%Vn*q%Vz - 0.25D0/Pi*q%Bz*q%Bn + q%p_tot*nz, &
-               q%Bx*q%Vn - q%Bn*q%Vx, &
-               q%By*q%Vn - q%Bn*q%Vy, &
-               q%Bz*q%Vn - q%Bn*q%Vz ]
+               q%rho*q%Vn*q%ent - q%Bn*q%BV, &
+               q%rho*q%Vn*q%Vx - q%Bx*q%Bn + q%p_tot*nx, &
+               q%rho*q%Vn*q%Vy - q%By*q%Bn + q%p_tot*ny, &
+               q%rho*q%Vn*q%Vz - q%Bz*q%Bn + q%p_tot*nz, &
+               [ q%Bx*q%Vn - q%Bn*q%Vx, &
+                 q%By*q%Vn - q%Bn*q%Vy, &
+                 q%Bz*q%Vn - q%Bn*q%Vz ]*2.0D0*Sqrt(Pi) ]
 End Function mhd_hydro_vars_load_cons3D_mhd
 Pure &
 Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
@@ -307,20 +309,21 @@ Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
     q%Bz  = q_prim(8)
     q%Bn  = q%Bx*nx + q%By*ny + q%Bz*nz
     q%B2  = q%Bx**2 + q%By**2 + q%Bz**2
-    q%kin = 0.5D0*( q%V2 + 0.25D0/Pi*q%B2/q%rho )
+    q%BV  = q%Bx*q%Vx + q%By*q%Vy + q%Bz*q%Vz
+    q%kin = 0.5D0*( q%V2 + q%B2/q%rho )
     q%eps = q%p/q%rho/Gamma1
     q%nrg = q%eps + q%kin
-    q%p_tot = q%p + 0.125D0/Pi*q%B2
+    q%p_tot = q%p + 0.5D0*q%B2
     q%ent = q%nrg + q%p_tot/q%rho
     !> Sound speeds.
     q%c2snd = Gamma*q%p/q%rho
-    q%c2alf = 0.25D0/Pi*q%B2/q%rho
+    q%c2alf = q%B2/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     q%c_alf = Sqrt(Max(q%c2snd, c2min))
     q%c2sms = 0.5D0*( q%c2snd + q%c2alf - &
-                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - q%c2snd*q%Bn**2/q%rho/Pi, c2min**2)) )
+                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%Bn**2/q%rho, c2min**2)) )
     q%c2fms = 0.5D0*( q%c2snd + q%c2alf + &
-                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - q%c2snd*q%Bn**2/q%rho/Pi, c2min**2)) )
+                      Sqrt(Max(( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%Bn**2/q%rho, c2min**2)) )
     q%c_sms = Sqrt(Max(q%c2sms, c2min))
     q%c_fms = Sqrt(Max(q%c2fms, c2min))
     !> Conservative variables and Fluxes.
@@ -329,13 +332,13 @@ Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
                q%rho*q%Vx, q%rho*q%Vy, q%rho*q%Vz, & 
                q%Bx, q%By, q%Bz ]
     q%F(:) = [ q%rho*q%Vn, &
-               q%rho*q%Vn*q%ent - 0.25D0/Pi*q%Bn*( q%Bx*q%Vx + q%By*q%Vy + q%Bz*q%Vz ), &
-               q%rho*q%Vn*q%Vx - 0.25D0/Pi*q%Bx*q%Bn + q%p_tot*nx, &
-               q%rho*q%Vn*q%Vy - 0.25D0/Pi*q%By*q%Bn + q%p_tot*ny, &
-               q%rho*q%Vn*q%Vz - 0.25D0/Pi*q%Bz*q%Bn + q%p_tot*nz, &
-               q%Bx*q%Vn - q%Bn*q%Vx, &
-               q%By*q%Vn - q%Bn*q%Vy, &
-               q%Bz*q%Vn - q%Bn*q%Vz ]
+               q%rho*q%Vn*q%ent - q%Bn*q%BV, &
+               q%rho*q%Vn*q%Vx - q%Bx*q%Bn + q%p_tot*nx, &
+               q%rho*q%Vn*q%Vy - q%By*q%Bn + q%p_tot*ny, &
+               q%rho*q%Vn*q%Vz - q%Bz*q%Bn + q%p_tot*nz, &
+               [ q%Bx*q%Vn - q%Bn*q%Vx, &
+                 q%By*q%Vn - q%Bn*q%Vy, &
+                 q%Bz*q%Vn - q%Bn*q%Vz ]*2.0D0*Sqrt(Pi) ]
 End Function mhd_hydro_vars_load_prim3D_mhd
 !########################################################################################################
 !########################################################################################################
