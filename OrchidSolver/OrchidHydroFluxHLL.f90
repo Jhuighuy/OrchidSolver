@@ -130,6 +130,7 @@ Use orchid_solver_hydro_flux_godunov
 Implicit None
 Real(8), Parameter :: g2min = 1D-10
 Integer, Parameter :: hllc_variation = 0
+Integer, Parameter :: hllc_variation_mhd = 0
 Type, Extends(MhdHydroFlux) :: MhdHydroFluxHLLC
     Contains
     Procedure, Public, Non_Overridable :: calc1D => mhd_hydro_calc_flux_hllc1D
@@ -191,14 +192,16 @@ Subroutine mhd_hydro_calc_flux_hllc1D(This, &
         Case ( 0 )
             !> Original HLLC.
             If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
-                qs%U = qp%Rho*( sp - qp%Vn )/( sp - ss )*[ 1.0D0, &
-                    qp%nrg + ( ss - qp%Vn )*( ss + qp%p/qp%Rho/( sp - ss ) ), &
-                    qp%Vx - nx*( qp%Vn - ss ) ]
+                qs%U = qp%Rho*( sp - qp%Vn )/( sp - ss )* &
+                    [ 1.0D0, &
+                      qp%nrg + ( ss - qp%Vn )*( ss + qp%p/qp%Rho/( sp - ss ) ), &
+                      qp%Vx - nx*( qp%Vn - ss ) ]
                 flux = qp%F + sp*( qs%U - qp%U )
             Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
-                qs%U = qm%Rho*( sm - qm%Vn )/( sm - ss )*[ 1.0D0, &
-                    qm%nrg + ( ss - qm%Vn )*( ss + qm%p/qm%Rho/( sm - ss ) ), &
-                    qm%Vx - nx*( qm%Vn - ss ) ]
+                qs%U = qm%Rho*( sm - qm%Vn )/( sm - ss )* &
+                    [ 1.0D0, &
+                      qm%nrg + ( ss - qm%Vn )*( ss + qm%p/qm%Rho/( sm - ss ) ), &
+                      qm%Vx - nx*( qm%Vn - ss ) ]
                 flux = qm%F + sm*( qs%U - qm%U )
             End If
         Case ( 1 )
@@ -275,16 +278,18 @@ Subroutine mhd_hydro_calc_flux_hllc2D(This, &
         Case ( 0 )
             !> Original HLLC.
             If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
-                qs%U = qp%Rho*( sp - qp%Vn )/( sp - ss )*[ 1.0D0, &
-                    qp%nrg + ( ss - qp%Vn )*( ss + qp%p/qp%Rho/( sp - ss ) ), &
-                    qp%Vx - nx*( qp%Vn - ss ), &
-                    qp%Vy - ny*( qp%Vn - ss ) ]
+                qs%U = qp%Rho*( sp - qp%Vn )/( sp - ss )* &
+                    [ 1.0D0, &
+                      qp%nrg + ( ss - qp%Vn )*( ss + qp%p/qp%Rho/( sp - ss ) ), &
+                      qp%Vx - nx*( qp%Vn - ss ), &
+                      qp%Vy - ny*( qp%Vn - ss ) ]
                 flux = qp%F + sp*( qs%U - qp%U )
             Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
-                qs%U = qm%Rho*( sm - qm%Vn )/( sm - ss )*[ 1.0D0, &
-                    qm%nrg + ( ss - qm%Vn )*( ss + qm%p/qm%Rho/( sm - ss ) ), &
-                    qm%Vx - nx*( qm%Vn - ss ), &
-                    qm%Vy - ny*( qm%Vn - ss ) ]
+                qs%U = qm%Rho*( sm - qm%Vn )/( sm - ss )* &
+                    [ 1.0D0, &
+                      qm%nrg + ( ss - qm%Vn )*( ss + qm%p/qm%Rho/( sm - ss ) ), &
+                      qm%Vx - nx*( qm%Vn - ss ), &
+                      qm%Vy - ny*( qm%Vn - ss ) ]
                 flux = qm%F + sm*( qs%U - qm%U )
             End If
         Case ( 1 )
@@ -361,18 +366,20 @@ Subroutine mhd_hydro_calc_flux_hllc3D(This, &
         Case ( 0 )
             !> Original HLLC.
             If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
-                qs%U = qp%Rho*( sp - qp%Vn )/( sp - ss )*[ 1.0D0, &
-                    qp%nrg + ( ss - qp%Vn )*( ss + qp%p/qp%Rho/( sp - ss ) ), &
-                    qp%Vx - nx*( qp%Vn - ss ), &
-                    qp%Vy - ny*( qp%Vn - ss ), &
-                    qp%Vz - nz*( qp%Vn - ss ) ]
+                qs%U = qp%Rho*( sp - qp%Vn )/( sp - ss )* &
+                    [ 1.0D0, &
+                      qp%nrg + ( ss - qp%Vn )*( ss + qp%p/qp%Rho/( sp - ss ) ), &
+                      qp%Vx - nx*( qp%Vn - ss ), &
+                      qp%Vy - ny*( qp%Vn - ss ), &
+                      qp%Vz - nz*( qp%Vn - ss ) ]
                 flux = qp%F + sp*( qs%U - qp%U )
             Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
-                qs%U = qm%Rho*( sm - qm%Vn )/( sm - ss )*[ 1.0D0, &
-                    qm%nrg + ( ss - qm%Vn )*( ss + qm%p/qm%Rho/( sm - ss ) ), &
-                    qm%Vx - nx*( qm%Vn - ss ), &
-                    qm%Vy - ny*( qm%Vn - ss ), &
-                    qm%Vz - nz*( qm%Vn - ss ) ]
+                qs%U = qm%Rho*( sm - qm%Vn )/( sm - ss )* &
+                    [ 1.0D0, &
+                      qm%nrg + ( ss - qm%Vn )*( ss + qm%p/qm%Rho/( sm - ss ) ), &
+                      qm%Vx - nx*( qm%Vn - ss ), &
+                      qm%Vy - ny*( qm%Vn - ss ), &
+                      qm%Vz - nz*( qm%Vn - ss ) ]
                 flux = qm%F + sm*( qs%U - qm%U )
             End If
         Case ( 1 )
@@ -441,33 +448,40 @@ Subroutine mhd_hydro_calc_flux_hllc3D_mhd(This, &
     Else If ( sm >= 0.0D0 ) Then
         flux = qm%F
     Else
-        !> Shengtai Li's Variation of HLLC.
-        qs%U = ( ( sp*qp%U - qp%F ) - ( sm*qm%U - qm%F ) )/( sp - sm )
-        qs = mhd_hydro_vars_load_cons3D_mhd(qs%U, nx, ny, nz)
-        ss = ( ( qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p_tot + qp%Bn**2 ) - &
-               ( qm%Rho*qm%Vn*( sm - qm%Vn ) - qm%p_tot + qm%Bn**2 ) )/ &
+        ss = ( ( qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p_tot ) - &
+               ( qm%Rho*qm%Vn*( sm - qm%Vn ) - qm%p_tot ) )/ &
              ( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
-        If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
-            ps = qp%p + qp%Rho*( sp - qp%Vn )*( ss - qp%Vn ) + ( qs%Bn**2 - qp%Bn**2 )
-            qs%U = [ 1.0D0/( sp - ss )*[ &
-                qp%Rho*( sp - qp%Vn ), &
-                qp%Rho*( sp - qp%Vn )*qp%nrg + ( ps*ss - qp%p*qp%Vn ) - ( qs%Bn*qs%BV - qp%Bn*qp%BV ), &
-                qp%Rho*( sp - qp%Vn )*( qp%Vx - nx*( qp%Vn - ss ) ) - ( qs%Bn*qs%Bx - qp%Bn*qp%Bx ), &
-                qp%Rho*( sp - qp%Vn )*( qp%Vy - ny*( qp%Vn - ss ) ) - ( qs%Bn*qs%By - qp%Bn*qp%By ), &
-                qp%Rho*( sp - qp%Vn )*( qp%Vz - ny*( qp%Vn - ss ) ) - ( qs%Bn*qs%Bz - qp%Bn*qp%Bz ) ], &
-                [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
-            flux = qp%F + sp*( qs%U - qp%U )
-        Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
-            ps = qm%p + qm%Rho*( sp - qm%Vn )*( ss - qm%Vn ) + ( qs%Bn**2 - qm%Bn**2 )
-            qs%U = [ 1.0D0/( sm - ss )*[ &
-                qm%Rho*( sm - qm%Vn ), &
-                qm%Rho*( sm - qm%Vn )*qm%nrg + ( ps*ss - qm%p*qm%Vn ) - ( qs%Bn*qs%BV - qm%Bn*qm%BV ), &
-                qm%Rho*( sm - qm%Vn )*( qm%Vx - nx*( qm%Vn - ss ) ) - ( qs%Bn*qs%Bx - qm%Bn*qm%Bx ), &
-                qm%Rho*( sm - qm%Vn )*( qm%Vy - ny*( qm%Vn - ss ) ) - ( qs%Bn*qs%By - qm%Bn*qm%By ), &
-                qm%Rho*( sm - qm%Vn )*( qm%Vz - ny*( qm%Vn - ss ) ) - ( qs%Bn*qs%Bz - qm%Bn*qm%Bz ) ], &
-                [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
-            flux = qm%F + sm*( qs%U - qm%U )
-        End If        
+        Select Case ( hllc_variation_mhd )
+        Case ( 0 )
+            !> Shengtai Li's Variation of MHD HLLC (2003).
+            qs%U = ( ( sp*qp%U - qp%F ) - ( sm*qm%U - qm%F ) )/( sp - sm )
+            qs = mhd_hydro_vars_load_cons3D_mhd(qs%U, nx, ny, nz)
+            If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
+                !> Select Fp*.
+                ps = qp%p_tot + qp%Rho*( sp - qp%Vn )*( ss - qp%Vn ) + ( qs%Bn**2 - qp%Bn**2 )
+                qs%U = &
+                    [ 1.0D0/( sp - ss )* &
+                        [ qp%Rho*( sp - qp%Vn ), &
+                          qp%Rho*( sp - qp%Vn )*qp%nrg + ( ps*ss - qp%p_tot*qp%Vn ) - ( qs%Bn*qs%BV - qp%Bn*qp%BV ), &
+                          qp%Rho*( sp - qp%Vn )*( qp%Vx - nx*( qp%Vn - ss ) ) - ( qs%Bn*qs%Bx - qp%Bn*qp%Bx ), &
+                          qp%Rho*( sp - qp%Vn )*( qp%Vy - ny*( qp%Vn - ss ) ) - ( qs%Bn*qs%By - qp%Bn*qp%By ), &
+                          qp%Rho*( sp - qp%Vn )*( qp%Vz - ny*( qp%Vn - ss ) ) - ( qs%Bn*qs%Bz - qp%Bn*qp%Bz ) ], &
+                        [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
+                flux = qp%F + sp*( qs%U - qp%U )
+            Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
+                !> Select Fm*.
+                ps = qm%p_tot + qm%Rho*( sp - qm%Vn )*( ss - qm%Vn ) + ( qs%Bn**2 - qm%Bn**2 )
+                qs%U = &
+                    [ 1.0D0/( sm - ss )* &
+                        [ qm%Rho*( sm - qm%Vn ), &
+                          qm%Rho*( sm - qm%Vn )*qm%nrg + ( ps*ss - qm%p_tot*qm%Vn ) - ( qs%Bn*qs%BV - qm%Bn*qm%BV ), &
+                          qm%Rho*( sm - qm%Vn )*( qm%Vx - nx*( qm%Vn - ss ) ) - ( qs%Bn*qs%Bx - qm%Bn*qm%Bx ), &
+                          qm%Rho*( sm - qm%Vn )*( qm%Vy - ny*( qm%Vn - ss ) ) - ( qs%Bn*qs%By - qm%Bn*qm%By ), &
+                          qm%Rho*( sm - qm%Vn )*( qm%Vz - ny*( qm%Vn - ss ) ) - ( qs%Bn*qs%Bz - qm%Bn*qm%Bz ) ], &
+                        [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
+                flux = qm%F + sm*( qs%U - qm%U )
+            End If
+        End Select
     End If
 End Subroutine mhd_hydro_calc_flux_hllc3D_mhd
 !########################################################################################################
@@ -476,7 +490,6 @@ End Subroutine mhd_hydro_calc_flux_hllc3D_mhd
 End Module orchid_solver_hydro_flux_hllc
 
 
-#if 0
 Module orchid_solver_hydro_flux_hlld
 Use orchid_solver_params
 Use orchid_solver_hydro_flux_hllc
@@ -493,22 +506,129 @@ Contains
 Pure &
 Subroutine mhd_hydro_calc_flux_hlld3D_mhd(This, &
                                           nx, ny, nz, &
-                                          rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p, &
-                                          rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m, &
-                                          flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz)
+                                          qp, qm, flux)
     !> Calculate the HLLD Fluxes in 3D for the MHD Equations.
     !> {{{
     Class(MhdHydroFluxHLLD), Intent(In) :: This
+    Type(MhdHydroVars3DMHD), Intent(In) :: qp, qm
+    Real(8), Dimension(1:8), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
-    Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p
-    Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
-    Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
-    Error Stop 'Not implemented'
+    Type(MhdHydroVars3DMHD) :: qs, qps, qms
+    Real(8) :: gp, hp, sp, ssp, rp, &
+               gm, hm, sm, ssm, rm, ps, ss, rs
+    !> Calculate Pressure-based Wave speeds.
+    qs%Rho = 0.5D0*( qp%Rho + qm%Rho )
+    qs%c_fms = 0.5D0*( qp%c_fms + qm%c_fms )
+    qs%p = Max(0.5D0*( qp%p + qm%p ) - 0.5D0*qs%Rho*qs%c_fms*( qp%Vn - qm%Vn ), 0.0D0)
+    If ( qs%p > qp%p ) Then
+        gp = 1.0D0 + ( Gamma + 1.0D0 )/( 2.0D0*Gamma )*( qs%p/qp%p - 1.0D0 )
+        gp = Sqrt(Max(gp, c2min))
+    Else
+        gp = 1.0D0
+    End If
+    If ( qs%p > qm%p ) Then
+        gm = 1.0D0 + ( Gamma + 1.0D0 )/( 2.0D0*Gamma )*( qs%p/qm%p - 1.0D0 )
+        gm = Sqrt(Max(gm, c2min))
+    Else
+        gm = 1.0D0
+    End If
+    sp = qp%Vn + qp%c_fms*gp
+    sm = qm%Vn - qm%c_fms*gm
+    !> Calculate Fluxes.
+    If ( sp <= 0.0D0 ) Then
+        flux = qp%F
+    Else If ( sm >= 0.0D0 ) Then
+        flux = qm%F
+    Else
+        !> @todo This Solver workes only in 1D.
+        ss = ( ( qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p_tot ) - &
+               ( qm%Rho*qm%Vn*( sm - qm%Vn ) - qm%p_tot ) )/ &
+             ( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
+        ps = ( qp%Rho*qm%p_tot*( sp - qp%Vn ) - &
+               qm%Rho*qp%p_tot*( sm - qm%Vn ) + qp%Rho*qm%Rho*( sp - qp%Vn )*( sm - qm%Vn )*( qp%Vn - qm%Vn ) )/&
+             ( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
+        !> Calculate Fp*.
+        qps%Rho = qp%Rho*( sp - qp%Vn )/( sp - ss )
+        gp = ( ss - qp%Vn )/( qp%Rho*( sp - qp%Vn )*( sp - ss ) - qp%Bn**2 )
+        qps%Vx  = ss    !> @todo Fix me!
+        qps%Vy  = qp%Vy - qp%By*qp%Bn*gp
+        qps%Vz  = qp%Vz - qp%Bz*qp%Bn*gp
+        gp = ( qp%Rho*( sp - qp%Vn )**2 - qp%Bn**2 )/( qp%Rho*( sp - qp%Vn )*( sp - ss ) - qp%Bn**2 )
+        qps%Bx  = qp%Bx
+        qps%By  = qp%By*gp
+        qps%Bz  = qp%Bz*gp
+        qps%BV  = qps%Bx*qps%Vx + qps%By*qps%Vy + qps%Bz*qps%Vz
+        qps%nrg = ( qp%Rho*qp%nrg*( sp - qp%Vn ) + ( ps*ss - qp%p_tot*qp%Vn ) - qp%Bn*( qps%BV - qp%BV ) )/( sp - ss )
+        qps%U = [ qps%Rho, qps%nrg, &
+                  qps%Rho*qps%Vx, qps%Rho*qps%Vy, qps%Rho*qps%Vz, & 
+                  [ qps%Bx, qps%By, qps%Bz ]*2.0D0*Sqrt(Pi) ]
+        !> Calculate Fm*.
+        qms%Rho = qm%Rho*( sm - qm%Vn )/( sm - ss )
+        gm = ( ss - qm%Vn )/( qm%Rho*( sm - qm%Vn )*( sm - ss ) - qm%Bn**2 )
+        qms%Vx  = ss    !> @todo Fix me!
+        qms%Vy  = qm%Vy - qm%By*qm%Bn*gm
+        qms%Vz  = qm%Vz - qm%Bz*qm%Bn*gm
+        gm = ( qm%Rho*( sm - qm%Vn )**2 - qm%Bn**2 )/( qm%Rho*( sm - qm%Vn )*( sm - ss ) - qm%Bn**2 )
+        qms%Bx  = qm%Bx
+        qms%By  = qm%By*gm
+        qms%Bz  = qm%Bz*gm
+        qms%BV  = qms%Bx*qms%Vx + qms%By*qms%Vy + qms%Bz*qms%Vz
+        qms%nrg = ( qm%Rho*qm%nrg*( sm - qm%Vn ) + ( ps*ss - qm%p_tot*qm%Vn ) - qm%Bn*( qms%BV - qm%BV ) )/( sm - ss )
+        qms%U = [ qms%Rho, qms%nrg, &
+                  qms%Rho*qms%Vx, qms%Rho*qms%Vy, qms%Rho*qms%Vz, & 
+                  [ qms%Bx, qms%By, qms%Bz ]*2.0D0*Sqrt(Pi) ]
+        If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
+            ssp = ss + Abs(qp%Bn)/Sqrt(qps%Rho)
+            If ( ssp <= 0.0D0 .AND. 0.0D0 <= sp ) Then
+                !> Select Fp*.
+                flux = qp%F + sp*( qps%U - qp%U )
+            Else If ( ss <= 0.0D0 .AND. 0.0D0 <= ssp ) Then
+                !> Select Fp**.
+                rp = Sqrt(qps%Rho)
+                rm = Sqrt(qms%Rho)
+                qs%Rho = qps%Rho
+                qs%Vx  = ss    !> @todo Fix me!
+                qs%Vy  = ( rp*qps%Vy + rm*qms%Vy + Sign(1.0D0, qp%Bn)*( qps%By - qms%By ) )/( rp + rm )
+                qs%Vz  = ( rp*qps%Vz + rm*qms%Vz + Sign(1.0D0, qp%Bn)*( qps%Bz - qms%Bz ) )/( rp + rm )
+                qs%Bx  = qp%Bx
+                qs%By  = ( rp*qps%By + rm*qms%By + Sign(1.0D0, qp%Bn)*( qps%Vy - qms%Vy )*rp*rm )/( rp + rm )
+                qs%Bz  = ( rp*qps%Bz + rm*qms%Bz + Sign(1.0D0, qp%Bn)*( qps%Vz - qms%Vz )*rp*rm )/( rp + rm )
+                qs%BV  = qs%Bx*qs%Vx + qs%By*qs%Vy + qs%Bz*qs%Vz
+                qs%nrg = qps%nrg + rp*Sign(1.0D0, qp%Bn)*( qps%BV - qs%BV )
+                qs%U = [ qs%Rho, qs%nrg, &
+                          qs%Rho*qs%Vx, qs%Rho*qs%Vy, qs%Rho*qs%Vz, & 
+                        [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
+                flux = qp%F + ssp*qs%U - ( ssp - sp )*qps%U - sp*qp%U
+            End If
+        Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
+            ssm = ss - Abs(qm%Bn)/Sqrt(qms%Rho)
+            If ( sm <= 0.0D0 .AND. 0.0D0 <= ssm ) Then
+                !> Select Fm*.
+                flux = qm%F + sm*( qms%U - qm%U )
+            Else If ( ssm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
+                !> Select Fm**.
+                rp = Sqrt(qps%Rho)
+                rm = Sqrt(qms%Rho)
+                qs%Rho = qms%Rho
+                qs%Vx  = ss    !> @todo Fix me!
+                qs%Vy  = ( rp*qps%Vy + rm*qms%Vy + Sign(1.0D0, qp%Bn)*( qps%By - qms%By ) )/( rp + rm )
+                qs%Vz  = ( rp*qps%Vz + rm*qms%Vz + Sign(1.0D0, qp%Bn)*( qps%Bz - qms%Bz ) )/( rp + rm )
+                qs%Bx  = qm%Bx
+                qs%By  = ( rp*qps%By + rm*qms%By + Sign(1.0D0, qp%Bn)*( qps%Vy - qms%Vy )*rp*rm )/( rp + rm )
+                qs%Bz  = ( rp*qps%Bz + rm*qms%Bz + Sign(1.0D0, qp%Bn)*( qps%Vz - qms%Vz )*rp*rm )/( rp + rm )
+                qs%BV  = qs%Bx*qs%Vx + qs%By*qs%Vy + qs%Bz*qs%Vz
+                qs%nrg = qms%nrg - rm*Sign(1.0D0, qp%Bn)*( qms%BV - qs%BV )
+                qs%U = [ qs%Rho, qs%nrg, &
+                          qs%Rho*qs%Vx, qs%Rho*qs%Vy, qs%Rho*qs%Vz, & 
+                        [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
+                flux = qm%F + ssm*qs%U - ( ssm - sm )*qms%U - sm*qm%U
+            End If
+        End If
+    End If
 End Subroutine mhd_hydro_calc_flux_hlld3D_mhd
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
 End Module orchid_solver_hydro_flux_hlld
-#endif
 
