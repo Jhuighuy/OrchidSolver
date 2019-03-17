@@ -17,6 +17,9 @@ Module orchid_solver_params
     Integer, Parameter :: N_funcs = 2
     Integer, Parameter :: m_min = 0, m_max = N_funcs - 1
     Integer, Parameter :: n_min = 1, n_max = 8
+    
+    Real(8), Parameter :: Gamma_1 = ( Gamma - 1.0D0 )/( 2.0D0*Gamma )
+    Real(8), Parameter :: Gamma_2 = ( Gamma + 1.0D0 )/( 2.0D0*Gamma )
     Contains
 Elemental &
 Function minmod1(a) Result(m)

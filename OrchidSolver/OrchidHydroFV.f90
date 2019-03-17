@@ -37,7 +37,7 @@ Subroutine mhd_hydro_init(This, &
         !> HLL Flux family are good enough for being default.
         If ( mhd ) Then
             !> @todo Here should be HLLD.
-            flux_type = 'hlld'
+            flux_type = 'hllc'
         Else
             flux_type = 'hllc'
         End If
