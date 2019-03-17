@@ -333,8 +333,8 @@ End Subroutine mhd_hydro_calc_flux_hllc2D
 !########################################################################################################
 Pure &
 Subroutine mhd_hydro_calc_flux_hllc3D(This, &
-                                     nx, ny, nz, &
-                                     qp, qm, flux)
+                                      nx, ny, nz, &
+                                      qp, qm, flux)
     !> Calculate the HLLC Fluxes in 3D.
     !> {{{
     Class(MhdHydroFluxHLLC), Intent(In) :: This
@@ -574,7 +574,9 @@ Subroutine mhd_hydro_calc_flux_hlld3D_mhd(This, &
     Else If ( sm >= 0.0D0 ) Then
         flux = qm%F
     Else
-        !> @todo This Solver works only in 1D currently.
+        !> @todo 
+        !> This Solver works only in 1D currently.
+        !> We may use a dirty hack: go to the TBN space, like in Roe.      
         ss = qm%Rho*qm%Vn*( sm - qm%Vn ) - qm%p_tot
         ss = qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p_tot - ss
         ss = ss/( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
