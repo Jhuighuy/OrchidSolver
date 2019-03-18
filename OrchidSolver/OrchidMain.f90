@@ -3,7 +3,7 @@
 Module orchid_solver_params
     Implicit None
     
-    Integer, Parameter :: dim = 1
+    Integer, Parameter :: dim = 2
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
     Logical, Parameter :: mhd = .FALSE.
