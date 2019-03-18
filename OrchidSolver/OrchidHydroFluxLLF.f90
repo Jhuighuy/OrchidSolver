@@ -9,7 +9,7 @@ Type :: MhdHydroVars1D
     Real(8) :: rho
     Real(8) :: nrg, eps, kin
     Real(8) :: ent, p
-    Real(8) :: Vx, Vy, Vn, V2
+    Real(8) :: Vx, Vn, V2
     Real(8) :: c_snd, c2snd
     Real(8), Dimension(1:3) :: U
     Real(8), Dimension(1:3) :: F

@@ -31,67 +31,53 @@ Subroutine mhd_hydro_calc_flux_roe1D(This, &
     Real(8), Dimension(1:3), Intent(Out) :: flux
     Real(8), Intent(In) :: nx
     !> }}}
-#if 0
-    Real(8) :: e_p, p_p, ent_p, a_p, c_p, c2_p, &
-               e_m, p_m, ent_m, a_m, c_m, c2_m, &
-               e_s, h_s, ent_s, a_s, c_s, c2_s, rho_s, u_s
-    Real(8), Dimension(1:3) :: q_p, f_p, &
-                               q_m, f_m, &
-                               q_s, f_s
-    !>-------------------------------------------------------------------------------
-    !> Calculate +Values.
-    e_p  = 0.5D0*( u_p**2 )
-    p_p  = Gamma1*rho_p*( nrg_p - e_p )
-    ent_p = nrg_p + p_p/rho_p
-    c2_p = Gamma*p_p/rho_p
-    c_p  = Sqrt(Max(c2_p, 1D-10))
-    a_p  = u_p*nx
-    q_p  = [ rho_p, rho_p*u_p, rho_p*nrg_p ]
-    f_p  = [ rho_p*a_p, rho_p*u_p*a_p + p_p*nx, rho_p*a_p*ent_p ]
-    !> Calculate -Values.
-    e_m  = 0.5D0*( u_m**2 )
-    p_m  = Gamma1*rho_m*( nrg_m - e_m )
-    ent_m = nrg_m + p_m/rho_m
-    c2_m = Gamma*p_m/rho_m
-    c_m  = Sqrt(Max(c2_m, 1D-10))
-    a_m  = u_m*nx
-    q_m  = [ rho_m, rho_m*u_m, rho_m*nrg_m ]
-    f_m  = [ rho_m*a_m, rho_m*u_m*a_m + p_m*nx, rho_m*a_m*ent_m ]
-    !> Calculate *Values.
-    rho_s = Sqrt(rho_p*rho_m)
-    ent_s = ( Sqrt(rho_p)*ent_p + Sqrt(rho_m)*ent_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    u_s  = ( Sqrt(rho_p)*u_p + Sqrt(rho_m)*u_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    a_s  = u_s*nx
-    e_s  = 0.5D0*( u_s**2 )
-    h_s  = ent_s + e_s
-    c2_s = ( Sqrt(rho_p)*c2_p + Sqrt(rho_m)*c2_m )/( Sqrt(rho_p) + Sqrt(rho_m) ) &
-            + 0.5D0*Gamma1*rho_s/(rho_p + 2.0D0*rho_s + rho_m)*( u_p**2 )
-    c_s  = Sqrt(Max(c2_s, 1D-10))
-    !>-------------------------------------------------------------------------------
-
-    !>-------------------------------------------------------------------------------
+    Type(MhdHydroVars1D) :: qs
+    Real(8), Dimension(1:3, 1:3) :: OmegaL, OmegaR
+    Real(8), Dimension(1:3) :: Lambda
+    Real(8) :: rp, rm
+    !> Calculate Average Values.
+    rp = Sqrt(qp%Rho)
+    rm = sqrt(qm%Rho)
+    qs%Rho = 0.5D0*( qp%Rho + qm%Rho )    
+    qs%Vx  = ( rp*qp%Vx + rm*qp%Vx )/( rp + rm )
+    qs%Vn  = qs%Vx*nx
+    qs%V2  = qs%Vx**2
+    qs%kin = 0.5D0*qs%V2
+    qs%ent = ( rp*qp%ent + rm*qm%ent )/( rp + rm )
+    qs%c2snd = Gamma_7*qs%Rho/( qp%Rho + 2.0D0*qs%Rho + qm%Rho )
+    qs%c2snd = ( ( qp%Vx - qm%Vx )**2 )*qs%c2snd
+    qs%c2snd = ( rp*qp%c2snd + rm*qm%c2snd )/( rp + rm ) + qs%c2snd
+    qs%c_snd = Sqrt(Max(qs%c2snd, c2min))
+    !> Calculate Eigenvalues.
+    Lambda = [ Min(Abs(qs%Vn - qs%c_snd), Abs(qm%Vn - qm%c_snd)), Abs(qs%Vn), &
+               Max(Abs(qs%Vn + qs%c_snd), Abs(qp%Vn + qp%c_snd)) ]
+    !> Calculate the Right Eigenvectors.
+    OmegaR(:,1) = [ 1.0D0, &
+                    qs%Vx - qs%c_snd*nx, &
+                    qs%ent - qs%c_snd*qs%Vn ]
+    OmegaR(:,2) = [ 1.0D0, &
+                    qs%Vx, &
+                    qs%kin ]
+    OmegaR(:,3) = [ 1.0D0, &
+                    qs%Vx + qs%c_snd*nx, &
+                    qs%ent + qs%c_snd*qs%Vn ]
+    !> Calculate the Left Eigenvectors.
+    OmegaL(1,:) = [ +Gamma1*qs%kin + qs%c_snd*qs%Vn, &
+                    -Gamma1*qs%Vx  - qs%c_snd*nx, &
+                    +Gamma1 ]/( 2.0D0*qs%c2snd )
+    OmegaL(2,:) = [ -Gamma1*qs%kin + qs%c2snd, &
+                    +Gamma1*qs%Vx, &
+                    -Gamma1 ]/qs%c2snd
+    OmegaL(3,:) = [ +Gamma1*qs%kin - qs%c_snd*qs%Vn, &
+                    -Gamma1*qs%Vx  + qs%c_snd*nx, &
+                    +Gamma1 ]/( 2.0D0*qs%c2snd )
     !> Calculate Fluxes.
-    q_s = 0.5D0*( q_p - q_m )
-    !> Multiply by the Left Eigenvectors.
-    q_s = [ Dot_Product([ Gamma1*e_s + c_s*a_s, &
-                         -Gamma1*u_s - c_s*nx, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-            Dot_Product([ c2_s - Gamma1*e_s, &
-                          Gamma1*u_s, -Gamma1 ], q_s)/( c2_s ), &
-            Dot_Product([ Gamma1*e_s - c_s*a_s, &
-                         -Gamma1*u_s + c_s*nx, Gamma1 ], q_s)/( 2.0D0*c2_s ) ]
-    !> Multiply by the Eigenvalues.
-    q_s = [ Min(Abs(a_s - c_s), Abs(a_m - c_m)), Abs(a_s), &
-            Max(Abs(a_s + c_s), Abs(a_p + c_p)) ] * q_s
-    !> Multiply by the Right Eigenvectors.
-    q_s = [ Dot_Product([ 1.0D0, 1.0D0, 1.0D0 ], q_s), &
-            Dot_Product([ u_s - c_s*nx,  u_s, u_s + c_s*nx ], q_s), &
-            Dot_Product([ h_s - c_s*a_s, e_s, h_s + c_s*a_s ], q_s) ]
-    f_s = 0.5D0*( f_p + f_m ) - q_s
-    flux_rho = f_s(1)
-    flux_u   = f_s(2)
-    flux_nrg = f_s(3)
-    !>-------------------------------------------------------------------------------
-#endif
+    qs%U = 0.5D0*( qp%U - qm%U )
+    qs%U = [ qs%U(1), qs%U(3), qs%U(2) ]
+    qs%U = MatMul(OmegaL, qs%U)
+    qs%U = MatMul(OmegaR, Lambda*qs%U)
+    qs%U = [ qs%U(1), qs%U(3), qs%U(2) ]
+    flux = 0.5D0*( qp%F + qm%F ) - qs%U
 End Subroutine mhd_hydro_calc_flux_roe1D
 !########################################################################################################
 !########################################################################################################
@@ -107,74 +93,64 @@ Subroutine mhd_hydro_calc_flux_roe2D(This, &
     Real(8), Dimension(1:4), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny
     !> }}}
-#if 0
-    Real(8) :: e_p, p_p, ent_p, a_p, c_p, c2_p, &
-               e_m, p_m, ent_m, a_m, c_m, c2_m, &
-               e_s, h_s, ent_s, a_s, c_s, c2_s, rho_s, u_s, v_s
-    Real(8), Dimension(1:4) :: q_p, f_p, &
-                               q_m, f_m, &
-                               q_s, f_s
-    !>-------------------------------------------------------------------------------
-    !> Calculate +Values.
-    e_p  = 0.5D0*( u_p**2 + v_p**2 )
-    p_p  = Gamma1*rho_p*( nrg_p - e_p )
-    ent_p = nrg_p + p_p/rho_p
-    c2_p = Gamma*p_p/rho_p
-    c_p  = Sqrt(Max(c2_p, 1D-10))
-    a_p  = u_p*nx + v_p*ny
-    q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*nrg_p ]
-    f_p  = [ rho_p*a_p, rho_p*u_p*a_p + p_p*nx, rho_p*v_p*a_p + p_p*ny, rho_p*a_p*ent_p ]
-    !> Calculate -Values.
-    e_m  = 0.5D0*( u_m**2 + v_m**2 )
-    p_m  = Gamma1*rho_m*( nrg_m - e_m )
-    ent_m = nrg_m + p_m/rho_m
-    c2_m = Gamma*p_m/rho_m
-    c_m  = Sqrt(Max(c2_m, 1D-10))
-    a_m  = u_m*nx + v_m*ny
-    q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*nrg_m ]
-    f_m  = [ rho_m*a_m, rho_m*u_m*a_m + p_m*nx, rho_m*v_m*a_m + p_m*ny, rho_m*a_m*ent_m ]
-    !> Calculate *Values.
-    rho_s = Sqrt(rho_p*rho_m)
-    ent_s = ( Sqrt(rho_p)*ent_p + Sqrt(rho_m)*ent_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    u_s  = ( Sqrt(rho_p)*u_p + Sqrt(rho_m)*u_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    v_s  = ( Sqrt(rho_p)*v_p + Sqrt(rho_m)*v_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    a_s  = u_s*nx + v_s*ny
-    e_s  = 0.5D0*( u_s**2 + v_s**2 )
-    h_s  = ent_s + e_s
-    c2_s = ( Sqrt(rho_p)*c2_p + Sqrt(rho_m)*c2_m )/( Sqrt(rho_p) + Sqrt(rho_m) ) &
-            + 0.5D0*Gamma1*rho_s/(rho_p + 2.0D0*rho_s + rho_m)*( (u_p - u_m)**2 + (v_p - v_m)**2 )
-    c_s  = Sqrt(Max(c2_s, 1D-10))
-    !>-------------------------------------------------------------------------------
-    
-    !>-------------------------------------------------------------------------------
+    Type(MhdHydroVars2D) :: qs
+    Real(8), Dimension(1:4, 1:4) :: OmegaL, OmegaR
+    Real(8), Dimension(1:4) :: Lambda
+    Real(8) :: rp, rm
+    !> Calculate Average Values.
+    rp = Sqrt(qp%Rho)
+    rm = sqrt(qm%Rho)
+    qs%Rho = 0.5D0*( qp%Rho + qm%Rho )    
+    qs%Vx  = ( rp*qp%Vx + rm*qp%Vx )/( rp + rm )
+    qs%Vy  = ( rp*qp%Vy + rm*qp%Vy )/( rp + rm )
+    qs%Vn  = qs%Vx*nx + qs%Vy*ny
+    qs%V2  = qs%Vx**2 + qs%Vy**2
+    qs%kin = 0.5D0*qs%V2
+    qs%ent = ( rp*qp%ent + rm*qm%ent )/( rp + rm )
+    qs%c2snd = Gamma_7*qs%Rho/( qp%Rho + 2.0D0*qs%Rho + qm%Rho )
+    qs%c2snd = ( ( qp%Vx - qm%Vx )**2 + ( qp%Vy - qm%Vy )**2 )*qs%c2snd
+    qs%c2snd = ( rp*qp%c2snd + rm*qm%c2snd )/( rp + rm ) + qs%c2snd
+    qs%c_snd = Sqrt(Max(qs%c2snd, c2min))
+    !> Calculate Eigenvalues.
+    Lambda = [ Min(Abs(qs%Vn - qs%c_snd), Abs(qm%Vn - qm%c_snd)), Abs(qs%Vn), &
+               Max(Abs(qs%Vn + qs%c_snd), Abs(qp%Vn + qp%c_snd)), Abs(qs%Vn) ]
+    !> Calculate the Right Eigenvectors.
+    OmegaR(:,1) = [ 1.0D0, &
+                    qs%Vx - qs%c_snd*nx, &
+                    qs%Vy - qs%c_snd*ny, &
+                    qs%ent - qs%c_snd*qs%Vn ]
+    OmegaR(:,2) = [ 1.0D0, &
+                    qs%Vx, &
+                    qs%Vy, &
+                    qs%kin ]
+    OmegaR(:,3) = [ 1.0D0, &
+                    qs%Vx + qs%c_snd*nx, &
+                    qs%Vy + qs%c_snd*ny, &
+                    qs%ent + qs%c_snd*qs%Vn ]
+    OmegaR(:,4) = [ 0.0D0, +ny, -nx, &
+                    qs%Vx*ny - qs%Vy*nx ]
+    !> Calculate the Left Eigenvectors.
+    OmegaL(1,:) = [ +Gamma1*qs%kin + qs%c_snd*qs%Vn, &
+                    -Gamma1*qs%Vx  - qs%c_snd*nx, &
+                    -Gamma1*qs%Vy  - qs%c_snd*ny, &
+                    +Gamma1 ]/( 2.0D0*qs%c2snd )
+    OmegaL(2,:) = [ -Gamma1*qs%kin + qs%c2snd, &
+                    +Gamma1*qs%Vx, &
+                    +Gamma1*qs%Vy, &
+                    -Gamma1 ]/qs%c2snd
+    OmegaL(3,:) = [ +Gamma1*qs%kin - qs%c_snd*qs%Vn, &
+                    -Gamma1*qs%Vx  + qs%c_snd*nx, &
+                    -Gamma1*qs%Vy  + qs%c_snd*ny, &
+                    +Gamma1 ]/( 2.0D0*qs%c2snd )
+    OmegaL(4,:) = [ qs%Vy*nx - qs%Vx*ny, &
+                    +ny, -nx, 0.0D0 ]
     !> Calculate Fluxes.
-    q_s = 0.5D0*( q_p - q_m )
-    !> Multiply by the Left Eigenvectors.
-    q_s = [ Dot_Product([ Gamma1*e_s + c_s*a_s, &
-                         -Gamma1*u_s - c_s*nx, &
-                         -Gamma1*v_s - c_s*ny, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-            Dot_Product([ c2_s - Gamma1*e_s, &
-                          Gamma1*u_s, &
-                          Gamma1*v_s, -Gamma1 ], q_s)/( c2_s ), &
-            Dot_Product([ Gamma1*e_s - c_s*a_s, &
-                         -Gamma1*u_s + c_s*nx, &
-                         -Gamma1*v_s + c_s*ny, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-            Dot_Product([ v_s*nx - u_s*ny, +ny, -nx, 0.0D0 ], q_s) ]
-    !> Multiply by the Eigenvalues.
-    q_s = [ Min(Abs(a_s - c_s), Abs(a_m - c_m)), Abs(a_s), &
-            Max(Abs(a_s + c_s), Abs(a_p + c_p)), Abs(a_s) ] * q_s
-    !> Multiply by the Right Eigenvectors.
-    q_s = [ Dot_Product([ 1.0D0, 1.0D0, 1.0D0, 0.0D0 ], q_s), &
-            Dot_Product([ u_s - c_s*nx,  u_s, u_s + c_s*nx, +ny ], q_s), &
-            Dot_Product([ v_s - c_s*ny,  v_s, v_s + c_s*ny, -nx ], q_s), &
-            Dot_Product([ h_s - c_s*a_s, e_s, h_s + c_s*a_s, u_s*ny - v_s*nx ], q_s) ]
-    f_s = 0.5D0*( f_p + f_m ) - q_s
-    flux_rho = f_s(1)
-    flux_u   = f_s(2)
-    flux_v   = f_s(3)
-    flux_nrg = f_s(4)
-    !>-------------------------------------------------------------------------------
-#endif
+    qs%U = 0.5D0*( qp%U - qm%U )
+    qs%U = [ qs%U(1), qs%U(3:4), qs%U(2) ]
+    qs%U = MatMul(OmegaL, qs%U)
+    qs%U = MatMul(OmegaR, Lambda*qs%U)
+    qs%U = [ qs%U(1), qs%U(4), qs%U(2:3) ]
+    flux = 0.5D0*( qp%F + qm%F ) - qs%U
 End Subroutine mhd_hydro_calc_flux_roe2D
 !########################################################################################################
 !########################################################################################################
@@ -191,6 +167,8 @@ Subroutine mhd_hydro_calc_flux_roe3D(This, &
     Real(8), Intent(In) :: nx, ny, nz
     !> }}}
     Type(MhdHydroVars3D) :: qs
+    Real(8), Dimension(1:5, 1:5) :: OmegaL, OmegaR
+    Real(8), Dimension(1:5) :: Lambda
     Real(8) :: rp, rm
     !> Calculate Average Values.
     rp = Sqrt(qp%Rho)
@@ -207,103 +185,73 @@ Subroutine mhd_hydro_calc_flux_roe3D(This, &
     qs%c2snd = ( ( qp%Vx - qm%Vx )**2 + ( qp%Vy - qm%Vy )**2 + ( qp%Vz - qm%Vz )**2 )*qs%c2snd
     qs%c2snd = ( rp*qp%c2snd + rm*qm%c2snd )/( rp + rm ) + qs%c2snd
     qs%c_snd = Sqrt(Max(qs%c2snd, c2min))
-    qs%U = 0.5D0*( qp%U - qm%U )
-    !> Calculate Fluxes.
-    If ( Abs(nx) >= Max(Abs(ny), Abs(nz)) ) Then
-        
-    End If
-
-#if 0
-    !>-------------------------------------------------------------------------------
-    !> Calculate Fluxes.
-    q_s = 0.5D0*( q_p - q_m )
+    !> Calculate Eigenvalues.
+    Lambda = [ Min(Abs(qs%Vn - qs%c_snd), Abs(qm%Vn - qm%c_snd)), Abs(qs%Vn), &
+               Max(Abs(qs%Vn + qs%c_snd), Abs(qp%Vn + qp%c_snd)), Abs(qs%Vn), Abs(qs%Vn) ]
+    !> Calculate the Right Eigenvectors.
+    OmegaR(:,1) = [ 1.0D0, &
+                    qs%Vx - qs%c_snd*nx, &
+                    qs%Vy - qs%c_snd*ny, &
+                    qs%Vz - qs%c_snd*nz, &
+                    qs%ent - qs%c_snd*qs%Vn ]
+    OmegaR(:,2) = [ 1.0D0, &
+                    qs%Vx, &
+                    qs%Vy, &
+                    qs%Vz, &
+                    qs%kin ]
+    OmegaR(:,3) = [ 1.0D0, &
+                    qs%Vx + qs%c_snd*nx, &
+                    qs%Vy + qs%c_snd*ny, &
+                    qs%Vz + qs%c_snd*nz, &
+                    qs%ent + qs%c_snd*qs%Vn ]
+    !> Calculate the Left Eigenvectors.
+    OmegaL(1,:) = [ +Gamma1*qs%kin + qs%c_snd*qs%Vn, &
+                    -Gamma1*qs%Vx  - qs%c_snd*nx, &
+                    -Gamma1*qs%Vy  - qs%c_snd*ny, &
+                    -Gamma1*qs%Vz  - qs%c_snd*nz, & 
+                    +Gamma1 ]/( 2.0D0*qs%c2snd )
+    OmegaL(2,:) = [ -Gamma1*qs%kin + qs%c2snd, &
+                    +Gamma1*qs%Vx, &
+                    +Gamma1*qs%Vy, &
+                    +Gamma1*qs%Vz, &
+                    -Gamma1 ]/qs%c2snd
+    OmegaL(3,:) = [ +Gamma1*qs%kin - qs%c_snd*qs%Vn, &
+                    -Gamma1*qs%Vx  + qs%c_snd*nx, &
+                    -Gamma1*qs%Vy  + qs%c_snd*ny, &
+                    -Gamma1*qs%Vz  + qs%c_snd*nz, & 
+                    +Gamma1 ]/( 2.0D0*qs%c2snd )
     If ( Abs(nx) >= Max(Abs(ny), Abs(nz)) ) Then
         !> Select case with Nx!=0 to prevent singularities.
-        !> Multiply by the Left Eigenvectors.
-        q_s = [ Dot_Product([ Gamma1*e_s + c_s*a_s, &
-                             -Gamma1*u_s - c_s*nx, &
-                             -Gamma1*v_s - c_s*ny, &
-                             -Gamma1*w_s - c_s*nz, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-                Dot_Product([ c2_s - Gamma1*e_s, &
-                              Gamma1*u_s, &
-                              Gamma1*v_s, &
-                              Gamma1*w_s, -Gamma1 ], q_s)/( c2_s ), &
-                Dot_Product([ Gamma1*e_s - c_s*a_s, &
-                             -Gamma1*u_s + c_s*nx, &
-                             -Gamma1*v_s + c_s*ny, &
-                             -Gamma1*w_s + c_s*nz, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-                Dot_Product([ ( v_s - a_s*ny )/nx, +ny, ( ny**2 - 1.0D0 )/nx, ( +ny*nz )/nx, 0.0D0 ], q_s), &
-                Dot_Product([ ( a_s*nz - w_s )/nx, -nz, ( -ny*nz )/nx, ( 1.0D0 - nz**2 )/nx, 0.0D0 ], q_s) ]
-        !> Multiply by the Eigenvalues.
-        q_s = [ Min(Abs(a_s - c_s), Abs(a_m - c_m)), Abs(a_s), &
-                Max(Abs(a_s + c_s), Abs(a_p + c_p)), Abs(a_s), Abs(a_s) ] * q_s
-        !> Multiply by the Right Eigenvectors.
-        q_s = [ Dot_Product([ 1.0D0, 1.0D0, 1.0D0, 0.0D0, 0.0D0 ], q_s), &
-                Dot_Product([ u_s - c_s*nx, u_s, u_s + c_s*nx, +ny,   -nz   ], q_s), &
-                Dot_Product([ v_s - c_s*ny, v_s, v_s + c_s*ny, -nx,   0.0D0 ], q_s), &
-                Dot_Product([ w_s - c_s*nz, w_s, w_s + c_s*nz, 0.0D0, +nx   ], q_s), &
-                Dot_Product([ h_s - c_s*a_s, e_s, h_s + c_s*a_s, u_s*ny - v_s*nx, w_s*nx - u_s*nz ], q_s) ]
+        !> Calculate the Right Eigenvectors.
+        OmegaR(:,4) = [ 0.0D0, +ny, -nx, 0.0D0, &
+                        qs%Vx*ny - qs%Vy*nx ]
+        OmegaR(:,5) = [ 0.0D0, -nz, 0.0D0, +nx, &
+                        qs%Vz*nx - qs%Vx*nz]
+        !> Calculate the Left Eigenvectors.
+        OmegaL(4,:) = [ ( qs%Vy - qs%Vn*ny )/nx, +ny, &
+                        ( ny**2 - 1.0D0 )/nx, (+ny*nz)/nx, 0.0D0 ]
+        OmegaL(5,:) = [ ( qs%Vn*nz - qs%Vz )/nx, -nz, &
+                        ( -ny*nz )/nx, ( 1.0D0 - nz**2 )/nx, 0.0D0 ]
     Else If ( Abs(ny) >= Max(Abs(nx), Abs(nz)) ) Then
         !> Select case with Ny!=0 to prevent singularities.
-        !> Multiply by the Left Eigenvectors.
-        q_s = [ Dot_Product([ Gamma1*e_s + c_s*a_s, &
-                             -Gamma1*u_s - c_s*nx, &
-                             -Gamma1*v_s - c_s*ny, &
-                             -Gamma1*w_s - c_s*nz, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-                Dot_Product([ c2_s - Gamma1*e_s, &
-                              Gamma1*u_s, &
-                              Gamma1*v_s, &
-                              Gamma1*w_s, -Gamma1 ], q_s)/( c2_s ), &
-                Dot_Product([ Gamma1*e_s - c_s*a_s, &
-                             -Gamma1*u_s + c_s*nx, &
-                             -Gamma1*v_s + c_s*ny, &
-                             -Gamma1*w_s + c_s*nz, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-                Dot_Product([ ( a_s*nx - u_s )/nx, ( 1.0D0 - nx**2 )/ny, -nx, ( -nx*nz )/ny, 0.0D0 ], q_s), &
-                Dot_Product([ ( w_s - a_s*nz )/ny, ( +nx*nz )/ny, +nz, ( nz**2 - 1.0D0 )/ny, 0.0D0 ], q_s) ]
-        !> Multiply by the Eigenvalues.
-        q_s = [ Min(Abs(a_s - c_s), Abs(a_m - c_m)), Abs(a_s), &
-                Max(Abs(a_s + c_s), Abs(a_p + c_p)), Abs(a_s), Abs(a_s) ] * q_s
-        !> Multiply by the Right Eigenvectors.
-        q_s = [ Dot_Product([ 1.0D0, 1.0D0, 1.0D0, 0.0D0, 0.0D0 ], q_s), &
-                Dot_Product([ u_s - c_s*nx, u_s, u_s + c_s*nx, +ny,   0.0D0 ], q_s), &
-                Dot_Product([ v_s - c_s*ny, v_s, v_s + c_s*ny, -nx,   +nz   ], q_s), &
-                Dot_Product([ w_s - c_s*nz, w_s, w_s + c_s*nz, 0.0D0, -ny   ], q_s), &
-                Dot_Product([ h_s - c_s*a_s, e_s, h_s + c_s*a_s, u_s*ny - v_s*nx, v_s*nz - w_s*ny ], q_s) ]
+        !> Calculate the Right Eigenvectors.
+        !> @todo Fix me
+        !> Calculate the Left Eigenvectors.
+        !> @todo Fix me        
     Else If ( Abs(nz) >= Max(Abs(nx), Abs(ny)) ) Then
         !> Select case with Nz!=0 to prevent singularities.
-        !> Multiply by the Left Eigenvectors.
-        q_s = [ Dot_Product([ Gamma1*e_s + c_s*a_s, &
-                             -Gamma1*u_s - c_s*nx, &
-                             -Gamma1*v_s - c_s*ny, &
-                             -Gamma1*w_s - c_s*nz, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-                Dot_Product([ c2_s - Gamma1*e_s, &
-                              Gamma1*u_s, &
-                              Gamma1*v_s, &
-                              Gamma1*w_s, -Gamma1 ], q_s)/( c2_s ), &
-                Dot_Product([ Gamma1*e_s - c_s*a_s, &
-                             -Gamma1*u_s + c_s*nx, &
-                             -Gamma1*v_s + c_s*ny, &
-                             -Gamma1*w_s + c_s*nz, Gamma1 ], q_s)/( 2.0D0*c2_s ), &
-                Dot_Product([ ( u_s - a_s*nx )/nz, ( nx**2 - 1.0D0 )/nz, ( +nx*ny )/nz, +nx, 0.0D0 ], q_s), &
-                Dot_Product([ ( a_s*ny - v_s )/nz, ( -nx*ny )/nz, ( 1.0D0 - ny**2 )/nz, +ny, 0.0D0 ], q_s) ]
-        !> Multiply by the Eigenvalues.
-        q_s = [ Min(Abs(a_s - c_s), Abs(a_m - c_m)), Abs(a_s), &
-                Max(Abs(a_s + c_s), Abs(a_p + c_p)), Abs(a_s), Abs(a_s) ] * q_s
-        !> Multiply by the Right Eigenvectors.
-        q_s = [ Dot_Product([ 1.0D0, 1.0D0, 1.0D0, 0.0D0, 0.0D0 ], q_s), &
-                Dot_Product([ u_s - c_s*nx, u_s, u_s + c_s*nx, -nz,   0.0D0 ], q_s), &
-                Dot_Product([ v_s - c_s*ny, v_s, v_s + c_s*ny, 0.0D0, +nz   ], q_s), &
-                Dot_Product([ w_s - c_s*nz, w_s, w_s + c_s*nz, +nx,   -ny   ], q_s), &
-                Dot_Product([ h_s - c_s*a_s, e_s, h_s + c_s*a_s, w_s*nx - u_s*ny, v_s*nz - w_s*ny ], q_s) ]
+        !> Calculate the Right Eigenvectors.
+        !> @todo Fix me
+        !> Calculate the Left Eigenvectors.
+        !> @todo Fix me
     End If
-    f_s = 0.5D0*( f_p + f_m ) - q_s
-    flux_rho = f_s(1)
-    flux_u   = f_s(2)
-    flux_v   = f_s(3)
-    flux_w   = f_s(4)
-    flux_nrg = f_s(5)
-    !>-------------------------------------------------------------------------------
-#endif
+    !> Calculate Fluxes.
+    qs%U = 0.5D0*( qp%U - qm%U )
+    qs%U = [ qs%U(1), qs%U(3:5), qs%U(2) ]
+    qs%U = MatMul(OmegaL, qs%U)
+    qs%U = MatMul(OmegaR, Lambda*qs%U)
+    qs%U = [ qs%U(1), qs%U(5), qs%U(2:4) ]
+    flux = 0.5D0*( qp%F + qm%F ) - qs%U
 End Subroutine mhd_hydro_calc_flux_roe3D
 !########################################################################################################
 !########################################################################################################
