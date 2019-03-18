@@ -3,10 +3,10 @@
 Module orchid_solver_params
     Implicit None
     
-    Integer, Parameter :: dim = 1
+    Integer, Parameter :: dim = 3
     Logical, Parameter :: debug = .TRUE.
     Logical, Parameter :: verbose = .TRUE.
-    Logical, Parameter :: mhd = .TRUE.
+    Logical, Parameter :: mhd = .FALSE.
 
     Real(8), Parameter :: Mu_hydro = 0*0.000005D0
     Real(8), Parameter :: Mu_magneto = 0.0D0
@@ -20,6 +20,7 @@ Module orchid_solver_params
     
     Real(8), Parameter :: Gamma_1 = ( Gamma - 1.0D0 )/( 2.0D0*Gamma )
     Real(8), Parameter :: Gamma_2 = ( Gamma + 1.0D0 )/( 2.0D0*Gamma )
+    Real(8), Parameter :: Gamma_7 = ( Gamma - 1.0D0 )/2.0D0
     Contains
 Elemental &
 Function minmod1(a) Result(m)
@@ -354,12 +355,12 @@ Program orchid_solver
     !>-------------------------------------------------------------------------------
     !> Write the damn cool Logo.
     Write(*,*) ''
-    Write(*,*) '          \\\\\\ \\\\\\    \\\\\\\ \\\ \\\ \\\\\\\ \\\\\\\      ' 
-    Write(*,*) '         /// /// ////\\\   /// /// /// ///   ///   ///  \\\     '
-    Write(*,*) '        //   // //// ///  ///  // ///////   ///   ///   ///     '
-    Write(*,*) '       //   // ///\\\//  ///     /// ///   ///   ///   ///      '
-    Write(*,*) '      /// /// ///  \\\  ///     /// ///   ///   ///   ///       '
-    Write(*,*) '      \\\\\\\ \\\   \\\ \\\\\\\ \\\ \\\ \\\\\\\ \\\\\\\\        '
+    Write(*,*) '          \\\\\\ \\\\\\    \\\\\\\ \\\ \\\ \\\\\\\ \\\\\\\       ' 
+    Write(*,*) '         /// /// ////\\\   /// /// /// ///   ///   ///  \\\      '
+    Write(*,*) '        //   // //// ///  ///  // ///////   ///   ///   ///      '
+    Write(*,*) '       //   // ///\\\//  ///     /// ///   ///   ///   ///       '
+    Write(*,*) '      /// /// ///  \\\  ///     /// ///   ///   ///   ///        '
+    Write(*,*) '      \\\\\\\ \\\   \\\ \\\\\\\ \\\ \\\ \\\\\\\ \\\\\\\\         '
     Write(*,*) ''
     Write(*,*) '        \\\\\\    \\\\\\\ \\\    \\\   \\\ \\\\\\\  \\\\\\       ' 
     Write(*,*) '        \\\  \\   /// /// ///    ///   /// ///      ////\\\      '

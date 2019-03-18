@@ -1,6 +1,6 @@
 !> Orchid -- 2D/3D Euler/MagnetoHydroDynamics solver.
 !> Copyright (C) Butakov Oleg 2019.
-#if 0
+
 Module orchid_solver_hydro_flux_roe
 Use orchid_solver_params
 Use orchid_solver_hydro_flux_godunov
@@ -23,17 +23,15 @@ Contains
 Pure &
 Subroutine mhd_hydro_calc_flux_roe1D(This, &
                                      nx, &
-                                     rho_p, nrg_p, u_p, &
-                                     rho_m, nrg_m, u_m, &
-                                     flux_rho, flux_nrg, flux_u)
-    !> Calculate the Roe-Einfeldt Fluxes in 1D.
+                                     qp, qm, flux)
+    !> Calculate the Roe Fluxes in 1D.
     !> {{{
     Class(MhdHydroFluxRoe), Intent(In) :: This
+    Type(MhdHydroVars1D), Intent(In) :: qp, qm
+    Real(8), Dimension(1:3), Intent(Out) :: flux
     Real(8), Intent(In) :: nx
-    Real(8), Intent(In) :: rho_p, nrg_p, u_p
-    Real(8), Intent(In) :: rho_m, nrg_m, u_m
-    Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u
     !> }}}
+#if 0
     Real(8) :: e_p, p_p, ent_p, a_p, c_p, c2_p, &
                e_m, p_m, ent_m, a_m, c_m, c2_m, &
                e_s, h_s, ent_s, a_s, c_s, c2_s, rho_s, u_s
@@ -93,6 +91,7 @@ Subroutine mhd_hydro_calc_flux_roe1D(This, &
     flux_u   = f_s(2)
     flux_nrg = f_s(3)
     !>-------------------------------------------------------------------------------
+#endif
 End Subroutine mhd_hydro_calc_flux_roe1D
 !########################################################################################################
 !########################################################################################################
@@ -100,17 +99,15 @@ End Subroutine mhd_hydro_calc_flux_roe1D
 Pure &
 Subroutine mhd_hydro_calc_flux_roe2D(This, &
                                      nx, ny, &
-                                     rho_p, nrg_p, u_p, v_p, &
-                                     rho_m, nrg_m, u_m, v_m, &
-                                     flux_rho, flux_nrg, flux_u, flux_v)
-    !> Calculate the Roe-Einfeldt Fluxes in 2D.
+                                     qp, qm, flux)
+    !> Calculate the Roe Fluxes in 2D.
     !> {{{
     Class(MhdHydroFluxRoe), Intent(In) :: This
+    Type(MhdHydroVars2D), Intent(In) :: qp, qm
+    Real(8), Dimension(1:4), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny
-    Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p
-    Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m
-    Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v
     !> }}}
+#if 0
     Real(8) :: e_p, p_p, ent_p, a_p, c_p, c2_p, &
                e_m, p_m, ent_m, a_m, c_m, c2_m, &
                e_s, h_s, ent_s, a_s, c_s, c2_s, rho_s, u_s, v_s
@@ -177,6 +174,7 @@ Subroutine mhd_hydro_calc_flux_roe2D(This, &
     flux_v   = f_s(3)
     flux_nrg = f_s(4)
     !>-------------------------------------------------------------------------------
+#endif
 End Subroutine mhd_hydro_calc_flux_roe2D
 !########################################################################################################
 !########################################################################################################
@@ -184,59 +182,38 @@ End Subroutine mhd_hydro_calc_flux_roe2D
 Pure &
 Subroutine mhd_hydro_calc_flux_roe3D(This, &
                                      nx, ny, nz, &
-                                     rho_p, nrg_p, u_p, v_p, w_p, &
-                                     rho_m, nrg_m, u_m, v_m, w_m, &
-                                     flux_rho, flux_nrg, flux_u, flux_v, flux_w)
-    !> Calculate the Roe-Einfeldt Fluxes in 3D.
+                                     qp, qm, flux)
+    !> Calculate the Roe Fluxes in 3D.
     !> {{{
     Class(MhdHydroFluxRoe), Intent(In) :: This
+    Type(MhdHydroVars3D), Intent(In) :: qp, qm
+    Real(8), Dimension(1:5), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
-    Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p, w_p
-    Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m
-    Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w
     !> }}}
-    Real(8) :: e_p, p_p, ent_p, a_p, c_p, c2_p, &
-               e_m, p_m, ent_m, a_m, c_m, c2_m, &
-               e_s, h_s, ent_s, a_s, c_s, c2_s, rho_s, u_s, v_s, w_s
-    Real(8), Dimension(1:5) :: q_p, f_p, &
-                               q_m, f_m, &
-                               q_s, f_s
-    !>-------------------------------------------------------------------------------
-    !> Calculate +Values.
-    e_p  = 0.5D0*( u_p**2 + v_p**2 + w_p**2 )
-    p_p  = Gamma1*rho_p*( nrg_p - e_p )
-    ent_p = nrg_p + p_p/rho_p
-    c2_p = Gamma*p_p/rho_p
-    c_p  = Sqrt(Max(c2_p, 1D-10))
-    a_p  = u_p*nx + v_p*ny + w_p*nz
-    q_p  = [ rho_p, rho_p*u_p, rho_p*v_p, rho_p*w_p, rho_p*nrg_p ]
-    f_p  = [ rho_p*a_p, rho_p*u_p*a_p + p_p*nx, rho_p*v_p*a_p + p_p*ny, &
-                        rho_p*w_p*a_p + p_p*nz, rho_p*a_p*ent_p ]
-    !> Calculate -Values.
-    e_m  = 0.5D0*( u_m**2 + v_m**2 + w_m**2 )
-    p_m  = Gamma1*rho_m*( nrg_m - e_m )
-    ent_m = nrg_m + p_m/rho_m
-    c2_m = Gamma*p_m/rho_m
-    c_m  = Sqrt(Max(c2_m, 1D-10))
-    a_m  = u_m*nx + v_m*ny + w_m*nz
-    q_m  = [ rho_m, rho_m*u_m, rho_m*v_m, rho_m*w_m, rho_m*nrg_m ]
-    f_m  = [ rho_m*a_m, rho_m*u_m*a_m + p_m*nx, rho_m*v_m*a_m + p_m*ny, &
-                        rho_m*w_m*a_m + p_m*nz, rho_m*a_m*ent_m ]
-    !> Calculate *Values.
-    rho_s = Sqrt(rho_p*rho_m)
-    ent_s = ( Sqrt(rho_p)*ent_p + Sqrt(rho_m)*ent_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    u_s  = ( Sqrt(rho_p)*u_p + Sqrt(rho_m)*u_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    v_s  = ( Sqrt(rho_p)*v_p + Sqrt(rho_m)*v_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    w_s  = ( Sqrt(rho_p)*w_p + Sqrt(rho_m)*w_m )/( Sqrt(rho_p) + Sqrt(rho_m) )
-    a_s  = u_s*nx + v_s*ny + w_s*nz
-    e_s  = 0.5D0*( u_s**2 + v_s**2 + w_s**2 )
-    h_s  = ent_s + e_s
-    c2_s = ( Sqrt(rho_p)*c2_p + Sqrt(rho_m)*c2_m )/( Sqrt(rho_p) + Sqrt(rho_m) ) &
-            + 0.5D0*Gamma1*rho_s/(rho_p + 2.0D0*rho_s + rho_m)*( (u_p - u_m)**2 + (v_p - v_m)**2 + &
-                                                                 (w_p - w_m)**2 )
-    c_s  = Sqrt(Max(c2_s, 1D-10))
-    !>-------------------------------------------------------------------------------
-    
+    Type(MhdHydroVars3D) :: qs
+    Real(8) :: rp, rm
+    !> Calculate Average Values.
+    rp = Sqrt(qp%Rho)
+    rm = sqrt(qm%Rho)
+    qs%Rho = 0.5D0*( qp%Rho + qm%Rho )    
+    qs%Vx  = ( rp*qp%Vx + rm*qp%Vx )/( rp + rm )
+    qs%Vy  = ( rp*qp%Vy + rm*qp%Vy )/( rp + rm )
+    qs%Vz  = ( rp*qp%Vz + rm*qp%Vz )/( rp + rm )
+    qs%Vn  = qs%Vx*nx + qs%Vy*ny + qs%Vz*nz
+    qs%V2  = qs%Vx**2 + qs%Vy**2 + qs%Vz**2
+    qs%kin = 0.5D0*qs%V2
+    qs%ent = ( rp*qp%ent + rm*qm%ent )/( rp + rm )
+    qs%c2snd = Gamma_7*qs%Rho/( qp%Rho + 2.0D0*qs%Rho + qm%Rho )
+    qs%c2snd = ( ( qp%Vx - qm%Vx )**2 + ( qp%Vy - qm%Vy )**2 + ( qp%Vz - qm%Vz )**2 )*qs%c2snd
+    qs%c2snd = ( rp*qp%c2snd + rm*qm%c2snd )/( rp + rm ) + qs%c2snd
+    qs%c_snd = Sqrt(Max(qs%c2snd, c2min))
+    qs%U = 0.5D0*( qp%U - qm%U )
+    !> Calculate Fluxes.
+    If ( Abs(nx) >= Max(Abs(ny), Abs(nz)) ) Then
+        
+    End If
+
+#if 0
     !>-------------------------------------------------------------------------------
     !> Calculate Fluxes.
     q_s = 0.5D0*( q_p - q_m )
@@ -326,6 +303,7 @@ Subroutine mhd_hydro_calc_flux_roe3D(This, &
     flux_w   = f_s(4)
     flux_nrg = f_s(5)
     !>-------------------------------------------------------------------------------
+#endif
 End Subroutine mhd_hydro_calc_flux_roe3D
 !########################################################################################################
 !########################################################################################################
@@ -333,22 +311,18 @@ End Subroutine mhd_hydro_calc_flux_roe3D
 Pure &
 Subroutine mhd_hydro_calc_flux_roe3D_mhd(This, &
                                          nx, ny, nz, &
-                                         rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p, &
-                                         rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m, &
-                                         flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz)
+                                         qp, qm, flux)
     !> Calculate the Roe Fluxes in 3D for the MHD Equations.
     !> {{{
     Class(MhdHydroFluxRoe), Intent(In) :: This
+    Type(MhdHydroVars3DMHD), Intent(In) :: qp, qm
+    Real(8), Dimension(1:8), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
-    Real(8), Intent(In) :: rho_p, nrg_p, u_p, v_p, w_p, bx_p, by_p, bz_p
-    Real(8), Intent(In) :: rho_m, nrg_m, u_m, v_m, w_m, bx_m, by_m, bz_m
-    Real(8), Intent(Out) :: flux_rho, flux_nrg, flux_u, flux_v, flux_w, flux_bx, flux_by, flux_bz
     !> }}}
-    Error Stop 'Not implemented'
 End Subroutine mhd_hydro_calc_flux_roe3D_mhd
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
 End Module orchid_solver_hydro_flux_roe
-#endif
+
 

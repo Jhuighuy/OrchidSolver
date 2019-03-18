@@ -68,7 +68,7 @@ Function mhd_hydro_vars_load_cons1D(q_cons, nx) Result(q)
     q%eps = q%nrg - q%kin
     q%p   = Gamma1*q%rho*q%eps
     q%ent = q%nrg + q%p/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     !> Conservative variables and Fluxes.
@@ -95,7 +95,7 @@ Function mhd_hydro_vars_load_prim1D(q_prim, nx) Result(q)
     q%eps = q%p/q%rho/Gamma1
     q%nrg = q%eps + q%kin
     q%ent = q%nrg + q%p/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     !> Conservative variables and Fluxes.
@@ -128,7 +128,7 @@ Function mhd_hydro_vars_load_cons2D(q_cons, nx, ny) Result(q)
     q%eps = q%nrg - q%kin
     q%p   = Gamma1*q%rho*q%eps
     q%ent = q%nrg + q%p/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     !> Conservative variables and Fluxes.
@@ -157,7 +157,7 @@ Function mhd_hydro_vars_load_prim2D(q_prim, nx, ny) Result(q)
     q%eps = q%p/q%rho/Gamma1
     q%nrg = q%eps + q%kin
     q%ent = q%nrg + q%p/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     !> Conservative variables and Fluxes.
@@ -192,7 +192,7 @@ Function mhd_hydro_vars_load_cons3D(q_cons, nx, ny, nz) Result(q)
     q%eps = q%nrg - q%kin
     q%p   = Gamma1*q%rho*q%eps
     q%ent = q%nrg + q%p/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     !> Conservative variables and Fluxes.
@@ -223,7 +223,7 @@ Function mhd_hydro_vars_load_prim3D(q_prim, nx, ny, nz) Result(q)
     q%eps = q%p/q%rho/Gamma1
     q%nrg = q%eps + q%kin
     q%ent = q%nrg + q%p/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
     !> Conservative variables and Fluxes.
@@ -266,7 +266,7 @@ Function mhd_hydro_vars_load_cons3D_mhd(q_cons, nx, ny, nz) Result(q)
     q%p   = Gamma1*q%rho*q%eps
     q%p_tot = q%p + 0.5D0*q%B2
     q%ent = q%nrg + q%p_tot/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c2alf = q%B2/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
@@ -315,7 +315,7 @@ Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
     q%nrg = q%eps + q%kin
     q%p_tot = q%p + 0.5D0*q%B2
     q%ent = q%nrg + q%p_tot/q%rho
-    !> Sound speeds.
+    !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c2alf = q%B2/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))

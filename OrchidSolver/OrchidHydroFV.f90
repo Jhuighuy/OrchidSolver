@@ -39,7 +39,8 @@ Subroutine mhd_hydro_init(This, &
             !> @todo Here should be HLLD.
             flux_type = 'hlld'
         Else
-            flux_type = 'hllc'
+            !> @todo Here should be HLLC.
+            flux_type = 'roe'
         End If
     Else
         flux_type(:) = flux_type_opt(:)
@@ -56,9 +57,9 @@ Subroutine mhd_hydro_init(This, &
     Else If ( flux_type == 'hlld' ) Then
         Write (*,*) 'Hydro solver: the HLLD Flux was selected.'
         Allocate(MhdHydroFluxHLLD :: This%m_flux)
-    !Else If ( flux_type == 'roe' ) Then
-    !    Write (*,*) 'Hydro solver: the Roe Flux was selected.'
-    !    Allocate(MhdHydroFluxRoe :: This%m_flux)
+    Else If ( flux_type == 'roe' ) Then
+        Write (*,*) 'Hydro solver: the Roe Flux was selected.'
+        Allocate(MhdHydroFluxRoe :: This%m_flux)
     Else
         Write (0,*) 'Hydro flux type ', Trim(flux_type), &
                     'is invalid. Please, check the manual.'
