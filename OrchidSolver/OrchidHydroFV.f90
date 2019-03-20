@@ -5,19 +5,23 @@ Module orchid_solver_hydro_fv
 Use orchid_solver_params
 Use orchid_solver_grid
 Use orchid_solver_hydro_flux
+Use orchid_solver_pois
 Implicit None
 Type :: MhdHydroSolver
     Class(MhdHydroFlux), Allocatable :: m_flux
     Class(MhdHydroViscousFlux), Allocatable :: m_visc_flux
+    Class(MhdPoisSolver), Allocatable :: m_pois
     Contains
     Procedure, Public :: init => mhd_hydro_init
     Procedure, Public :: calc_flux => mhd_hydro_calc_flux
     Procedure, Public :: calc_step => mhd_hydro_calc_step
+    Procedure, Public :: calc_proj => mhd_hydro_calc_proj
     Procedure, Public :: calc_grad => mhd_hydro_calc_grad
 End Type MhdHydroSolver
 Private :: mhd_hydro_init, &
            mhd_hydro_calc_flux, &
            mhd_hydro_calc_step, &
+           mhd_hydro_calc_proj, &
            mhd_hydro_calc_grad
 Contains
 !########################################################################################################
@@ -37,10 +41,9 @@ Subroutine mhd_hydro_init(This, &
         !> HLL Flux family are good enough for being default.
         If ( mhd ) Then
             !> @todo Here should be HLLD.
-            flux_type = 'hlld'
+            flux_type = 'hllc'
         Else
-            !> @todo Here should be HLLC.
-            flux_type = 'roe'
+            flux_type = 'hllc'
         End If
     Else
         flux_type(:) = flux_type_opt(:)
@@ -83,6 +86,9 @@ Subroutine mhd_hydro_init(This, &
         Error Stop -100
     End If
     !>-------------------------------------------------------------------------------
+
+    Allocate(MhdPoisSolver :: This%m_pois)
+    Call This%m_pois%init()
 End Subroutine mhd_hydro_init
 !########################################################################################################
 !########################################################################################################
@@ -198,8 +204,122 @@ Subroutine mhd_hydro_calc_step(This, Tau, ga, g, gp)
         End If
     End Do
     !$OMP End Parallel Do
+    !> Calculate the Correction.
+    If ( mhd .AND. dim > 1 ) Then
+        Call This%calc_proj(ga, gp, fl)
+    End If
     !>-------------------------------------------------------------------------------
 End Subroutine mhd_hydro_calc_step
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
+Subroutine mhd_hydro_calc_proj(This, ga, gp, flux)
+    !> Calculate the Correction for the B field.
+    !> {{{
+    Class(MhdHydroSolver), Intent(InOut) :: This
+    Class(MhdGrid), Intent(In) :: ga
+    Real(8), Dimension(n_min:n_max, ga%ncells_min:ga%ncells_max), Intent(InOut) :: gp
+    Real(8), Dimension(n_min:n_max, ga%nfaces_min:ga%nfaces_max), Intent(In) :: flux
+    !> ---
+    Real(8), Dimension(:), Allocatable, Save :: div, val, up, uc
+    Real(8), Dimension(:, :), Allocatable, Save :: gd
+    Real(8), Dimension(:, :, :), Allocatable, Save :: ggd
+    !> }}}
+    Integer :: i, ip, im, j, jj
+    Real(8) :: nx, ny, nz
+    If ( .NOT. Allocated(div) ) Then
+        Allocate(div(ga%ncells_min:ga%ncells_max))
+        Allocate(val(ga%nfaces_min:ga%nfaces_max))
+        Allocate(uc(ga%ncells_min:ga%ncells_max))
+        Allocate(up(ga%ncells_min:ga%ncells_max))
+        Allocate(gd(n_min:n_max, ga%ncells_min:ga%ncells_max))
+        Allocate(ggd(1:3, n_min:n_max, ga%nfaces_min:ga%nfaces_max))
+        div(:) = 0.0D0
+        val(:) = 0.0D0
+        uc(:) = 0.0D0
+        up(:) = 0.0D0
+        gd(:, :) = 0.0D0
+        ggd(:, :, :) = 0.0D0
+    End If
+    !> Calculate the upwinded (n,B) field on faces.
+    !$OMP Parallel Do Private(ip, im, j, nx, ny, nz)
+    Do j = ga%nfaces_min, ga%nfaces_max
+        ip = ga%faces(j)%ncell_p
+        im = ga%faces(j)%ncell_m
+        nx = ga%faces(j)%nx
+        ny = ga%faces(j)%ny
+        nz = ga%faces(j)%nz
+        If ( flux(1, j) > 0.0D0 ) Then
+            If ( im > 0 ) Then
+                !> Domain Interior.
+                val(j) = gp(6, im)*nx + gp(7, im)*ny + gp(8, im)*nz
+            Else
+                !> Domain Boundary.
+                If ( im == -1 ) Then
+                    !> Free flow boundary conditions.
+                    val(j) = gp(6, ip)*nx + gp(7, ip)*ny + gp(8, ip)*nz
+                Else
+                    !> Wall boundary conditions.
+                    val(j) = 0.0D0
+                End If
+            End If
+        Else
+            If ( ip > 0 ) Then
+                !> Domain Interior.
+                val(j) = gp(6, ip)*nx + gp(7, ip)*ny + gp(8, ip)*nz
+            Else
+                !> Domain Boundary.
+                If ( ip == -1 ) Then
+                    !> Free flow boundary conditions.
+                    val(j) = gp(6, im)*nx + gp(7, im)*ny + gp(8, im)*nz
+                Else
+                    !> Wall boundary conditions.
+                    val(j) = 0.0D0
+                End If
+            End If
+        End If
+    End Do
+    !$OMP End Parallel Do
+    !> Calculate the upwinded divB field in cells.
+    !$OMP Parallel Do Private(i, j, jj)
+    Do i = ga%ncells_min, ga%ncells_max
+        div(i) = 0.0D0
+        Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
+            j = ga%cell2face(jj)
+            If ( ga%faces(j)%ncell_p == i ) Then
+                !> Inner normal case.
+                div(i) = div(i) - val(j)*ga%faces(j)%Sface/ga%cells(i)%Vcell
+            Else
+                !> Outer normal case.
+                div(i) = div(i) + val(j)*ga%faces(j)%Sface/ga%cells(i)%Vcell
+            End If
+        End Do
+    End Do
+    !$OMP End Parallel Do
+    !> Calculate the Magnetic potential (solve Poisson problem).
+    uc(:) = up(:)
+    Call This%m_pois%calc(ga, uc, up, val, div, i)
+    !gp(1,:) = div(:)
+    !Return
+    !> Calculate the corrected divergence B field.
+    !$OMP Parallel Do Private(i)
+    Do i = ga%ncells_min, ga%ncells_max
+        gd(:, i) = 0.0D0
+        gd(1, i) = up(i)
+    End Do
+    !$OMP End Parallel Do
+    Call This%calc_grad(ga, gd, ggd)
+    !$OMP Parallel Do Private(i, j, jj)
+    Do i = ga%ncells_min, ga%ncells_max
+        Do jj = ga%cells(i)%nface, ga%cells(i)%nface_end
+            j = ga%cell2face(jj)
+            gp(6, i) = gp(6, i) + ggd(1, 1, j)/4.0D0
+            gp(7, i) = gp(7, i) + ggd(2, 1, j)/4.0D0
+            gp(8, i) = gp(8, i) + ggd(3, 1, j)/4.0D0
+        End Do
+    End Do
+    !$OMP End Parallel Do
+End Subroutine mhd_hydro_calc_proj
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################

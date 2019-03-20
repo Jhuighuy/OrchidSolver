@@ -41,6 +41,7 @@ Type :: MhdHydroVars3DMHD
     Real(8) :: BV
     Real(8) :: c_snd, c2snd
     Real(8) :: c_alf, c2alf
+    Real(8) :: c_aln, c2aln
     Real(8) :: c_sms, c2sms
     Real(8) :: c_fms, c2fms
     Real(8), Dimension(1:8) :: U
@@ -52,7 +53,10 @@ Contains
 !########################################################################################################
 Pure &
 Function mhd_hydro_vars_load_cons1D(q_cons, nx) Result(q)
-    !> Initialize the Euler/Navier-Stokes state variables in 1D.
+    !> Initialize the Euler/Navier-Stokes variables in 1D.
+    !> Conservative variables are:
+    !> * Density, Energy;
+    !> * Momentum field.
     !> {{{
     Type(MhdHydroVars1D) :: q
     Real(8), Dimension(1:3), Intent(In) :: q_cons
@@ -79,7 +83,10 @@ Function mhd_hydro_vars_load_cons1D(q_cons, nx) Result(q)
 End Function mhd_hydro_vars_load_cons1D
 Pure &
 Function mhd_hydro_vars_load_prim1D(q_prim, nx) Result(q)
-    !> Initialize the Euler/Navier-Stokes state variables in 2D.
+    !> Initialize the Euler/Navier-Stokes variables in 2D.
+    !> Primitive variables are:
+    !> * Density, Pressure;
+    !> * Velocity field.
     !> {{{
     Type(MhdHydroVars1D) :: q
     Real(8), Dimension(1:3), Intent(In) :: q_prim
@@ -111,7 +118,10 @@ End Function mhd_hydro_vars_load_prim1D
 !########################################################################################################
 Pure &
 Function mhd_hydro_vars_load_cons2D(q_cons, nx, ny) Result(q)
-    !> Initialize the Euler/Navier-Stokes state variables in 2D.
+    !> Initialize the Euler/Navier-Stokes variables in 2D.
+    !> Conservative variables are:
+    !> * Density, Energy;
+    !> * Momentum field.
     !> {{{
     Type(MhdHydroVars2D) :: q
     Real(8), Dimension(1:4), Intent(In) :: q_cons
@@ -140,7 +150,10 @@ Function mhd_hydro_vars_load_cons2D(q_cons, nx, ny) Result(q)
 End Function mhd_hydro_vars_load_cons2D
 Pure &
 Function mhd_hydro_vars_load_prim2D(q_prim, nx, ny) Result(q)
-    !> Initialize the Euler/Navier-Stokes state variables in 2D.
+    !> Initialize the Euler/Navier-Stokes variables in 2D.
+    !> Primitive variables are:
+    !> * Density, Pressure;
+    !> * Velocity field.
     !> {{{
     Type(MhdHydroVars2D) :: q
     Real(8), Dimension(1:4), Intent(In) :: q_prim
@@ -174,7 +187,10 @@ End Function mhd_hydro_vars_load_prim2D
 !########################################################################################################
 Pure &
 Function mhd_hydro_vars_load_cons3D(q_cons, nx, ny, nz) Result(q)
-    !> Initialize the Euler/Navier-Stokes state variables in 3D.
+    !> Initialize the Euler/Navier-Stokes variables in 3D.
+    !> Conservative variables are:
+    !> * Density, Energy;
+    !> * Momentum field.
     !> {{{
     Type(MhdHydroVars3D) :: q
     Real(8), Dimension(1:5), Intent(In) :: q_cons
@@ -205,7 +221,10 @@ Function mhd_hydro_vars_load_cons3D(q_cons, nx, ny, nz) Result(q)
 End Function mhd_hydro_vars_load_cons3D
 Pure &
 Function mhd_hydro_vars_load_prim3D(q_prim, nx, ny, nz) Result(q)
-    !> Initialize the Euler/Navier-Stokes state variables in 3D.
+    !> Initialize the Euler/Navier-Stokes variables in 3D.
+    !> Primitive variables are:
+    !> * Density, Pressure;
+    !> * Velocity field.
     !> {{{
     Type(MhdHydroVars3D) :: q
     Real(8), Dimension(1:5), Intent(In) :: q_prim
@@ -241,7 +260,11 @@ End Function mhd_hydro_vars_load_prim3D
 !########################################################################################################
 Pure &
 Function mhd_hydro_vars_load_cons3D_mhd(q_cons, nx, ny, nz) Result(q)
-    !> Initialize the Euler/Navier-Stokes variables in 3D.
+    !> Initialize the MHD variables in 3D.
+    !> Conservative variables are:
+    !> * Density, Total Energy (Gas + Magnetic);
+    !> * Momentum field.
+    !> * Magnetic field.
     !> {{{
     Type(MhdHydroVars3DMHD) :: q
     Real(8), Dimension(1:8), Intent(In) :: q_cons
@@ -269,8 +292,10 @@ Function mhd_hydro_vars_load_cons3D_mhd(q_cons, nx, ny, nz) Result(q)
     !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c2alf = q%B2/q%rho
+    q%c2aln = q%Bn/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
-    q%c_alf = Sqrt(Max(q%c2snd, c2min))
+    q%c_alf = Sqrt(Max(q%c2alf, c2min))
+    q%c_aln = Sqrt(Max(q%c2aln, c2min))
     q%c2sms = 0.5D0*( q%c2snd + q%c2alf - &
                       Sqrt(Max(( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%Bn**2/q%rho, c2min**2)) )
     q%c2fms = 0.5D0*( q%c2snd + q%c2alf + &
@@ -290,7 +315,11 @@ Function mhd_hydro_vars_load_cons3D_mhd(q_cons, nx, ny, nz) Result(q)
 End Function mhd_hydro_vars_load_cons3D_mhd
 Pure &
 Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
-    !> Initialize the Euler/Navier-Stokes variables in 3D.
+    !> Initialize the MHD variables in 3D.
+    !> Primitive variables are:
+    !> * Density, Gas Pressure;
+    !> * Velocity field.
+    !> * Magnetic field * Sqrt(4*Pi).
     !> {{{
     Type(MhdHydroVars3DMHD) :: q
     Real(8), Dimension(1:8), Intent(In) :: q_prim
@@ -304,9 +333,9 @@ Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
     q%Vz  = q_prim(5)
     q%Vn  = q%Vx*nx + q%Vy*ny + q%Vz*nz
     q%V2  = q%Vx**2 + q%Vy**2 + q%Vz**2
-    q%Bx  = q_prim(6)
-    q%By  = q_prim(7)
-    q%Bz  = q_prim(8)
+    q%Bx  = q_prim(6)*0.5D0/Sqrt(Pi)
+    q%By  = q_prim(7)*0.5D0/Sqrt(Pi)
+    q%Bz  = q_prim(8)*0.5D0/Sqrt(Pi)
     q%Bn  = q%Bx*nx + q%By*ny + q%Bz*nz
     q%B2  = q%Bx**2 + q%By**2 + q%Bz**2
     q%BV  = q%Bx*q%Vx + q%By*q%Vy + q%Bz*q%Vz
@@ -318,8 +347,10 @@ Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
     !> Wave speeds.
     q%c2snd = Gamma*q%p/q%rho
     q%c2alf = q%B2/q%rho
+    q%c2aln = q%Bn/q%rho
     q%c_snd = Sqrt(Max(q%c2snd, c2min))
-    q%c_alf = Sqrt(Max(q%c2snd, c2min))
+    q%c_alf = Sqrt(Max(q%c2alf, c2min))
+    q%c_aln = Sqrt(Max(q%c2aln, c2min))
     q%c2sms = 0.5D0*( q%c2snd + q%c2alf - &
                       Sqrt(Max(( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%Bn**2/q%rho, c2min**2)) )
     q%c2fms = 0.5D0*( q%c2snd + q%c2alf + &
@@ -330,7 +361,7 @@ Function mhd_hydro_vars_load_prim3D_mhd(q_prim, nx, ny, nz) Result(q)
     q%U(:) = [ q%rho, &
                q%rho*q%nrg, &
                q%rho*q%Vx, q%rho*q%Vy, q%rho*q%Vz, & 
-               q%Bx, q%By, q%Bz ]
+               [ q%Bx, q%By, q%Bz ]*2.0D0*Sqrt(Pi) ]
     q%F(:) = [ q%rho*q%Vn, &
                q%rho*q%Vn*q%ent - q%Bn*q%BV, &
                q%rho*q%Vn*q%Vx - q%Bx*q%Bn + q%p_tot*nx, &

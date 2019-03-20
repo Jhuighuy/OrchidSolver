@@ -231,7 +231,7 @@ Subroutine mhd_pois_calc(This, ga, u_km, u_k, fl, f, n)
     !> }}}
     Integer :: i
     Logical :: Symmetric
-    Real(8), Parameter :: Eps = 1D-4
+    Real(8), Parameter :: Eps = 1D-6
     Real(8) :: Rho_k, Rho_km, &
                Omega_k, Omega_km, &
                Alpha_k, Alpha_km, &

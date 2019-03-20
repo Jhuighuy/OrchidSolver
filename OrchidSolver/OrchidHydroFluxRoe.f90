@@ -17,6 +17,10 @@ Type :: MhdHydroJacobian3D
     Real(8), Dimension(1:5) :: Lambda
     Real(8), Dimension(1:5, 1:5) :: OmegaL, OmegaR
 End Type MhdHydroJacobian3D
+Type :: MhdHydroJacobian1DMHD
+    Real(8), Dimension(1:7) :: Lambda
+    Real(8), Dimension(1:7, 1:7) :: OmegaL, OmegaR
+End Type MhdHydroJacobian1DMHD
 Contains
 !########################################################################################################
 !########################################################################################################
@@ -182,6 +186,116 @@ Subroutine mhd_hydro_jacobian_load3D(q, J, nx, ny, nz)
         !> @todo Fix me!
     End Select
 End Subroutine mhd_hydro_jacobian_load3D
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
+Subroutine mhd_hydro_jacobian_load1D_mhd(q, J)
+    !> Calculate the MHD equations Jacobian decomposision in 1D 
+    !> (in X direction, assuming Bx is const).
+    !> {{{
+    Type(MhdHydroVars3DMHD), Intent(In) :: q
+    Type(MhdHydroJacobian1DMHD), Intent(Out) :: J
+    !> }}}
+    Real(8) :: s, r, t, t2
+    Real(8) :: Alpha2fms, Alpha2snd, &
+               Alpha_fms, Alpha_snd
+    Real(8) :: R_fms, R_sms
+    Real(8) :: Beta_y, Beta_z
+    Real(8), Dimension(1:7, 1:7) :: UW, WU
+    !> Calculate aux variables.
+    s = Sqrt(q%By**2 + q%Bz**2)
+    Beta_y = q%By/s
+    Beta_z = q%Bz/s
+    s = q%c2fms - q%c2sms
+    Alpha2fms = ( q%c2fms - q%c2aln )/s
+    Alpha2snd = ( q%c2fms - q%c2snd )/s
+    Alpha_fms = Sqrt(Alpha2fms)
+    Alpha_snd = Sqrt(Alpha2snd)
+    R_fms = Alpha2fms*( q%c2fms + q%c2snd ) + Alpha2snd*( q%c2fms + q%c2aln )
+    R_sms = Alpha2fms*q%c2snd*( q%c2fms + q%c2snd ) + Alpha2snd*q%c2fms*( q%c2sms + q%c2snd )
+    R_fms = q%c_fms/Sqrt(R_fms)
+    R_sms = q%c2fms/Sqrt(R_sms)
+    s = Sign(1.0D0, q%Bx)
+    r = 0.5D0*Sqrt(Pi*q%Rho)
+    !> Calculate Eigenvalues.
+    J%Lambda(:) = [ q%Vx - q%c_fms, q%Vx - q%c_alf, q%Vx - q%c_sms, &
+                    q%Vx + q%c_fms, q%Vx + q%c_alf, q%Vx + q%c_sms, q%Vx ]
+    !> Calculate the Right Eigenvectors in W.
+    J%OmegaR(:,1) = [ -Alpha_fms*t, +Alpha_fms*q%c_fms, &
+                      -Alpha_snd*Beta_y*q%c_aln*s, &
+                      -Alpha_snd*Beta_z*q%c_aln*s, &
+                      +Alpha_snd*Beta_y*q%c_fms*r, &
+                      +Alpha_snd*Beta_z*q%c_fms*r, &
+                      +Alpha_fms*Gamma*q%p ]*R_fms
+    J%OmegaR(:,2) = [ 0.0D0, 0.0D0, +Beta_y, -Beta_z, &
+                      -s*r*Beta_z, +s*r*Beta_y, &
+                      0.0D0 ]*q%c_fms/Sqrt(2.0D0)
+    J%OmegaR(:,3) = [ -Alpha_snd*t, +Alpha_snd*q%c_sms, &
+                      +Alpha_fms*Beta_y*q%c_snd*s, &
+                      +Alpha_fms*Beta_z*q%c_snd*s, &
+                      -Alpha_fms*Beta_y*q%c2snd/q%c_fms*r, &
+                      -Alpha_fms*Beta_z*q%c2snd/q%c_fms*r, &
+                      +Alpha_snd*Gamma*q%p ]*R_sms
+    J%OmegaR(:,4) = [ 1.0D0/q%Rho, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    J%OmegaR(:,5) = [ +Alpha_snd*t, +Alpha_snd*q%c_sms, &
+                      +Alpha_fms*Beta_y*q%c_snd*s, &
+                      +Alpha_fms*Beta_z*q%c_snd*s, &
+                      +Alpha_fms*Beta_y*q%c2snd/q%c_fms*r, &
+                      +Alpha_fms*Beta_z*q%c2snd/q%c_fms*r, &
+                      -Alpha_snd*Gamma*q%p ]*R_sms
+    J%OmegaR(:,6) = [ 0.0D0, 0.0D0, -Beta_y, +Beta_z, &
+                      -s*r*Beta_z, +s*r*Beta_y, &
+                      0.0D0 ]*q%c_fms/Sqrt(2.0D0)
+    J%OmegaR(:,7) = [ +Alpha_fms*t, +Alpha_fms*q%c_fms, &
+                      -Alpha_snd*Beta_y*q%c_aln*s, &
+                      -Alpha_snd*Beta_z*q%c_aln*s, &
+                      -Alpha_snd*Beta_y*q%c_fms*r, &
+                      -Alpha_snd*Beta_z*q%c_fms*r, &
+                      +Alpha_fms*Gamma*q%p ]*R_fms
+    !> Calculate the Left Eigenvectors in W.
+    J%OmegaL(3,:) = [ 0.0D0, &
+                      +Alpha_snd*q%c_sms, &
+                      +Alpha_fms*Beta_y*q%c_snd*s, &
+                      +Alpha_fms*Beta_z*q%c_snd*s, &
+                      +Alpha_fms*Beta_y*q%c2snd/q%c_fms/r, &
+                      +Alpha_fms*Beta_z*q%c2snd/q%c_fms/r, &
+                      -Alpha_snd*Gamma*q%p ]*R_sms/q%c2fms
+    J%OmegaL(4,:) = [ q%Rho, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0/( Gamma*q%p ) ]
+    J%OmegaL(5,:) = [ 0.0D0, &
+                      +Alpha_snd*q%c_sms, &
+                      +Alpha_fms*Beta_y*q%c_snd*s, &
+                      +Alpha_fms*Beta_z*q%c_snd*s, &
+                      -Alpha_fms*Beta_y*q%c2snd/q%c_fms/r, &
+                      -Alpha_fms*Beta_z*q%c2snd/q%c_fms/r, &
+                      +Alpha_snd*Gamma*q%p ]*R_sms/q%c2fms
+    !> Calculate the dW/dU.
+    t = 1.0D0/q%Rho
+    t2 = t**2
+    WU(1,:) = [ -t2, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    WU(2,:) = [ -t2*q%Vx, t, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    WU(3,:) = [ -t2*q%Vy, 0.0D0, t, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    WU(4,:) = [ -t2*q%Vz, 0.0D0, 0.0D0, t, 0.0D0, 0.0D0, 0.0D0 ]    
+    WU(5,:) = [ 0.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0 ]
+    WU(6,:) = [ 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0 ]
+    UW(7,:) = [ +Gamma1*q%V2*0.5D0, &
+                -Gamma1*q%Vx, -Gamma1*q%Vz, -Gamma1*q%Vz, &
+                -Gamma1*q%By*0.5D0/Sqrt(Pi), -Gamma1*q%Bz*0.5D0/Sqrt(Pi), +Gamma1 ]
+    !> Calculate the dU/dW.
+    t = 1.0D0*q%Rho
+    t2 = t**2
+    UW(1,:) = [ -t2, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    UW(2,:) = [ -t2*q%Vx, t, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    UW(3,:) = [ -t2*q%Vy, 0.0D0, t, 0.0D0, 0.0D0, 0.0D0, 0.0D0 ]
+    UW(4,:) = [ -t2*q%Vz, 0.0D0, 0.0D0, t, 0.0D0, 0.0D0, 0.0D0 ]
+    UW(5,:) = [ 0.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0, 0.0D0 ]
+    UW(6,:) = [ 0.0D0, 0.0D0, 0.0D0, 0.0D0, 0.0D0, 1.0D0, 0.0D0 ]
+    UW(7,:) = [ -t2*q%V2*0.5D0, &
+                +t*q%Vx, +t*q%Vz, +t*q%Vz, &
+                +q%By*0.5D0/Sqrt(Pi), +q%Bz*0.5D0/Sqrt(Pi), +1.0D0/Gamma1 ]
+    !> Translate Eigenvectors from W to U.
+    J%OmegaR = MatMul(J%OmegaR, WU)
+    J%OmegaL = MatMul(UW, J%OmegaL)
+End Subroutine mhd_hydro_jacobian_load1D_mhd
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
