@@ -382,20 +382,20 @@ Module orchid_solver_hydro_flux_godunov
 Use orchid_solver_params
 Use orchid_solver_hydro_var
 Implicit None
-Type, Abstract :: MhdHydroFlux
+Type :: MhdHydroFlux
     Contains
     Procedure, Public, Non_Overridable :: calc => mhd_hydro_calc_flux
-    Procedure(mhd_hydro_calc_flux1D_t), Public, Deferred :: calc1D
-    Procedure(mhd_hydro_calc_flux2D_t), Public, Deferred :: calc2D
-    Procedure(mhd_hydro_calc_flux3D_t), Public, Deferred :: calc3D
-    Procedure(mhd_hydro_calc_flux3D_mhd_t), Public, Deferred :: calc3D_mhd
+    Procedure, Public :: calc1D => mhd_hydro_calc_flux1D_t
+    Procedure, Public :: calc2D => mhd_hydro_calc_flux2D_t
+    Procedure, Public :: calc3D => mhd_hydro_calc_flux3D_t
+    Procedure, Public :: calc3D_mhd => mhd_hydro_calc_flux3D_mhd_t
 End Type MhdHydroFlux
 Private :: mhd_hydro_calc_flux, &
            mhd_hydro_calc_flux1D_t, &
            mhd_hydro_calc_flux2D_t, &
            mhd_hydro_calc_flux3D_t, &
            mhd_hydro_calc_flux3D_mhd_t
-Interface
+Contains
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
@@ -405,7 +405,6 @@ Subroutine mhd_hydro_calc_flux1D_t(This, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 1D for the Euler Equations.
     !> {{{
-    Import :: MhdHydroFlux, MhdHydroVars1D
     Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars1D), Intent(In) :: qp, qm
     Real(8), Dimension(1:3), Intent(Out) :: flux
@@ -418,7 +417,6 @@ Subroutine mhd_hydro_calc_flux2D_t(This, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 2D for the Euler Equations.
     !> {{{
-    Import :: MhdHydroFlux, MhdHydroVars2D
     Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars2D), Intent(In) :: qp, qm
     Real(8), Dimension(1:4), Intent(Out) :: flux
@@ -431,7 +429,6 @@ Subroutine mhd_hydro_calc_flux3D_t(This, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 3D for the Euler Equations.
     !> {{{
-    Import :: MhdHydroFlux, MhdHydroVars3D
     Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars3D), Intent(In) :: qp, qm
     Real(8), Dimension(1:5), Intent(Out) :: flux
@@ -444,18 +441,12 @@ Subroutine mhd_hydro_calc_flux3D_mhd_t(This, &
                                        qp, qm, flux)
     !> Calculate the Godunov Fluxes in 3D for the MHD Equations.
     !> {{{
-    Import :: MhdHydroFlux, MhdHydroVars3DMHD
     Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars3DMHD), Intent(In) :: qp, qm
     Real(8), Dimension(1:8), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
     !> }}}
 End Subroutine mhd_hydro_calc_flux3D_mhd_t
-!########################################################################################################
-!########################################################################################################
-!########################################################################################################
-End Interface
-Contains
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
