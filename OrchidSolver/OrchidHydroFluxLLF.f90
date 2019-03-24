@@ -5,30 +5,25 @@ Module orchid_solver_hydro_var
 Use orchid_solver_params
 Implicit None
 Real(8), Parameter :: c2min = 1D-10
-Type :: MhdHydroVars1D
+Type :: MhdHydroVars
     Real(8) :: rho
     Real(8) :: nrg, eps, kin
     Real(8) :: ent, p
-    Real(8) :: Vx, Vn, V2
+    Real(8) :: Vn, V2
     Real(8) :: c_snd, c2snd
+End Type MhdHydroVars
+Type, Extends(MhdHydroVars) :: MhdHydroVars1D
+    Real(8) :: Vx
     Real(8), Dimension(1:3) :: U
     Real(8), Dimension(1:3) :: F
 End Type MhdHydroVars1D
-Type :: MhdHydroVars2D
-    Real(8) :: rho
-    Real(8) :: nrg, eps, kin
-    Real(8) :: ent, p
-    Real(8) :: Vx, Vy, Vn, V2
-    Real(8) :: c_snd, c2snd
+Type, Extends(MhdHydroVars) :: MhdHydroVars2D
+    Real(8) :: Vx, Vy
     Real(8), Dimension(1:4) :: U
     Real(8), Dimension(1:4) :: F
 End Type MhdHydroVars2D
-Type :: MhdHydroVars3D
-    Real(8) :: rho
-    Real(8) :: nrg, eps, kin
-    Real(8) :: ent, p
-    Real(8) :: Vx, Vy, Vz, Vn, V2
-    Real(8) :: c_snd, c2snd
+Type, Extends(MhdHydroVars) :: MhdHydroVars3D
+    Real(8) :: Vx, Vy, Vz
     Real(8), Dimension(1:5) :: U
     Real(8), Dimension(1:5) :: F
 End Type MhdHydroVars3D
@@ -385,10 +380,11 @@ Implicit None
 Type :: MhdHydroFlux
     Contains
     Procedure, Public, Non_Overridable :: calc => mhd_hydro_calc_flux
-    Procedure, Public :: calc1D => mhd_hydro_calc_flux1D_t
-    Procedure, Public :: calc2D => mhd_hydro_calc_flux2D_t
-    Procedure, Public :: calc3D => mhd_hydro_calc_flux3D_t
-    Procedure, Public :: calc3D_mhd => mhd_hydro_calc_flux3D_mhd_t
+    Procedure, Public, NoPass :: &
+        calc1D => mhd_hydro_calc_flux1D_t, &
+        calc2D => mhd_hydro_calc_flux2D_t, &
+        calc3D => mhd_hydro_calc_flux3D_t, &
+        calc3D_mhd => mhd_hydro_calc_flux3D_mhd_t
 End Type MhdHydroFlux
 Private :: mhd_hydro_calc_flux, &
            mhd_hydro_calc_flux1D_t, &
@@ -400,48 +396,40 @@ Contains
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux1D_t(This, &
-                                   nx, &
+Subroutine mhd_hydro_calc_flux1D_t(nx, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 1D for the Euler Equations.
     !> {{{
-    Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars1D), Intent(In) :: qp, qm
     Real(8), Dimension(1:3), Intent(Out) :: flux
     Real(8), Intent(In) :: nx
     !> }}}
 End Subroutine mhd_hydro_calc_flux1D_t
 Pure &
-Subroutine mhd_hydro_calc_flux2D_t(This, &
-                                   nx, ny, &
+Subroutine mhd_hydro_calc_flux2D_t(nx, ny, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 2D for the Euler Equations.
     !> {{{
-    Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars2D), Intent(In) :: qp, qm
     Real(8), Dimension(1:4), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny
     !> }}}
 End Subroutine mhd_hydro_calc_flux2D_t
 Pure &
-Subroutine mhd_hydro_calc_flux3D_t(This, &
-                                   nx, ny, nz, &
+Subroutine mhd_hydro_calc_flux3D_t(nx, ny, nz, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 3D for the Euler Equations.
     !> {{{
-    Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars3D), Intent(In) :: qp, qm
     Real(8), Dimension(1:5), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
     !> }}}
 End Subroutine mhd_hydro_calc_flux3D_t
 Pure &
-Subroutine mhd_hydro_calc_flux3D_mhd_t(This, &
-                                       nx, ny, nz, &
+Subroutine mhd_hydro_calc_flux3D_mhd_t(nx, ny, nz, &
                                        qp, qm, flux)
     !> Calculate the Godunov Fluxes in 3D for the MHD Equations.
     !> {{{
-    Class(MhdHydroFlux), Intent(In) :: This
     Type(MhdHydroVars3DMHD), Intent(In) :: qp, qm
     Real(8), Dimension(1:8), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
@@ -502,26 +490,20 @@ Use orchid_solver_hydro_flux_godunov
 Implicit None
 Type, Extends(MhdHydroFlux) :: MhdHydroFluxLLF
     Contains
-    Procedure, Public, Non_Overridable :: calc1D => mhd_hydro_calc_flux_llf1D
-    Procedure, Public, Non_Overridable :: calc2D => mhd_hydro_calc_flux_llf2D
-    Procedure, Public, Non_Overridable :: calc3D => mhd_hydro_calc_flux_llf3D
-    Procedure, Public, Non_Overridable :: calc3D_mhd => mhd_hydro_calc_flux_llf3D_mhd
+    Procedure, Public, NoPass, Non_Overridable :: calc1D => mhd_hydro_calc_flux_llf1D
+    Procedure, Public, NoPass, Non_Overridable :: calc2D => mhd_hydro_calc_flux_llf2D
+    Procedure, Public, NoPass, Non_Overridable :: calc3D => mhd_hydro_calc_flux_llf3D
+    Procedure, Public, NoPass, Non_Overridable :: calc3D_mhd => mhd_hydro_calc_flux_llf3D_mhd
 End Type MhdHydroFluxLLF
-Private :: mhd_hydro_calc_flux_llf1D, &
-           mhd_hydro_calc_flux_llf2D, &
-           mhd_hydro_calc_flux_llf3D, &
-           mhd_hydro_calc_flux_llf3D_mhd
 Contains
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_llf1D(This, &
-                                     nx, &
+Subroutine mhd_hydro_calc_flux_llf1D(nx, &
                                      qp, qm, flux)
     !> Calculate the LLF (Rusanov) Fluxes in 1D.
     !> {{{
-    Class(MhdHydroFluxLLF), Intent(In) :: This
     Type(MhdHydroVars1D), Intent(In) :: qp, qm
     Real(8), Dimension(1:3), Intent(Out) :: flux
     Real(8), Intent(In) :: nx
@@ -535,12 +517,10 @@ End Subroutine mhd_hydro_calc_flux_llf1D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_llf2D(This, &
-                                     nx, ny, &
+Subroutine mhd_hydro_calc_flux_llf2D(nx, ny, &
                                      qp, qm, flux)
     !> Calculate the LLF (Rusanov) Fluxes in 2D.
     !> {{{
-    Class(MhdHydroFluxLLF), Intent(In) :: This
     Type(MhdHydroVars2D), Intent(In) :: qp, qm
     Real(8), Dimension(1:4), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny
@@ -554,12 +534,10 @@ End Subroutine mhd_hydro_calc_flux_llf2D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_llf3D(This, &
-                                     nx, ny, nz, &
+Subroutine mhd_hydro_calc_flux_llf3D(nx, ny, nz, &
                                      qp, qm, flux)
     !> Calculate the LLF (Rusanov) Fluxes in 3D.
     !> {{{
-    Class(MhdHydroFluxLLF), Intent(In) :: This
     Type(MhdHydroVars3D), Intent(In) :: qp, qm
     Real(8), Dimension(1:5), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz
@@ -573,12 +551,10 @@ End Subroutine mhd_hydro_calc_flux_llf3D
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_flux_llf3D_mhd(This, &
-                                         nx, ny, nz, &
+Subroutine mhd_hydro_calc_flux_llf3D_mhd(nx, ny, nz, &
                                          qp, qm, flux)
     !> Calculate the LLF (Rusanov) Fluxes in 3D for the MHD Equations.
     !> {{{
-    Class(MhdHydroFluxLLF), Intent(In) :: This
     Type(MhdHydroVars3DMHD), Intent(In) :: qp, qm
     Real(8), Dimension(1:8), Intent(Out) :: flux
     Real(8), Intent(In) :: nx, ny, nz

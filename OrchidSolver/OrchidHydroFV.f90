@@ -41,7 +41,7 @@ Subroutine mhd_hydro_init(This, &
         !> HLL Flux family are good enough for being default.
         If ( mhd ) Then
             !> @todo Here should be HLLD.
-            flux_type = 'hlld'
+            flux_type = 'hllc'
         Else
             flux_type = 'hllc'
         End If
@@ -51,9 +51,9 @@ Subroutine mhd_hydro_init(This, &
     If ( flux_type == 'llf' ) Then
         Write (*,*) 'Hydro solver: the LLF/Rusanov Flux was selected.'
         Allocate(MhdHydroFluxLLF :: This%m_flux)
-    Else If ( flux_type == 'hll' ) Then
-        Write (*,*) 'Hydro solver: the HLL Flux was selected.'
-        Allocate(MhdHydroFluxHLL :: This%m_flux)
+    Else If ( flux_type == 'hlle' ) Then
+        Write (*,*) 'Hydro solver: the HLLE Flux was selected.'
+        Allocate(MhdHydroFluxHLLE :: This%m_flux)
     Else If ( flux_type == 'hllc' ) Then
         Write (*,*) 'Hydro solver: the HLLC Flux was selected.'
         Allocate(MhdHydroFluxHLLC :: This%m_flux)

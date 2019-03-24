@@ -3,7 +3,7 @@
 
 Module orchid_solver_hydro_flux
 Use orchid_solver_hydro_flux_llf
-Use orchid_solver_hydro_flux_hll
+Use orchid_solver_hydro_flux_hlle
 Use orchid_solver_hydro_flux_hllc
 Use orchid_solver_hydro_flux_hlld
 Use orchid_solver_hydro_flux_roe
