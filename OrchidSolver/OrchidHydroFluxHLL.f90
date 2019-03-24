@@ -167,7 +167,6 @@ Use orchid_solver_params
 Use orchid_solver_hydro_flux_godunov
 Implicit None
 Integer :: hllc_variation = 0
-Integer :: hllc_variation_mhd = 0
 Type, Extends(MhdHydroFlux) :: MhdHydroFluxHLLC
     Contains
     Procedure, Public, NoPass, Non_Overridable :: &
@@ -494,52 +493,48 @@ Subroutine mhd_hydro_calc_flux_hllc3D_mhd(nx, ny, nz, &
         ss = qm%Rho*qm%Vn*( sm - qm%Vn ) - qm%p_tot
         ss = qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p_tot - ss
         ss = ss/( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
-        Select Case ( hllc_variation_mhd )
-        Case ( 0 )
-            !> MHD HLLC by Shengtai Li (2003).
-            !> Calculate HLL average state: [1], Eq (2), (28), (33).
-            qs%U = ( ( sp*qp%U - qp%F ) - ( sm*qm%U - qm%F ) )/( sp - sm )
-            qs%Rho = qs%U(1)
-            qs%Vx  = qs%U(3)/qs%Rho
-            qs%Vy  = qs%U(4)/qs%Rho
-            qs%Vz  = qs%U(5)/qs%Rho
-            qs%Bx  = qs%U(6)*0.5D0/Sqrt(Pi)
-            qs%By  = qs%U(7)*0.5D0/Sqrt(Pi)
-            qs%Bz  = qs%U(8)*0.5D0/Sqrt(Pi)
-            qs%Bn  = qs%Bx*nx + qs%By*ny + qs%Bz*nz
-            qs%BV  = qs%Bx*qs%Vx + qs%By*qs%Vy + qs%Bz*qs%Vz
-            If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
-                !> Select Fp*: [1], Eq (17), (19-23), (31-32).
-                ps = qp%p_tot + qp%Rho*( sp - qp%Vn )*( ss - qp%Vn )
-                ps = qs%Bn**2 - qp%Bn**2 + ps
-                gp = qp%Rho*( sp - qp%Vn )
-                qs%Rho = gp/( sp - ss )
-                qs%nrg = qp%nrg + ( ( ps*ss - qp%p_tot*qp%Vn ) - ( qs%Bn*qs%BV - qp%Bn*qp%BV ) )/gp
-                qs%Vx  = qp%Vx - nx*( qp%Vn - ss ) - ( qs%Bn*qs%Bx - qp%Bn*qp%Bx )/gp
-                qs%Vy  = qp%Vy - ny*( qp%Vn - ss ) - ( qs%Bn*qs%By - qp%Bn*qp%By )/gp
-                qs%Vz  = qp%Vz - nz*( qp%Vn - ss ) - ( qs%Bn*qs%Bz - qp%Bn*qp%Bz )/gp
-                qs%U(:) = [ qs%Rho, &
-                            qs%Rho*qs%nrg, &
-                            qs%Rho*qs%Vx, qs%Rho*qs%Vy, qs%Rho*qs%Vz, & 
-                            [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
-                flux = qp%F + sp*( qs%U - qp%U )
-            Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
-                !> Select Fm*: [1], Eq (17), (19-23), (31-32).
-                ps = qm%p_tot + qm%Rho*( sp - qm%Vn )*( ss - qm%Vn )
-                ps = qs%Bn**2 - qm%Bn**2 + ps
-                gm = qm%Rho*( sm - qm%Vn )
-                qs%Rho = gm/( sm - ss )
-                qs%nrg = qm%nrg + ( ( ps*ss - qm%p_tot*qm%Vn ) - ( qs%Bn*qs%BV - qm%Bn*qm%BV ) )/gm
-                qs%Vx  = qm%Vx - nx*( qm%Vn - ss ) - ( qs%Bn*qs%Bx - qm%Bn*qm%Bx )/gm
-                qs%Vy  = qm%Vy - ny*( qm%Vn - ss ) - ( qs%Bn*qs%By - qm%Bn*qm%By )/gm
-                qs%Vz  = qm%Vz - nz*( qm%Vn - ss ) - ( qs%Bn*qs%Bz - qm%Bn*qm%Bz )/gm
-                qs%U(:) = [ qs%Rho, &
-                            qs%Rho*qs%nrg, &
-                            qs%Rho*qs%Vx, qs%Rho*qs%Vy, qs%Rho*qs%Vz, & 
-                            [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
-                flux = qm%F + sm*( qs%U - qm%U )
-            End If
-        End Select
+        !> Calculate HLL average state: [1], Eq (2), (28), (33).
+        qs%U = ( ( sp*qp%U - qp%F ) - ( sm*qm%U - qm%F ) )/( sp - sm )
+        qs%Rho = qs%U(1)
+        qs%Vx  = qs%U(3)/qs%Rho
+        qs%Vy  = qs%U(4)/qs%Rho
+        qs%Vz  = qs%U(5)/qs%Rho
+        qs%Bx  = qs%U(6)*0.5D0/Sqrt(Pi)
+        qs%By  = qs%U(7)*0.5D0/Sqrt(Pi)
+        qs%Bz  = qs%U(8)*0.5D0/Sqrt(Pi)
+        qs%Bn  = qs%Bx*nx + qs%By*ny + qs%Bz*nz
+        qs%BV  = qs%Bx*qs%Vx + qs%By*qs%Vy + qs%Bz*qs%Vz
+        If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
+            !> Select Fp*: [1], Eq (17), (19-23), (31-32).
+            ps = qp%p_tot + qp%Rho*( sp - qp%Vn )*( ss - qp%Vn )
+            ps = qs%Bn**2 - qp%Bn**2 + ps
+            gp = qp%Rho*( sp - qp%Vn )
+            qs%Rho = gp/( sp - ss )
+            qs%nrg = qp%nrg + ( ( ps*ss - qp%p_tot*qp%Vn ) - ( qs%Bn*qs%BV - qp%Bn*qp%BV ) )/gp
+            qs%Vx  = qp%Vx - nx*( qp%Vn - ss ) - ( qs%Bn*qs%Bx - qp%Bn*qp%Bx )/gp
+            qs%Vy  = qp%Vy - ny*( qp%Vn - ss ) - ( qs%Bn*qs%By - qp%Bn*qp%By )/gp
+            qs%Vz  = qp%Vz - nz*( qp%Vn - ss ) - ( qs%Bn*qs%Bz - qp%Bn*qp%Bz )/gp
+            qs%U(:) = [ qs%Rho, &
+                        qs%Rho*qs%nrg, &
+                        qs%Rho*qs%Vx, qs%Rho*qs%Vy, qs%Rho*qs%Vz, & 
+                        [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
+            flux = qp%F + sp*( qs%U - qp%U )
+        Else If ( sm <= 0.0D0 .AND. 0.0D0 <= ss ) Then
+            !> Select Fm*: [1], Eq (17), (19-23), (31-32).
+            ps = qm%p_tot + qm%Rho*( sp - qm%Vn )*( ss - qm%Vn )
+            ps = qs%Bn**2 - qm%Bn**2 + ps
+            gm = qm%Rho*( sm - qm%Vn )
+            qs%Rho = gm/( sm - ss )
+            qs%nrg = qm%nrg + ( ( ps*ss - qm%p_tot*qm%Vn ) - ( qs%Bn*qs%BV - qm%Bn*qm%BV ) )/gm
+            qs%Vx  = qm%Vx - nx*( qm%Vn - ss ) - ( qs%Bn*qs%Bx - qm%Bn*qm%Bx )/gm
+            qs%Vy  = qm%Vy - ny*( qm%Vn - ss ) - ( qs%Bn*qs%By - qm%Bn*qm%By )/gm
+            qs%Vz  = qm%Vz - nz*( qm%Vn - ss ) - ( qs%Bn*qs%Bz - qm%Bn*qm%Bz )/gm
+            qs%U(:) = [ qs%Rho, &
+                        qs%Rho*qs%nrg, &
+                        qs%Rho*qs%Vx, qs%Rho*qs%Vy, qs%Rho*qs%Vz, & 
+                        [ qs%Bx, qs%By, qs%Bz ]*2.0D0*Sqrt(Pi) ]
+            flux = qm%F + sm*( qs%U - qm%U )
+        End If
     End If
 End Subroutine mhd_hydro_calc_flux_hllc3D_mhd
 !########################################################################################################
