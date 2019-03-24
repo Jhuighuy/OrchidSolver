@@ -1,29 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{60299A0B-7751-4D1C-B467-39B46F20DE7E}">
 	<Platforms>
-		<Platform Name="Win32"/>
 		<Platform Name="x64"/></Platforms>
 	<Configurations>
-		<Configuration Name="Debug|Win32">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" PreprocessorDefinitions="MHD_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole" AdditionalDependencies="&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
-				<Tool Name="VFResourceCompilerTool"/>
-				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
-				<Tool Name="VFCustomBuildTool"/>
-				<Tool Name="VFPreLinkEventTool"/>
-				<Tool Name="VFPreBuildEventTool"/>
-				<Tool Name="VFPostBuildEventTool"/>
-				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
-		<Configuration Name="Release|Win32">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" UseProcessorExtensions="codeExclusivelyHost" Preprocess="preprocessYes" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" RuntimeLibrary="rtMultiThreadedDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole" AdditionalDependencies="&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
-				<Tool Name="VFResourceCompilerTool"/>
-				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
-				<Tool Name="VFCustomBuildTool"/>
-				<Tool Name="VFPreLinkEventTool"/>
-				<Tool Name="VFPreBuildEventTool"/>
-				<Tool Name="VFPostBuildEventTool"/>
-				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Debug|x64">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" PreprocessorDefinitions="MHD_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
 				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole" AdditionalDependencies="&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
@@ -37,6 +16,26 @@
 		<Configuration Name="Release|x64">
 				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" UseProcessorExtensions="codeExclusivelyHost" Preprocess="preprocessYes" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" RuntimeLibrary="rtMultiThreadedDLL"/>
 				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole" AdditionalDependencies="&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug-MPI|x64">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(I_MPI_ROOT)\intel64\include" PreprocessorDefinitions="MHD_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(I_MPI_ROOT)\intel64\lib\debug" GenerateDebugInformation="true" SubSystem="subSystemConsole" AdditionalDependencies="impi.lib;&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release-MPI|x64">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" UseProcessorExtensions="codeExclusivelyHost" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(I_MPI_ROOT)\intel64\include" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(I_MPI_ROOT)\intel64\lib\debug" SubSystem="subSystemConsole" AdditionalDependencies="impi.lib;&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
