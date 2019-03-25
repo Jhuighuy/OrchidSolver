@@ -310,8 +310,8 @@ Subroutine mhd_hydro_calc_flux_hllc2D(nx, ny, &
     !> }}}
     Type(MhdHydroVars2D) :: qs
     Real(8), Dimension(1:4) :: ds
-    Real(8) :: gp, sp, &
-               gm, sm, ps, ss
+    Real(8) :: sp, &
+               sm, ps, ss
     !> Calculate Wave speeds.
     Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, &
                                         qm%MhdHydroVars, sp, sm)
@@ -391,8 +391,8 @@ Subroutine mhd_hydro_calc_flux_hllc3D(nx, ny, nz, &
     !> }}}
     Type(MhdHydroVars3D) :: qs
     Real(8), Dimension(1:5) :: ds
-    Real(8) :: gp, sp, &
-               gm, sm, ps, ss
+    Real(8) :: sp, &
+               sm, ps, ss
     !> Calculate Wave speeds.
     Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, &
                                         qm%MhdHydroVars, sp, sm)

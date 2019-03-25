@@ -4,7 +4,7 @@
 		<Platform Name="x64"/></Platforms>
 	<Configurations>
 		<Configuration Name="Debug|x64">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" PreprocessorDefinitions="MHD_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" PreprocessorDefinitions="ORCHID_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
 				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole" AdditionalDependencies="&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
@@ -24,8 +24,8 @@
 				<Tool Name="VFPostBuildEventTool"/>
 				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Debug-MPI|x64">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(I_MPI_ROOT)\intel64\include" PreprocessorDefinitions="MHD_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(I_MPI_ROOT)\intel64\lib\debug" GenerateDebugInformation="true" SubSystem="subSystemConsole" AdditionalDependencies="impi.lib;&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" FavorSizeOrSpeed="favorSpeed" UseProcessorExtensions="codeExclusivelyHost" PrefetchInsertionOpt="prefetchAggressive" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(I_MPI_ROOT)\intel64\include" PreprocessorDefinitions="ORCHID_MPI=1;ORCHID_DEBUG=1" OpenMP="OpenMPSequentialCode" Diagnostics="diagnosticsShowAll" DebugParameter="debugParameterAll" WarnInterfaces="true" FloatingPointExceptionHandling="fpe0" Traceback="true" BoundsCheck="true" StackFrameCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(I_MPI_ROOT)\intel64\lib\debug" GenerateDebugInformation="true" SubSystem="subSystemConsole" AdditionalDependencies="impi.lib"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
@@ -34,8 +34,8 @@
 				<Tool Name="VFPostBuildEventTool"/>
 				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
 		<Configuration Name="Release-MPI|x64">
-				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" UseProcessorExtensions="codeExclusivelyHost" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(I_MPI_ROOT)\intel64\include" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" RuntimeLibrary="rtMultiThreadedDLL"/>
-				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(I_MPI_ROOT)\intel64\lib\debug" SubSystem="subSystemConsole" AdditionalDependencies="impi.lib;&quot;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.0\lib\x64\*.lib&quot;"/>
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" UseProcessorExtensions="codeExclusivelyHost" Preprocess="preprocessYes" AdditionalIncludeDirectories="$(I_MPI_ROOT)\intel64\include" PreprocessorDefinitions="ORCHID_MPI=1" OpenMP="OpenMPParallelCode" Diagnostics="diagnosticsShowAll" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLinkerTool" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="$(I_MPI_ROOT)\intel64\lib\release" SubSystem="subSystemConsole" AdditionalDependencies="impi.lib"/>
 				<Tool Name="VFResourceCompilerTool"/>
 				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
 				<Tool Name="VFCustomBuildTool"/>
@@ -57,10 +57,8 @@
 		<File RelativePath=".\OrchidHydroFluxLLF.f90"/>
 		<File RelativePath=".\OrchidHydroFluxRoe.f90"/>
 		<File RelativePath=".\OrchidHydroFluxViscous.f90"/></Filter>
-		<File RelativePath=".\OrchidHydroDG.f90"/>
-		<File RelativePath=".\OrchidHydroFV.f90"/>
-		<File RelativePath=".\OrchidHydroFV_MUSCL.f90"/>
-		<File RelativePath=".\OrchidHydroFV_WENO.f90"/></Filter>
+		<File RelativePath=".\OrchidHydro.f90"/>
+		<File RelativePath=".\OrchidHydroDG.f90"/></Filter>
 		<Filter Name="Poisson">
 		<File RelativePath=".\OrchidPois.f90"/></Filter>
 		<Filter Name="Utils"/>

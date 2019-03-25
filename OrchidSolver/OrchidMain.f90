@@ -175,63 +175,6 @@ Subroutine test_sod_1D()
     End Do
 End Subroutine test_sod_1D
 
-!> Sod test case (MUSCL FV).
-Subroutine test_sod_1D_muscl()
-    Use orchid_solver_simulation
-    Use orchid_solver_grid_gauss
-    Use orchid_solver_hydro_fv_muscl
-    Use omp_lib
-    Implicit None
-    Integer :: l
-    Real(8) :: Tstart, Tend
-    Class(MhdGridGauss), Allocatable :: ga
-    Class(MhdHydroSolverMUSCL), Allocatable :: solver
-    Real(8), Dimension(:,:), Allocatable :: g, gp
-
-    Allocate(ga)
-    Call ga%init1D(10.0D0, 200, -1, -1)
-    Call ga%init_gauss1D(2)
-    Allocate(g(n_min:n_max, ga%ncells_min:ga%ncells_max))
-    Allocate(gp(n_min:n_max, ga%ncells_min:ga%ncells_max))
-    
-    If (MHD) Then
-        !> MHD Sod test case.
-        g(:, :) = 0.0D0
-        g(1, :) = 1.0D0
-        g(2, :) = 1.0D0/( Gamma1*1.0D0 )
-        g(6, :) = 4.0D0
-        g(7, :) = 4.0D0
-        g(8, :) = 2.0D0
-        g(1, 1:100) = 1.08D0;
-        g(2, 1:100) = 1.08D0*( 0.95D0/( Gamma1*1.08D0 ) + 0.5D0*(1.2D0**2 + 0.01D0**2 + 0.5D0**2) )
-        g(3, 1:100) = 1.08D0*1.2D0;
-        g(4, 1:100) = 1.08D0*0.01D0;
-        g(5, 1:100) = 1.08D0*0.5D0;
-        g(7, 1:100) = 3.6D0
-    Else
-        g(:, :) = 0.0D0
-        g(1, :) = 1.0D0
-        g(2, :) = 1.0D0/( Gamma1*1.0D0 )
-        g(1, 1:100) = 2.0D0
-        g(2, 1:100) = 10.0D0/( Gamma1*2.0D0 )
-    End If
-
-    Allocate(MhdHydroSolverMUSCL :: solver)
-    Call solver%init()
-    Call print_grid3(ga, g, 0)
-    Tstart = omp_get_wtime()
-    Do l=1, 1800
-        Call solver%calc_step_muscl(0.001D0, ga, g, gp)
-        If (Mod(l, 1) == 0) Then
-            Tend = omp_get_wtime()
-            Write(*, *) 'time step:', l, TEnd - Tstart
-            Tstart = Tend
-            Call print_grid3(ga, gp, l)
-        End If
-        g(:,:) = gp(:,:)
-    End Do
-End Subroutine test_sod_1D_muscl
-
 !> Sod test case (DG).
 Subroutine test_sod_1D_dg()
     Use orchid_solver_simulation
@@ -386,6 +329,9 @@ Program orchid_solver
     Use orchid_solver_hydro_dg
     Use orchid_solver_pois
     use omp_lib
+#ifdef ORCHID_MPI    
+    use MPI
+#endif    
     Implicit None
     
     Class(MhdGridGaussLegendre), Allocatable :: ga
@@ -395,12 +341,26 @@ Program orchid_solver
     Real(8), Dimension(:,:), Allocatable :: fl
     Real(8), Dimension(:), Allocatable :: f
 
+    Integer :: MPI_err, MPI_rank, MPI_size
     Integer::l, i, n, m
     Real(8) :: x, y, r
+    Integer :: sz, rk
     
     Real(8) :: vxy(2), vrp(2), a(2,2)
     Class(MhdHydroSolverDG), Allocatable :: solver
     Class(MhdPoisSolver), Allocatable :: pois
+    
+#ifdef ORCHID_MPI    
+    Call MPI_Init(MPI_err)
+    Call MPI_Comm_Rank(MPI_COMM_WORLD, MPI_rank, MPI_err)
+    Call MPI_Comm_Size(MPI_COMM_WORLD, MPI_size, MPI_err)
+    !Write(*,*) mpi_err
+    !Call MPI_Comm_Size(MPI_COMM_WORLD, sz, mpi_error)
+    !Write(*,*) mpi_err
+    Write(*,*) MPI_rank, MPI_size
+    Call MPI_Finalize(mpi_err)
+    Stop
+#endif    
     
     !>-------------------------------------------------------------------------------
     !> Write the damn cool Logo.
@@ -422,7 +382,8 @@ Program orchid_solver
     Write(*,*) ''
     !>-------------------------------------------------------------------------------
     
-    Call test_ot_2D()
+    Call test_sod_1D_dg()
+    !Call test_ot_2D()
     Stop
 
     !Call test_opencl
