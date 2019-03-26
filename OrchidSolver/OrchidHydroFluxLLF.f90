@@ -318,6 +318,52 @@ Contains
 !########################################################################################################
 !########################################################################################################
 Pure &
+Subroutine mhd_hydro_calc_flux_t(This, &
+                                 qp_cons, qm_cons, flux, &
+                                 nx, ny, nz)
+    !> Calculate the Godunov Fluxes in 1D/2D/3D.
+    !> {{{
+    Class(MhdHydroFlux), Intent(In) :: This
+    Real(8), Dimension(1:), Intent(In) :: qp_cons, qm_cons
+    Real(8), Dimension(1:), Intent(Out) :: flux
+    Real(8), Intent(In) :: nx, ny, nz
+    !> }}}
+    Real(8) :: nl
+    If ( mhd ) Then
+        !> MHD case.
+        nl = Sqrt(nx**2 + ny**2 + nz**2)
+        Call This%calc3d_mhd(nx/nl, ny/nl, nz/nl, &
+                             mhd_hydro_vars_load3D_mhd(nx/nl, ny/nl, nz/nl, qp_cons(1:8)), &
+                             mhd_hydro_vars_load3D_mhd(nx/nl, ny/nl, nz/nl, qm_cons(1:8)), &
+                             flux(1:8))
+    Else
+        !> Euler/Navier-Stokes case.
+        Select Case ( dim )
+        Case ( 1 )
+            nl = Abs(nx)
+            Call This%calc1D(nx/nl, &
+                             mhd_hydro_vars_load1D(nx/nl, qp_cons(1:3)), &
+                             mhd_hydro_vars_load1D(nx/nl, qm_cons(1:3)), &
+                             flux(1:3))
+        Case ( 2 )
+            nl = Sqrt(nx**2 + ny**2)
+            Call This%calc2D(nx/nl, ny/nl, &
+                             mhd_hydro_vars_load2D(nx/nl, ny/nl, qp_cons(1:4)), &
+                             mhd_hydro_vars_load2D(nx/nl, ny/nl, qm_cons(1:4)), &
+                             flux(1:4))
+        Case ( 3 )
+            nl = Sqrt(nx**2 + ny**2 + nz**2)
+            Call This%calc3D(nx/nl, ny/nl, nz/nl, &
+                             mhd_hydro_vars_load3D(nx/nl, ny/nl, nz/nl, qp_cons(1:5)), &
+                             mhd_hydro_vars_load3D(nx/nl, ny/nl, nz/nl, qm_cons(1:5)), &
+                             flux(1:5))
+        End Select
+    End If
+End Subroutine mhd_hydro_calc_flux_t
+!########################################################################################################
+!########################################################################################################
+!########################################################################################################
+Pure &
 Subroutine mhd_hydro_calc_flux1D_t(nx, &
                                    qp, qm, flux)
     !> Calculate the Godunov Fluxes in 1D for the Euler Equations.
@@ -361,52 +407,6 @@ Subroutine mhd_hydro_calc_flux3D_mhd_t(nx, ny, nz, &
     !> }}}
     flux(:) = NaN
 End Subroutine mhd_hydro_calc_flux3D_mhd_t
-!########################################################################################################
-!########################################################################################################
-!########################################################################################################
-Pure &
-Subroutine mhd_hydro_calc_flux_t(This, &
-                                 qp_cons, qm_cons, flux, &
-                                 nx, ny, nz)
-    !> Calculate the Godunov Fluxes in 1D/2D/3D.
-    !> {{{
-    Class(MhdHydroFlux), Intent(In) :: This
-    Real(8), Dimension(1:), Intent(In) :: qp_cons, qm_cons
-    Real(8), Dimension(1:), Intent(Out) :: flux
-    Real(8), Intent(In) :: nx, ny, nz
-    !> }}}
-    Real(8) :: nl
-    If ( mhd ) Then
-        !> MHD case.
-        nl = Sqrt(nx**2 + ny**2 + nz**2)
-        Call This%calc3d_mhd(nx/nl, ny/nl, nz/nl, &
-                             mhd_hydro_vars_load3D_mhd(nx/nl, ny/nl, nz/nl, qp_cons(1:8)), &
-                             mhd_hydro_vars_load3D_mhd(nx/nl, ny/nl, nz/nl, qm_cons(1:8)), &
-                             flux(1:8))
-    Else
-        !> Euler/Navier-Stokes case.
-        Select Case ( dim )
-        Case ( 1 )
-            nl = Abs(nx)
-            Call This%calc1D(nx/nl, &
-                             mhd_hydro_vars_load1D(nx/nl, qp_cons(1:3)), &
-                             mhd_hydro_vars_load1D(nx/nl, qm_cons(1:3)), &
-                             flux(1:3))
-        Case ( 2 )
-            nl = Sqrt(nx**2 + ny**2)
-            Call This%calc2D(nx/nl, ny/nl, &
-                             mhd_hydro_vars_load2D(nx/nl, ny/nl, qp_cons(1:4)), &
-                             mhd_hydro_vars_load2D(nx/nl, ny/nl, qm_cons(1:4)), &
-                             flux(1:4))
-        Case ( 3 )
-            nl = Sqrt(nx**2 + ny**2 + nz**2)
-            Call This%calc3D(nx/nl, ny/nl, nz/nl, &
-                             mhd_hydro_vars_load3D(nx/nl, ny/nl, nz/nl, qp_cons(1:5)), &
-                             mhd_hydro_vars_load3D(nx/nl, ny/nl, nz/nl, qm_cons(1:5)), &
-                             flux(1:5))
-        End Select
-    End If
-End Subroutine mhd_hydro_calc_flux_t
 !########################################################################################################
 !########################################################################################################
 !########################################################################################################
