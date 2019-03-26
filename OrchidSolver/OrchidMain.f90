@@ -11,7 +11,7 @@ Module orchid_solver_params
     Real(8), Parameter :: Mu_hydro = 0*0.000005D0
     Real(8), Parameter :: Mu_magneto = 0.0D0
     Real(8), Parameter :: Kappa = 1.0D7*0
-
+    
     Real(8), Parameter :: Pi = 4.0D0*Atan(1.0D0)
     Real(8), Parameter :: S4Pi = 4.0D0*Sqrt(Atan(1.0D0))
     
@@ -24,6 +24,9 @@ Module orchid_solver_params
     Real(8), Parameter :: Gamma_1 = ( Gamma - 1.0D0 )/( 2.0D0*Gamma )
     Real(8), Parameter :: Gamma_2 = ( Gamma + 1.0D0 )/( 2.0D0*Gamma )
     Real(8), Parameter :: Gamma_7 = ( Gamma - 1.0D0 )/2.0D0
+    
+    Real(8), Parameter :: NaN = Transfer([ Z'00000000', Z'7FF80000' ], 1.0D0)
+    
     Contains
 Elemental &
 Function minmod1(a) Result(m)
@@ -303,7 +306,7 @@ Subroutine test_ot_2D
         g(4, i) = +Sin(2.0D0*Pi*ga%cells(i)%x)
         g(6, i) = -Sin(2.0D0*Pi*ga%cells(i)%y)
         g(7, i) = +Sin(4.0D0*Pi*ga%cells(i)%x)
-        vvv = mhd_hydro_vars_load_prim3D_mhd(g(:, i), 1.0D0, 0.0D0, 0.0D0)
+        vvv = mhd_hydro_vars_load3D_mhd(1.0D0, 0.0D0, 0.0D0, q_prim=g(:, i))
         g(:, i) = vvv%U(:)
     End Do
 
@@ -328,6 +331,7 @@ Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro_dg
     Use orchid_solver_pois
+    use, intrinsic :: iso_fortran_env
     use omp_lib
 #ifdef ORCHID_MPI    
     use MPI

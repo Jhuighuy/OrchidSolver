@@ -18,7 +18,7 @@ Contains
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_wave_speed_hlle(qp, qm, sp, sm)
+Subroutine mhd_hydro_calc_wave_speed_hlle(qp, sp, qm, sm)
     !> Calculate the Wave Speeds.
     !> REFERENCES:
     !> [1] Eleuterio F. Toro,
@@ -57,8 +57,8 @@ Subroutine mhd_hydro_calc_flux_hlle1D(nx, &
     !> }}}
     Real(8) :: sp, sm
     !> Calculate Wave speeds.
-    Call mhd_hydro_calc_wave_speed_hlle(qp%MhdHydroVars, &
-                                        qm%MhdHydroVars, sp, sm)
+    Call mhd_hydro_calc_wave_speed_hlle(qp%MhdHydroVars, sp, &
+                                        qm%MhdHydroVars, sm)
     !> Calculate Fluxes: [1], Eq. (10.20-10.21).
     If ( sp < 0.0D0 ) Then
         flux = qp%F
@@ -86,8 +86,8 @@ Subroutine mhd_hydro_calc_flux_hlle2D(nx, ny, &
     !> }}}
     Real(8) :: sp, sm
     !> Calculate Wave speeds.
-    Call mhd_hydro_calc_wave_speed_hlle(qp%MhdHydroVars, &
-                                        qm%MhdHydroVars, sp, sm)
+    Call mhd_hydro_calc_wave_speed_hlle(qp%MhdHydroVars, sp, &
+                                        qm%MhdHydroVars, sm)
     !> Calculate Fluxes: [1], Eq. (10.20-10.21).
     If ( sp < 0.0D0 ) Then
         flux = qp%F
@@ -115,8 +115,8 @@ Subroutine mhd_hydro_calc_flux_hlle3D(nx, ny, nz, &
     !> }}}
     Real(8) :: sp, sm
     !> Calculate Wave speeds.
-    Call mhd_hydro_calc_wave_speed_hlle(qp%MhdHydroVars, &
-                                        qm%MhdHydroVars, sp, sm)
+    Call mhd_hydro_calc_wave_speed_hlle(qp%MhdHydroVars, sp, &
+                                        qm%MhdHydroVars, sm)
     !> Calculate Fluxes: [1], Eq. (10.20-10.21).
     If ( sp <= 0.0D0 ) Then
         flux = qp%F
@@ -180,7 +180,7 @@ Contains
 !########################################################################################################
 !########################################################################################################
 Pure &
-Subroutine mhd_hydro_calc_wave_speed_hllc(qp, qm, sp, sm)
+Subroutine mhd_hydro_calc_wave_speed_hllc(qp, sp, qm, sm)
     !> Calculate Pressure-based Wave speeds.
     !> REFERENCES:
     !> [1] Eleuterio F. Toro,
@@ -234,8 +234,8 @@ Subroutine mhd_hydro_calc_flux_hllc1D(nx, &
     Real(8) :: sp, &
                sm, ps, ss
     !> Calculate Wave speeds.
-    Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, &
-                                        qm%MhdHydroVars, sp, sm)
+    Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, sp, &
+                                        qm%MhdHydroVars, sm)
     !> Calculate Fluxes: [1], Eq. (10.26).
     If ( sp < 0.0D0 ) Then
         flux = qp%F
@@ -247,7 +247,7 @@ Subroutine mhd_hydro_calc_flux_hllc1D(nx, &
         ss = qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p - ss
         ss = ss/( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
         Select Case ( hllc_variation )
-        Case ( 0 )
+        Case Default
             !> Original HLLC: [1], Eq. (10.38), (10.39).
             If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
                 qs%Rho = qp%Rho*( sp - qp%Vn )/( sp - ss )
@@ -313,8 +313,8 @@ Subroutine mhd_hydro_calc_flux_hllc2D(nx, ny, &
     Real(8) :: sp, &
                sm, ps, ss
     !> Calculate Wave speeds.
-    Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, &
-                                        qm%MhdHydroVars, sp, sm)
+    Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, sp, &
+                                        qm%MhdHydroVars, sm)
     !> Calculate Fluxes: [1], Eq. (10.26).
     If ( sp < 0.0D0 ) Then
         flux = qp%F
@@ -326,7 +326,7 @@ Subroutine mhd_hydro_calc_flux_hllc2D(nx, ny, &
         ss = qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p - ss
         ss = ss/( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
         Select Case ( hllc_variation )
-        Case ( 0 )
+        Case Default
             !> Original HLLC: [1], Eq. (10.38), (10.39).
             If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
                 qs%Rho = qp%Rho*( sp - qp%Vn )/( sp - ss )
@@ -394,8 +394,8 @@ Subroutine mhd_hydro_calc_flux_hllc3D(nx, ny, nz, &
     Real(8) :: sp, &
                sm, ps, ss
     !> Calculate Wave speeds.
-    Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, &
-                                        qm%MhdHydroVars, sp, sm)
+    Call mhd_hydro_calc_wave_speed_hllc(qp%MhdHydroVars, sp, &
+                                        qm%MhdHydroVars, sm)
     !> Calculate Fluxes: [1], Eq. (10.26).
     If ( sp < 0.0D0 ) Then
         flux = qp%F
@@ -407,7 +407,7 @@ Subroutine mhd_hydro_calc_flux_hllc3D(nx, ny, nz, &
         ss = qp%Rho*qp%Vn*( sp - qp%Vn ) - qp%p - ss
         ss = ss/( qp%Rho*( sp - qp%Vn ) - qm%Rho*( sm - qm%Vn ) )
         Select Case ( hllc_variation )
-        Case ( 0 )
+        Case Default
             !> Original HLLC: [1], Eq. (10.38), (10.39).
             If ( ss <= 0.0D0 .AND. 0.0D0 <= sp ) Then
                 qs%Rho = qp%Rho*( sp - qp%Vn )/( sp - ss )
