@@ -273,7 +273,7 @@ Function mhd_hydro_vars_load3D_mhd(nx, ny, nz, q_cons, q_prim) Result(q)
     q%c_alf = Sqrt(Max(q%c2alf, c2min))
     q%c_aln = Sqrt(Max(q%c2aln, c2min))
     q%c2sms = ( q%c2snd + q%c2alf )**2 - 4.0D0*q%c2snd*q%c2aln
-    q%c2sms = Max(q%c2sms, c2min**2)
+    q%c2sms = Sqrt(Max(q%c2sms, c2min**2))
     q%c2fms = 0.5D0*( q%c2snd + q%c2alf + q%c2sms )
     q%c2sms = 0.5D0*( q%c2snd + q%c2alf - q%c2sms )
     q%c_fms = Sqrt(Max(q%c2fms, c2min))
