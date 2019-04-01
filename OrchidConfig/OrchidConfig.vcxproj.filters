@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{75c8630d-c734-4539-a8c2-cd6b7b0075f6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="OrchidScanner.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="OrchidAST.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="OrchidParser.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="OrchidScanner.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidAST.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidParser.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -325,12 +325,12 @@ Subroutine test_ot_2D
         g(:,:) = gp(:,:)
     End Do
 End Subroutine test_ot_2D
-
-
+    
 Program orchid_solver
     Use orchid_solver_simulation
     Use orchid_solver_hydro_dg
     Use orchid_solver_pois
+    Use orchid_solver_config
     use, intrinsic :: iso_fortran_env
     use omp_lib
 #ifdef ORCHID_MPI    
@@ -353,6 +353,9 @@ Program orchid_solver
     Real(8) :: vxy(2), vrp(2), a(2,2)
     Class(MhdHydroSolverDG), Allocatable :: solver
     Class(MhdPoisSolver), Allocatable :: pois
+    
+    Call config_test()
+    Stop
     
 #ifdef ORCHID_MPI    
     Call MPI_Init(MPI_err)
