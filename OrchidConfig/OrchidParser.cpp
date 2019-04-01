@@ -6,20 +6,20 @@
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_or()
+MhdExpr::Ptr MhdParser::parse_expression_or()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_and();
+    MhdExpr::Ptr expr = parse_expression_and();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_OR) {
         peek();
         expr = std::make_shared<MhdExprLogical>(op, expr, parse_expression_and());
     }
     return expr;
 }
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_and()
+MhdExpr::Ptr MhdParser::parse_expression_and()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_or_bw();
+    MhdExpr::Ptr expr = parse_expression_or_bw();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_AND) {
         peek();
         expr = std::make_shared<MhdExprLogical>(op, expr, parse_expression_or_bw());
@@ -27,30 +27,30 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_and()
     return expr;
 }
 //--------------------------------------------------------------------------------------------------------
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_or_bw()
+MhdExpr::Ptr MhdParser::parse_expression_or_bw()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_xor_bw();
+    MhdExpr::Ptr expr = parse_expression_xor_bw();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_OR_BW) {
         peek();
         expr = std::make_shared<MhdExprLogicalBw>(op, expr, parse_expression_xor_bw());
     }
     return expr;
 }
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_xor_bw()
+MhdExpr::Ptr MhdParser::parse_expression_xor_bw()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_and_bw();
+    MhdExpr::Ptr expr = parse_expression_and_bw();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_XOR_BW) {
         peek();
         expr = std::make_shared<MhdExprLogicalBw>(op, expr, parse_expression_and_bw());
     }
     return expr;
 }
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_and_bw()
+MhdExpr::Ptr MhdParser::parse_expression_and_bw()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_eq_neq();
+    MhdExpr::Ptr expr = parse_expression_eq_neq();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_XOR_BW) {
         peek();
         expr = std::make_shared<MhdExprLogicalBw>(op, expr, parse_expression_eq_neq());
@@ -58,10 +58,10 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_and_bw()
     return expr;
 }
 //--------------------------------------------------------------------------------------------------------
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_eq_neq()
+MhdExpr::Ptr MhdParser::parse_expression_eq_neq()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_lt_lte_gt_gte();
+    MhdExpr::Ptr expr = parse_expression_lt_lte_gt_gte();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_EQ ||
             op == MhdToken::Kind::OP_NEQ) {
         peek();
@@ -69,10 +69,10 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_eq_neq()
     }
     return expr;
 }
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_lt_lte_gt_gte()
+MhdExpr::Ptr MhdParser::parse_expression_lt_lte_gt_gte()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_add_sub();
+    MhdExpr::Ptr expr = parse_expression_add_sub();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_LT || op == MhdToken::Kind::OP_LTE ||
             op == MhdToken::Kind::OP_GT || op == MhdToken::Kind::OP_GTE) {
         peek();
@@ -81,10 +81,10 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_lt_lte_gt_gte()
     return expr;
 }
 //--------------------------------------------------------------------------------------------------------
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_add_sub()
+MhdExpr::Ptr MhdParser::parse_expression_add_sub()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_mul_div_mod();
+    MhdExpr::Ptr expr = parse_expression_mul_div_mod();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_ADD ||
             op == MhdToken::Kind::OP_SUB) {
         peek();
@@ -92,10 +92,10 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_add_sub()
     }
     return expr;
 }
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_mul_div_mod()
+MhdExpr::Ptr MhdParser::parse_expression_mul_div_mod()
 {
     MhdToken::Kind op;
-    std::shared_ptr<MhdExpr> expr = parse_expression_unary();
+    MhdExpr::Ptr expr = parse_expression_unary();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_MUL ||
             op == MhdToken::Kind::OP_DIV ||
             op == MhdToken::Kind::OP_MOD) {
@@ -107,7 +107,7 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_mul_div_mod()
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_unary()
+MhdExpr::Ptr MhdParser::parse_expression_unary()
 {
     switch (m_token.m_kind) {
     case MhdToken::Kind::OP_NOT:
@@ -121,7 +121,7 @@ std::shared_ptr<MhdExpr> MhdParser::parse_expression_unary()
         return parse_expression_unary_operand();
     }
 }
-std::shared_ptr<MhdExpr> MhdParser::parse_expression_unary_operand()
+MhdExpr::Ptr MhdParser::parse_expression_unary_operand()
 {
     switch (m_token.m_kind) {
         case MhdToken::Kind::CT_STR:

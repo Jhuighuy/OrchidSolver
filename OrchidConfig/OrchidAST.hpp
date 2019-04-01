@@ -23,6 +23,7 @@ struct orchid_expr_val
 struct MhdExpr : std::enable_shared_from_this<MhdExpr>
 {
 public:
+    typedef std::shared_ptr<MhdExpr> Ptr;
     MhdExprType m_type;
 public:
     virtual ~MhdExpr() {}
@@ -41,10 +42,10 @@ struct MhdExprUnary : public MhdExpr
 {
 public:
     MhdToken::Kind m_op;
-    std::shared_ptr<MhdExpr> m_expr;
+    MhdExpr::Ptr m_expr;
 public:
     virtual ~MhdExprUnary() {}
-    MhdExprUnary(MhdToken::Kind op, std::shared_ptr<MhdExpr> expr)
+    MhdExprUnary(MhdToken::Kind op, MhdExpr::Ptr expr)
         : m_op(op), m_expr(expr) { }
 };	// struct MhdExprUnary
 /** ``Not`` expression. */
@@ -59,11 +60,11 @@ struct MhdExprBinary : public MhdExpr
 {
 public:
     MhdToken::Kind m_op;
-    std::shared_ptr<MhdExpr> m_lhs;
-    std::shared_ptr<MhdExpr> m_rhs;
+    MhdExpr::Ptr m_lhs;
+    MhdExpr::Ptr m_rhs;
 public:
     virtual ~MhdExprBinary() {}
-    MhdExprBinary(MhdToken::Kind op, std::shared_ptr<MhdExpr> lhs, std::shared_ptr<MhdExpr> rhs)
+    MhdExprBinary(MhdToken::Kind op, MhdExpr::Ptr lhs, MhdExpr::Ptr rhs)
         : m_op(op), m_lhs(lhs), m_rhs(rhs) { }
 };	// struct MhdExprBinary
 /** ``Logical Binary`` expression. */

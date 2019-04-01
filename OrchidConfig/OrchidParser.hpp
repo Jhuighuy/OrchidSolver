@@ -18,23 +18,23 @@ public:
     MhdParser(const char* text)
         : m_tokenizer(text) { peek(); }
 public:
-    std::shared_ptr<MhdExpr> parse_expression();
+    MhdExpr::Ptr parse_expression();
 public:
-    std::shared_ptr<MhdExpr> parse_expression_asg();
-    std::shared_ptr<MhdExpr> parse_expression_or();
-    std::shared_ptr<MhdExpr> parse_expression_and();
-    std::shared_ptr<MhdExpr> parse_expression_or_bw();
-    std::shared_ptr<MhdExpr> parse_expression_and_bw();
-    std::shared_ptr<MhdExpr> parse_expression_xor_bw();
-    std::shared_ptr<MhdExpr> parse_expression_eq_neq();
-    std::shared_ptr<MhdExpr> parse_expression_lt_lte_gt_gte();
-    std::shared_ptr<MhdExpr> parse_expression_add_sub();
-    std::shared_ptr<MhdExpr> parse_expression_mul_div_mod();
+    MhdExpr::Ptr parse_expression_asg();
+    MhdExpr::Ptr parse_expression_or();
+    MhdExpr::Ptr parse_expression_and();
+    MhdExpr::Ptr parse_expression_or_bw();
+    MhdExpr::Ptr parse_expression_and_bw();
+    MhdExpr::Ptr parse_expression_xor_bw();
+    MhdExpr::Ptr parse_expression_eq_neq();
+    MhdExpr::Ptr parse_expression_lt_lte_gt_gte();
+    MhdExpr::Ptr parse_expression_add_sub();
+    MhdExpr::Ptr parse_expression_mul_div_mod();
 public:
-    std::shared_ptr<MhdExpr> parse_expression_unary();
-    std::shared_ptr<MhdExpr> parse_expression_unary_not();
-    std::shared_ptr<MhdExpr> parse_expression_unary_negate();
-    std::shared_ptr<MhdExpr> parse_expression_unary_operand();
+    MhdExpr::Ptr parse_expression_unary();
+    MhdExpr::Ptr parse_expression_unary_not();
+    MhdExpr::Ptr parse_expression_unary_negate();
+    MhdExpr::Ptr parse_expression_unary_operand();
 public:
     void peek() { m_tokenizer.scan(m_token); }
 };	// struct MhdParser
