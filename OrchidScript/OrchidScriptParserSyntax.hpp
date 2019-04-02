@@ -3,11 +3,11 @@
 
 #pragma once
 
-#include "OrchidScanner.hpp"
-#include "OrchidDynamic.hpp"
+#include "OrchidScriptScanner.hpp"
+#include "OrchidScriptDynamic.hpp"
+#include <utility>
 #include <memory>
 #include <vector>
-#include <utility>
 #include <map>
 
 #include <cassert>

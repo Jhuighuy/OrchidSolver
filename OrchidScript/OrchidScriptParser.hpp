@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "OrchidScanner.hpp"
-#include "OrchidAST.hpp"
+#include "OrchidScriptScanner.hpp"
+#include "OrchidScriptParserSyntax.hpp"
 
 //########################################################################################################
 //########################################################################################################
