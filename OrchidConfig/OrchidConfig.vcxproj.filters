@@ -15,6 +15,9 @@
     <ClCompile Include="OrchidParser.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="OrchidDynamic.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OrchidScanner.hpp">
@@ -24,6 +27,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="OrchidParser.hpp">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidDynamic.hpp">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

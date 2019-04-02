@@ -4,6 +4,7 @@
 #pragma once
 
 #include "OrchidScanner.hpp"
+#include "OrchidDynamic.hpp"
 #include <memory>
 #include <vector>
 #include <utility>
@@ -23,8 +24,7 @@ enum MhdExprBaseType
     ORCHID_EXPR_TYPE_DBL,
 };	// enum MhdExprBaseType
 typedef MhdExprBaseType MhdExprType;
-typedef int MhdValue;
-extern std::map<std::string, MhdValue> g_vars;
+extern std::map<std::string, MhdDynamic> g_vars;
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -33,24 +33,27 @@ struct MhdJump
 public:
     virtual ~MhdJump() {}
 };  // struct MhdJump
+//--------------------------------------------------------------------------------------------------------
 struct MhdJumpBreak final : public MhdJump
 { 
 public:
-    MhdValue m_val; 
+    MhdDynamic m_val; 
 public:
     MhdJumpBreak() : m_val() {}
-    MhdJumpBreak(MhdValue val) : m_val(val) {}
+    MhdJumpBreak(MhdDynamic val) : m_val(val) {}
 };  // struct MhdJumpBreak
+//--------------------------------------------------------------------------------------------------------
 struct MhdJumpContinue final : public MhdJump 
 {
 };  // struct MhdJumpContinue
+//--------------------------------------------------------------------------------------------------------
 struct MhdJumpReturn final : public MhdJump
 { 
 public:
-    MhdValue m_val; 
+    MhdDynamic m_val; 
 public: 
     MhdJumpReturn() : m_val() {}
-    MhdJumpReturn(MhdValue val) : m_val(val) {}
+    MhdJumpReturn(MhdDynamic val) : m_val(val) {}
 };  // struct MhdJumpReturn
 //########################################################################################################
 //########################################################################################################
@@ -66,8 +69,8 @@ public:
     virtual ~MhdExpr() {}
     MhdExpr(...): m_type(ORCHID_EXPR_TYPE_LGC) {}
 public:
-    virtual MhdValue updt(MhdValue val) const { abort(); }
-    virtual MhdValue eval() const { abort(); } 
+    virtual MhdDynamic updt(MhdDynamic val) const { abort(); }
+    virtual MhdDynamic eval() const { abort(); } 
 };  // struct MhdExpr
 //--------------------------------------------------------------------------------------------------------
 struct MhdExprEmpty : public MhdExpr
@@ -89,13 +92,13 @@ public:
 struct MhdExprConst : public MhdExpr
 {
 public:
-    MhdValue m_value;
+    MhdDynamic m_value;
 public:
     MhdExprConst(...) {}
-    MhdExprConst(MhdValue value)
+    MhdExprConst(MhdDynamic value)
         : m_value(value) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
         return m_value;
     }
@@ -109,11 +112,11 @@ public:
     MhdExprIdent(const std::string& id)
         : m_id(id) {}
 public:
-    MhdValue updt(MhdValue val) const override
+    MhdDynamic updt(MhdDynamic val) const override
     {
         return g_vars[m_id] = val;
     }
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
         return g_vars[m_id];
     }
@@ -124,21 +127,21 @@ public:
 struct MhdExprFactorCall final : public MhdExprConst
 {
 public:
-    MhdExpr::Ptr m_id;
+    MhdExpr::Ptr m_func;
     MhdExpr::Vec m_args;
 public:
-    MhdExprFactorCall(MhdExpr::Ptr id, const MhdExpr::Vec& args)
-        : m_id(id), m_args(args) {}
+    MhdExprFactorCall(MhdExpr::Ptr func, const MhdExpr::Vec& args)
+        : m_func(func), m_args(args) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue id = m_id->eval();
-        std::vector<MhdValue> args;
+        const MhdDynamic id = m_func->eval();
+        std::vector<MhdDynamic> args;
         for (MhdExpr::Ptr arg : m_args) {
             args.push_back(arg->eval());
         }
         try {
-            return 0;//id(args);
+            return id(args);
         } catch (const MhdJumpReturn& return_jump) {
             return return_jump.m_val;
         }
@@ -148,25 +151,25 @@ public:
 struct MhdExprFactorIndex final : public MhdExprConst
 {
 public:
-    MhdExpr::Ptr m_id;
+    MhdExpr::Ptr m_array;
     MhdExpr::Vec m_index;
 public:
-    MhdExprFactorIndex(MhdExpr::Ptr id, const MhdExpr::Vec& index)
-        : m_id(id), m_index(index) {}
+    MhdExprFactorIndex(MhdExpr::Ptr array, const MhdExpr::Vec& index)
+        : m_array(array), m_index(index) {}
 public:
-    MhdValue updt(MhdValue val) const override
+    MhdDynamic updt(MhdDynamic val) const override
     {
         // @todo Implement me.
         abort();
     }
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue id = m_id->eval();
-        std::vector<MhdValue> index;
+        const MhdDynamic id = m_array->eval();
+        std::vector<MhdDynamic> index;
         for (MhdExpr::Ptr arg : m_index) {
             index.push_back(arg->eval());
         }
-        return 0;//id[index];
+        return id[index];
     }
 };  // struct MhdExprFactorIndex
 //########################################################################################################
@@ -189,14 +192,14 @@ public:
     MhdExprUnaryNot(T... t)
         : MhdExprUnary(t...) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue expr = m_expr->eval();
+        const MhdDynamic expr = m_expr->eval();
         switch (m_op) {
             case MhdToken::Kind::OP_NOT: return !expr;
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdValue();
+                return MhdDynamic();
         }
     }
 };  // struct MhdExprUnaryNot
@@ -208,15 +211,15 @@ public:
     MhdExprUnaryNegate(T... t)
         : MhdExprUnary(t...) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue expr = m_expr->eval();
+        const MhdDynamic expr = m_expr->eval();
         switch (m_op) {
             case MhdToken::Kind::OP_ADD: return +expr;
             case MhdToken::Kind::OP_SUB: return -expr;
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdValue();
+                return MhdDynamic();
         }
     }
 };  // struct MhdExprUnaryNegate
@@ -240,10 +243,10 @@ public:
     template<typename... T>
     MhdExprBinaryAssignment(T... t)
         : MhdExprBinary(t...) {}
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue lhs = m_lhs->eval();
-        const MhdValue rhs = m_rhs->eval();
+        const MhdDynamic lhs = m_lhs->eval();
+        const MhdDynamic rhs = m_rhs->eval();
         switch (m_op) {
             case MhdToken::Kind::OP_ASG:        return m_lhs->updt(rhs);
             case MhdToken::Kind::OP_OR_BW_ASG:  return m_lhs->updt(lhs | rhs);
@@ -256,7 +259,7 @@ public:
             case MhdToken::Kind::OP_MOD_ASG: return m_lhs->updt(lhs % rhs);
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdValue();
+                return MhdDynamic();
         }
     }
 };  // struct MhdExprBinaryAssignment
@@ -268,10 +271,10 @@ public:
     MhdExprBinaryLogical(T... t)
         : MhdExprBinary(t...) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue lhs = m_lhs->eval();
-        const MhdValue rhs = m_rhs->eval();
+        const MhdDynamic lhs = m_lhs->eval();
+        const MhdDynamic rhs = m_rhs->eval();
         switch (m_op) {
             case MhdToken::Kind::OP_EQ:  return lhs == rhs;
             case MhdToken::Kind::OP_NEQ: return lhs != rhs;
@@ -283,32 +286,32 @@ public:
             case MhdToken::Kind::OP_GTE: return lhs >= rhs;
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdValue();
+                return MhdDynamic();
         }
     }
 };  // struct MhdExprBinaryLogical
 //--------------------------------------------------------------------------------------------------------
-struct MhdExprBinaryLogicalBw final : public MhdExprBinary
+struct MhdExprBinaryBitwise final : public MhdExprBinary
 {
 public:
     template<typename... T>
-    MhdExprBinaryLogicalBw(T... t)
+    MhdExprBinaryBitwise(T... t)
         : MhdExprBinary(t...) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue lhs = m_lhs->eval();
-        const MhdValue rhs = m_rhs->eval();
+        const MhdDynamic lhs = m_lhs->eval();
+        const MhdDynamic rhs = m_rhs->eval();
         switch (m_op) {
             case MhdToken::Kind::OP_OR_BW:  return lhs | rhs;
             case MhdToken::Kind::OP_XOR_BW: return lhs ^ rhs;
             case MhdToken::Kind::OP_AND_BW: return lhs & rhs;
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdValue();
+                return MhdDynamic();
         }
     }
-};  // struct MhdExprBinaryLogicalBw
+};  // struct MhdExprBinaryBitwise
 //--------------------------------------------------------------------------------------------------------
 struct MhdExprBinaryArithmetic final : public MhdExprBinary
 {
@@ -317,10 +320,10 @@ public:
     MhdExprBinaryArithmetic(T... t)
         : MhdExprBinary(t...) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue lhs = m_lhs->eval();
-        const MhdValue rhs = m_rhs->eval();
+        const MhdDynamic lhs = m_lhs->eval();
+        const MhdDynamic rhs = m_rhs->eval();
         switch (m_op) {
             case MhdToken::Kind::OP_ADD: return lhs + rhs;
             case MhdToken::Kind::OP_SUB: return lhs - rhs;
@@ -329,7 +332,7 @@ public:
             case MhdToken::Kind::OP_MOD: return lhs % rhs;
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdValue();
+                return MhdDynamic();
         }
     }
 };  // struct MhdExprBinaryArithmetic
@@ -344,10 +347,10 @@ public:
     MhdExprCompound(const MhdExpr::Vec& exprs)
         : m_exprs(exprs) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        MhdValue expr;
-        for (MhdExpr::Ptr comp_expr : m_exprs) {
+        MhdDynamic expr;
+        for (const MhdExpr::Ptr& comp_expr : m_exprs) {
             expr = comp_expr->eval();
         }
         return expr;
@@ -373,16 +376,16 @@ public:
         : m_cond(cond)
         , m_then_branch(then_branch), m_else_branch(else_branch) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue cond = m_cond->eval();
+        const MhdDynamic cond = m_cond->eval();
         if (cond) {
             return m_then_branch->eval();
         } else {
             if (m_else_branch != nullptr) {
                 return m_else_branch->eval();
             } else {
-                return MhdValue();
+                return MhdDynamic();
             }
         }
     }
@@ -399,13 +402,13 @@ public:
         : m_cond(cond)
         , m_cases(cases), m_case_default(case_default) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        const MhdValue cond = m_cond->eval();
+        const MhdDynamic cond = m_cond->eval();
         try {
-            for (std::pair<MhdExpr::Ptr, MhdExpr::Ptr> case_expr : m_cases) {
-                MhdExpr::Ptr case_value = case_expr.first;
-                MhdExpr::Ptr case_branch = case_expr.second;
+            for (const std::pair<MhdExpr::Ptr, MhdExpr::Ptr>& case_expr : m_cases) {
+                const MhdExpr::Ptr& case_value = case_expr.first;
+                const MhdExpr::Ptr& case_branch = case_expr.second;
                 if (case_value != nullptr &&
                     case_value->eval() == cond) {
                     return case_branch->eval();
@@ -414,7 +417,7 @@ public:
             if (m_case_default != nullptr) {
                 return m_case_default->eval();
             } else {
-                return MhdValue();
+                return MhdDynamic();
             }
         } catch (const MhdJumpBreak& break_jump) {
             return break_jump.m_val;
@@ -440,9 +443,9 @@ public:
         : m_cond(cond)
         , m_body(body) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        MhdValue expr;
+        MhdDynamic expr;
         try {
             while (m_cond->eval()) {
                 try {
@@ -466,9 +469,9 @@ public:
         : m_cond(cond)
         , m_body(body) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        MhdValue expr;
+        MhdDynamic expr;
         try {
             do {
                 try {
@@ -494,9 +497,9 @@ public:
         : m_init(init), m_cond(cond), m_iter(iter)
         , m_body(body) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
-        MhdValue expr;
+        MhdDynamic expr;
         try {
             for (m_init == nullptr || m_init->eval(); 
                  m_cond == nullptr || m_cond->eval(); 
@@ -528,7 +531,7 @@ public:
     MhdExprJumpBreak(MhdExpr::Ptr expr)
         : m_expr(expr) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
         if (m_expr != nullptr) {
             throw MhdJumpBreak(m_expr->eval());
@@ -543,7 +546,7 @@ struct MhdExprJumpContinue final : public MhdExprJump
 public:
     MhdExprJumpContinue() {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
         throw MhdJumpContinue();
     }
@@ -557,7 +560,7 @@ public:
     MhdExprJumpReturn(MhdExpr::Ptr expr)
         : m_expr(expr) {}
 public:
-    MhdValue eval() const override
+    MhdDynamic eval() const override
     {
         if (m_expr != nullptr) {
             throw MhdJumpReturn(m_expr->eval());

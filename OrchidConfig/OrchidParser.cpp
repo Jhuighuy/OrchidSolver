@@ -204,7 +204,6 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_do()
     } else {
         return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
     }
-    body = parse();
     MhdExpr::Ptr expr;
     expr = std::make_shared<MhdExprLoopDoWhile>(cond, body);
     return expr; 
@@ -358,7 +357,7 @@ MhdExpr::Ptr MhdParser::parse_expression_binary_or_bw()
     MhdExpr::Ptr expr = parse_expression_binary_xor_bw();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_OR_BW) {
         peek();
-        expr = std::make_shared<MhdExprBinaryLogicalBw>(op, expr, parse_expression_binary_xor_bw());
+        expr = std::make_shared<MhdExprBinaryBitwise>(op, expr, parse_expression_binary_xor_bw());
     }
     return expr;
 }
@@ -370,7 +369,7 @@ MhdExpr::Ptr MhdParser::parse_expression_binary_xor_bw()
     MhdExpr::Ptr expr = parse_expression_binary_and_bw();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_XOR_BW) {
         peek();
-        expr = std::make_shared<MhdExprBinaryLogicalBw>(op, expr, parse_expression_binary_and_bw());
+        expr = std::make_shared<MhdExprBinaryBitwise>(op, expr, parse_expression_binary_and_bw());
     }
     return expr;
 }
@@ -382,7 +381,7 @@ MhdExpr::Ptr MhdParser::parse_expression_binary_and_bw()
     MhdExpr::Ptr expr = parse_expression_binary_eq_neq();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_XOR_BW) {
         peek();
-        expr = std::make_shared<MhdExprBinaryLogicalBw>(op, expr, parse_expression_binary_eq_neq());
+        expr = std::make_shared<MhdExprBinaryBitwise>(op, expr, parse_expression_binary_eq_neq());
     }
     return expr;
 }
@@ -583,7 +582,7 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_index()
 //########################################################################################################
 //########################################################################################################
 
-std::map<std::string, MhdValue> g_vars;
+std::map<std::string, MhdDynamic> g_vars;
 #include <cstdio>
 extern "C" void orchid_solver_scanner_test()
 {

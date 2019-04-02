@@ -12,11 +12,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OrchidAST.hpp" />
+    <ClInclude Include="OrchidDynamic.hpp" />
     <ClInclude Include="OrchidParser.hpp" />
     <ClInclude Include="OrchidScanner.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidAST.cpp" />
+    <ClCompile Include="OrchidDynamic.cpp" />
     <ClCompile Include="OrchidParser.cpp" />
     <ClCompile Include="OrchidScanner.cpp" />
   </ItemGroup>
