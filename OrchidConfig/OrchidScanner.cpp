@@ -2,6 +2,7 @@
 // Copyright(C) Butakov Oleg 2019.
 
 #include "OrchidScanner.hpp"
+#include "OrchidAST.hpp"
 
 //########################################################################################################
 //########################################################################################################
@@ -9,177 +10,227 @@
 /** 
  * Scan a single token. 
  */
+ORCHID_INTERNAL 
 bool MhdTokenizer::scan(MhdToken& token)
 {
-    const char character = peek();
+    token = MhdToken();
+    char character;
+    while (isspace(character = peek())) {
+        advance();
+    }
+    character = peek();
     switch (character) {
-    case '\'':
-    case '\"':
-        return scan_str(token);
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-        return scan_num(token);
-    case '_': case '$':
-    case 'A': case 'a':
-    case 'B': case 'b':
-    case 'C': case 'c':
-    case 'D': case 'd':
-    case 'E': case 'e':
-    case 'F': case 'f':
-    case 'G': case 'g':
-    case 'H': case 'h':
-    case 'I': case 'i':
-    case 'J': case 'j':
-    case 'K': case 'k':
-    case 'L': case 'l':
-    case 'M': case 'm':
-    case 'N': case 'n':
-    case 'O': case 'o':
-    case 'P': case 'p':
-    case 'Q': case 'q':
-    case 'R': case 'r':
-    case 'S': case 's':
-    case 'T': case 't':
-    case 'U': case 'u':
-    case 'V': case 'v':
-    case 'W': case 'w':
-    case 'X': case 'x':
-    case 'Y': case 'y':
-    case 'Z': case 'z':
-        if (character == 't' &&
-            peek_next() == 'r' && peek_next() == 'u' && peek_next() == 'e') {
+        case '\'':
+        case '\"':
+            return scan_str(token);
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+            return scan_num(token);
+        case '_': case '$':
+        case 'A': case 'a':
+        case 'B': case 'b':
+        case 'C': case 'c':
+        case 'D': case 'd':
+        case 'E': case 'e':
+        case 'F': case 'f':
+        case 'G': case 'g':
+        case 'H': case 'h':
+        case 'I': case 'i':
+        case 'J': case 'j':
+        case 'K': case 'k':
+        case 'L': case 'l':
+        case 'M': case 'm':
+        case 'N': case 'n':
+        case 'O': case 'o':
+        case 'P': case 'p':
+        case 'Q': case 'q':
+        case 'R': case 'r':
+        case 'S': case 's':
+        case 'T': case 't':
+        case 'U': case 'u':
+        case 'V': case 'v':
+        case 'W': case 'w':
+        case 'X': case 'x':
+        case 'Y': case 'y':
+        case 'Z': case 'z':
+            if (character == 'i' &&
+                peek_next() == 'f') {
+                advance();
+                token.m_kind = MhdToken::Kind::KW_IF;
+                return true;
+            }
+            if (character == 'e' &&
+                peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
+                advance();
+                token.m_kind = MhdToken::Kind::KW_ELSE;
+                return true;
+            }
+            if (character == 'f' &&
+                peek_next() == 'o' && peek_next() == 'r') {
+                advance();
+                token.m_kind = MhdToken::Kind::KW_FOR;
+                return true;
+            }
+            if (character == 't' &&
+                peek_next() == 'r' && peek_next() == 'u' && peek_next() == 'e') {
+                advance();
+                token.m_kind = MhdToken::Kind::CT_LGC;
+                token.m_value_int = 1;
+                return true;
+            }
+            if (character == 'f' &&
+                peek_next() == 'a' && peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
+                advance();
+                token.m_kind = MhdToken::Kind::CT_LGC;
+                token.m_value_int = 0;
+                return true;
+            }
+            if (character == 'w' &&
+                peek_next() == 'h' && peek_next() == 'i' && peek_next() == 'l' && peek_next() == 'e') {
+                advance();
+                token.m_kind = MhdToken::Kind::KW_WHILE;
+                token.m_value_int = 0;
+                return true;
+            }
+            if (character == 'b' &&
+                peek_next() == 'r' && peek_next() == 'e' && peek_next() == 'a' && peek_next() == 'k') {
+                advance();
+                token.m_kind = MhdToken::Kind::KW_BREAK;
+                token.m_value_int = 0;
+                return true;
+            }
+            return scan_id(token);
+        case '.':
             advance();
-            token.m_kind = MhdToken::Kind::CT_LGC;
-            token.m_value_int = 1;
+            token.m_kind = MhdToken::Kind::OP_DOT;
             return true;
-        }
-        if (character == 'f' &&
-            peek_next() == 'a' && peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
+        case ',':
             advance();
-            token.m_kind = MhdToken::Kind::CT_LGC;
-            token.m_value_int = 0;
+            token.m_kind = MhdToken::Kind::OP_COMMA;
             return true;
-        }
-        return scan_id(token);
-    case '=':
-        advance();
-        if (peek() == '=') {
+        case ';':
             advance();
-            token.m_kind = MhdToken::Kind::OP_ASG;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_EQ;
-        }
-        return true;
-    case '+':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_ADD;
-        return true;
-    case '-':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_SUB;
-        return true;
-    case '*':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_MUL;
-        return true;
-    case '/':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_DIV;
-        return true;
-    case '%':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_MOD;
-        return true;
-    case '!':
-        advance();
-        if (peek() == '=') {
+            token.m_kind = MhdToken::Kind::OP_SEMICOLON;
+            return true;
+        case '=':
             advance();
-            token.m_kind = MhdToken::Kind::OP_NEQ;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_NOT;
-        }
-        return true;
-    case '<':
-        advance();
-        if (peek() == '=') {
+            if (peek() == '=') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_EQ;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_ASG;
+            }
+            return true;
+        case '+':
             advance();
-            token.m_kind = MhdToken::Kind::OP_LTE;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_LT;
-        }
-        return true;
-    case '>':
-        advance();
-        if (peek() == '=') {
+            token.m_kind = MhdToken::Kind::OP_ADD;
+            return true;
+        case '-':
             advance();
-            token.m_kind = MhdToken::Kind::OP_GTE;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_GT;
-        }
-        return true;
-    case '&':
-        advance();
-        if (peek() == '&') {
+            token.m_kind = MhdToken::Kind::OP_SUB;
+            return true;
+        case '*':
             advance();
-            token.m_kind = MhdToken::Kind::OP_AND;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_AND_BW;
-        }
-        return true;
-    case '|':
-        advance();
-        if (peek() == '|') {
+            token.m_kind = MhdToken::Kind::OP_MUL;
+            return true;
+        case '/':
             advance();
-            token.m_kind = MhdToken::Kind::OP_OR;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_OR_BW;
-        }
-        return true;
-    case '^':
-        advance();
-        if (peek() == '^') {
+            token.m_kind = MhdToken::Kind::OP_DIV;
+            return true;
+        case '%':
             advance();
-            token.m_kind = MhdToken::Kind::OP_XOR;
-        } else {
-            token.m_kind = MhdToken::Kind::OP_XOR_BW;
-        }
-        return true;
-    case '(':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_PAREN_OPEN;
-        return true;
-    case ')':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_PAREN_CLOSE;
-        return true;
-    case '{':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_BRACE_OPEN;
-        return true;
-    case '}':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_BRACE_CLOSE;
-        return true;
-    case '[':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_BRACKET_OPEN;
-        return true;
-    case ']':
-        advance();
-        token.m_kind = MhdToken::Kind::OP_BRACKET_CLOSE;
-        return true;
-    default:
-        token.m_kind = MhdToken::Kind::ERR;
-        token.m_value_str = "Invalid symbol in the input stream.";
-        return false;
+            token.m_kind = MhdToken::Kind::OP_MOD;
+            return true;
+        case '!':
+            advance();
+            if (peek() == '=') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_NEQ;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_NOT;
+            }
+            return true;
+        case '<':
+            advance();
+            if (peek() == '=') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_LTE;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_LT;
+            }
+            return true;
+        case '>':
+            advance();
+            if (peek() == '=') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_GTE;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_GT;
+            }
+            return true;
+        case '&':
+            advance();
+            if (peek() == '&') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_AND;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_AND_BW;
+            }
+            return true;
+        case '|':
+            advance();
+            if (peek() == '|') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_OR;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_OR_BW;
+            }
+            return true;
+        case '^':
+            advance();
+            if (peek() == '^') {
+                advance();
+                token.m_kind = MhdToken::Kind::OP_XOR;
+            } else {
+                token.m_kind = MhdToken::Kind::OP_XOR_BW;
+            }
+            return true;
+        case '(':
+            advance();
+            token.m_kind = MhdToken::Kind::OP_PAREN_OPEN;
+            return true;
+        case ')':
+            advance();
+            token.m_kind = MhdToken::Kind::OP_PAREN_CLOSE;
+            return true;
+        case '{':
+            advance();
+            token.m_kind = MhdToken::Kind::OP_BRACE_OPEN;
+            return true;
+        case '}':
+            advance();
+            token.m_kind = MhdToken::Kind::OP_BRACE_CLOSE;
+            return true;
+        case '[':
+            advance();
+            token.m_kind = MhdToken::Kind::OP_BRACKET_OPEN;
+            return true;
+        case ']':
+            advance();
+            token.m_kind = MhdToken::Kind::OP_BRACKET_CLOSE;
+            return true;
+        default:
+            token.m_kind = MhdToken::Kind::ERR;
+            token.m_value_str = "Invalid symbol in the input stream.";
+            return false;
     }
 }
 //########################################################################################################
@@ -188,6 +239,7 @@ bool MhdTokenizer::scan(MhdToken& token)
 /**
  * Scan a single string token.
  */
+ORCHID_INTERNAL 
 bool MhdTokenizer::scan_str(MhdToken& token)
 {
     return false;
@@ -198,6 +250,7 @@ bool MhdTokenizer::scan_str(MhdToken& token)
 /**
  * Scan a single numeric token.
  */
+ORCHID_INTERNAL 
 bool MhdTokenizer::scan_num(MhdToken& token)
 {
     bool can_be_hex = false;
@@ -311,7 +364,10 @@ bool MhdTokenizer::scan_num(MhdToken& token)
  */
 bool MhdTokenizer::scan_id(MhdToken& token)
 {
-    return false;
+    token.m_value_str.push_back(peek());
+    token.m_kind = MhdToken::Kind::ID;
+    advance();
+    return true;
 }
 //########################################################################################################
 //########################################################################################################
