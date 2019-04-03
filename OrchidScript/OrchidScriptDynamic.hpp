@@ -16,6 +16,15 @@ using MhdDynamicU = MhdDynamic;
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
+template<typename = void>
+struct MhdDynamicIntT;
+template<typename = void>
+struct MhdDynamicDblT;
+template<typename = void>
+struct MhdDynamicStrT;
+template<int, typename = void>
+struct MhdDynamicFuncT;
+//--------------------------------------------------------------------------------------------------------
 struct MhdDynamicT
 {
 public:
@@ -143,15 +152,6 @@ public:
         throw MhdInvalidOp(); 
     }
 };  // struct MhdDynamicT
-//--------------------------------------------------------------------------------------------------------
-template<typename=void>
-struct MhdDynamicIntT;
-template<typename=void>
-struct MhdDynamicDblT;
-template<typename=void>
-struct MhdDynamicStrT;
-template<int, typename=void>
-struct MhdDynamicFuncT;
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -652,8 +652,7 @@ public:
         : m_impl(new MhdDynamicFuncT<sizeof...(U)>(
             [value](MhdDynamicU<U>... u)
             { 
-                value(u...);
-                return MhdDynamic();
+                return value(u...), MhdDynamic();
             })) {}
     template<typename T, typename... U>
     MhdDynamic(const std::function<T(U...)>& value)
@@ -876,7 +875,7 @@ public:
             throw MhdInvalidOp(); 
         }
     }
-};  // struct MhdDynamicFunc0T
+};  // struct MhdDynamicFuncT
 //--------------------------------------------------------------------------------------------------------
 template<typename T>
 struct MhdDynamicFuncT<1, T> final : public MhdDynamicT
@@ -901,7 +900,7 @@ public:
             throw MhdInvalidOp(); 
         }
     }
-};  // struct MhdDynamicFunc1T
+};  // struct MhdDynamicFuncT
 //--------------------------------------------------------------------------------------------------------
 template<typename T>
 struct MhdDynamicFuncT<2, T> final : public MhdDynamicT
@@ -927,7 +926,7 @@ public:
             throw MhdInvalidOp(); 
         }
     }
-};  // struct MhdDynamicFunc1T
+};  // struct MhdDynamicFuncT
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################

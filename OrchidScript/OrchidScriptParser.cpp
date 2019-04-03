@@ -548,7 +548,7 @@ MhdExpr::Ptr MhdParser::parse_expression_unary()
     // Parse UNARY expression.
     MhdExpr::Ptr expr;
     switch (m_token.m_kind) {
-        // Logic/Birwise unary operations.
+        // Logic/Bitwise unary operations.
         case MhdToken::Kind::OP_NOT:
         case MhdToken::Kind::OP_NOT_BW:
             expr = parse_expression_unary_not();
