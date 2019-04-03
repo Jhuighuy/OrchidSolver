@@ -4,6 +4,29 @@
 #include "OrchidScriptParser.hpp"
 #include "OrchidScriptParserSyntax.hpp"
 
+#include <exception>
+
+struct MhdParseException : public std::runtime_error
+{
+public:
+    MhdParseException(...) 
+        : std::runtime_error("HUI!") {}   
+};  // struct MhdParseException
+
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+ORCHID_INTERFACE
+MhdExpr::Ptr MhdParser::parse_wrap()
+{
+    MhdExpr::Ptr expr;
+    try {
+        expr = parse();
+    } catch (const MhdParseException& parse_exc) {
+        printf("Error: %s\n%s\n", m_tokenizer.m_text, parse_exc.what());
+    }
+    return expr;
+}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -11,52 +34,66 @@ ORCHID_INTERNAL
 MhdExpr::Ptr MhdParser::parse()
 {
     // Parse statements.
+    MhdExpr::Ptr expr;
     switch (m_token.m_kind) {
         // Empty statement.
         case MhdToken::Kind::OP_SEMICOLON:
             peek();
-            return std::make_shared<MhdExprEmpty>();
+            expr = std::make_shared<MhdExprEmpty>();
+            return expr;
         // Compound statement.
         case MhdToken::Kind::OP_BRACE_OPEN:
             peek();
-            return parse_expression_compound();
+            expr = parse_expression_compound();
+            return expr;
         // Selection statement.
         case MhdToken::Kind::KW_IF:
             peek();
-            return parse_expression_cond_if();
+            expr = parse_expression_cond_if();
+            return expr;
         case MhdToken::Kind::KW_SWITCH:
             peek();
-            return parse_expression_cond_switch();
+            expr = parse_expression_cond_switch();
+            return expr;
         // Loop statement.
         case MhdToken::Kind::KW_WHILE:
             peek();
-            return parse_expression_loop_while();
+            expr = parse_expression_loop_while();
+            return expr;
         case MhdToken::Kind::KW_DO:
             peek();
-            return parse_expression_loop_do();
+            expr = parse_expression_loop_do();
+            return expr;
         case MhdToken::Kind::KW_FOR:
             peek();
-            return parse_expression_loop_for();
+            expr = parse_expression_loop_for();
+            return expr;
         // Jump statement.
         case MhdToken::Kind::KW_BREAK:
             peek();
-            return parse_expression_jump_break();
+            expr = parse_expression_jump_break();
+            return expr;
         case MhdToken::Kind::KW_CONTINUE:
             peek();
-            return parse_expression_jump_continue();
+            expr = parse_expression_jump_continue();
+            return expr;
         case MhdToken::Kind::KW_RETURN:
             peek();
-            return parse_expression_jump_return();
+            expr = parse_expression_jump_return();
+            return expr;
+        case MhdToken::Kind::KW_THROW:
+            peek();
+            expr = parse_expression_jump_throw();
+            return expr;
         // Declaration or expression statements.
-        default: {
-                MhdExpr::Ptr expr = parse_expression();
-                if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
-                    peek();
-                } else {
-                    return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
-                }
-                return expr;
+        default:
+            expr = parse_expression();
+            if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
+                peek();
+            } else {
+                throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
             }
+            return expr;
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -85,13 +122,13 @@ MhdExpr::Ptr MhdParser::parse_expression_cond_if()
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     cond = parse_expression();
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     then_branch = parse();
     if (m_token.m_kind == MhdToken::Kind::KW_ELSE) {
@@ -113,18 +150,18 @@ MhdExpr::Ptr MhdParser::parse_expression_cond_switch()
     if (m_token.m_kind != MhdToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     cond = parse_expression();
     if (m_token.m_kind != MhdToken::Kind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     if (m_token.m_kind != MhdToken::Kind::OP_BRACE_OPEN) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     while (m_token.m_kind != MhdToken::Kind::OP_BRACE_CLOSE) {
         MhdExpr::Ptr* pcase = nullptr;
@@ -138,15 +175,15 @@ MhdExpr::Ptr MhdParser::parse_expression_cond_switch()
             if (case_default == nullptr) {
                 pcase = &case_default;
             } else {
-                return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_DEFAULT);
+                throw MhdParseException(MhdParserErr::ERR_UNEXP_DEFAULT);
             }
         } else {
-            return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
         }
         if (m_token.m_kind != MhdToken::Kind::OP_COLON) {
             peek();
         } else {
-            return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
         }
         MhdExpr::Vec exprs;
         ORCHID_ASSERT(0);
@@ -168,13 +205,13 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_while()
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     cond = parse_expression();
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     body = parse();
     MhdExpr::Ptr expr;
@@ -192,18 +229,18 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_do()
     if (m_token.m_kind == MhdToken::Kind::KW_WHILE) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     cond = parse_expression();
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     MhdExpr::Ptr expr;
     expr = std::make_shared<MhdExprLoopDoWhile>(cond, body);
@@ -218,11 +255,10 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_for()
     MhdExpr::Ptr cond;
     MhdExpr::Ptr iter;
     MhdExpr::Ptr body;
-    MhdExpr::Ptr expr;
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     if (m_token.m_kind != MhdToken::Kind::OP_SEMICOLON) {
         init = parse_expression();
@@ -230,7 +266,7 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_for()
     if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     if (m_token.m_kind != MhdToken::Kind::OP_SEMICOLON) {
         cond = parse_expression();
@@ -238,7 +274,7 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_for()
     if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     if (m_token.m_kind != MhdToken::Kind::OP_PAREN_CLOSE) {
         iter = parse_expression();
@@ -246,10 +282,29 @@ MhdExpr::Ptr MhdParser::parse_expression_loop_for()
     if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     body = parse();
+    MhdExpr::Ptr expr;
     expr = std::make_shared<MhdExprLoopFor>(init, cond, iter, body);
+    return expr; 
+}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+ORCHID_INTERNAL
+MhdExpr::Ptr MhdParser::parse_expression_try_catch()
+{
+    // Parse TRY-CATCH expression.
+    MhdExpr::Ptr try_block;
+    MhdExpr::Ptr catch_block;
+    MhdExpr::Ptr expr;
+    try_block = parse();
+    if (m_token.m_kind == MhdToken::Kind::KW_CATCH) {
+        peek();
+        ORCHID_ASSERT(0);
+    }
+    expr = std::make_shared<MhdExprTryCatch>(try_block, catch_block);
     return expr; 
 }
 //########################################################################################################
@@ -266,7 +321,7 @@ MhdExpr::Ptr MhdParser::parse_expression_jump_break()
     if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     expr = std::make_shared<MhdExprJumpBreak>(expr);
     return expr; 
@@ -280,7 +335,7 @@ MhdExpr::Ptr MhdParser::parse_expression_jump_continue()
     if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     expr = std::make_shared<MhdExprJumpContinue>();
     return expr; 
@@ -297,9 +352,26 @@ MhdExpr::Ptr MhdParser::parse_expression_jump_return()
     if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
         peek();
     } else {
-        return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
     expr = std::make_shared<MhdExprJumpReturn>(expr);
+    return expr; 
+}
+//--------------------------------------------------------------------------------------------------------
+ORCHID_INTERNAL
+MhdExpr::Ptr MhdParser::parse_expression_jump_throw()
+{
+    // Parse THROW jump expression.
+    MhdExpr::Ptr expr;
+    if (m_token.m_kind != MhdToken::Kind::OP_SEMICOLON) {
+        expr = parse_expression();
+    }
+    if (m_token.m_kind == MhdToken::Kind::OP_SEMICOLON) {
+        peek();
+    } else {
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+    }
+    expr = std::make_shared<MhdExprJumpThrow>(expr);
     return expr; 
 }
 //########################################################################################################
@@ -318,7 +390,17 @@ MhdExpr::Ptr MhdParser::parse_expression_binary_asg()
     // Parse ASSIGNMENT expressions.
     MhdToken::Kind op;
     MhdExpr::Ptr expr = parse_expression_binary_or();
-    while ((op = m_token.m_kind) == MhdToken::Kind::OP_ASG) {
+    while ((op = m_token.m_kind) == MhdToken::Kind::OP_ASG ||
+            op == MhdToken::Kind::OP_OR_BW_ASG ||
+            op == MhdToken::Kind::OP_XOR_BW_ASG ||
+            op == MhdToken::Kind::OP_AND_BW_ASG ||
+            op == MhdToken::Kind::OP_LSHIFT_ASG ||
+            op == MhdToken::Kind::OP_RSHIFT_ASG ||
+            op == MhdToken::Kind::OP_ADD_ASG ||
+            op == MhdToken::Kind::OP_SUB_ASG ||
+            op == MhdToken::Kind::OP_MUL_ASG ||
+            op == MhdToken::Kind::OP_DIV_ASG ||
+            op == MhdToken::Kind::OP_MOD_ASG) {
         peek();
         expr = std::make_shared<MhdExprBinaryAssignment>(op, expr, parse_expression_binary_or());
     }
@@ -405,11 +487,27 @@ MhdExpr::Ptr MhdParser::parse_expression_binary_lt_lte_gt_gte()
 {
     // Parse BINARY LESS(-EQUALS) or GREATER(-EQUALS) expressions.
     MhdToken::Kind op;
-    MhdExpr::Ptr expr = parse_expression_binary_add_sub();
-    while ((op = m_token.m_kind) == MhdToken::Kind::OP_LT || op == MhdToken::Kind::OP_LTE ||
-            op == MhdToken::Kind::OP_GT || op == MhdToken::Kind::OP_GTE) {
+    MhdExpr::Ptr expr = parse_expression_binary_shift();
+    while ((op = m_token.m_kind) == MhdToken::Kind::OP_LT || 
+            op == MhdToken::Kind::OP_LTE ||
+            op == MhdToken::Kind::OP_GT || 
+            op == MhdToken::Kind::OP_GTE) {
         peek();
-        expr = std::make_shared<MhdExprBinaryLogical>(op, expr, parse_expression_binary_add_sub());
+        expr = std::make_shared<MhdExprBinaryLogical>(op, expr, parse_expression_binary_shift());
+    }
+    return expr;
+}
+//--------------------------------------------------------------------------------------------------------
+ORCHID_INTERNAL
+MhdExpr::Ptr MhdParser::parse_expression_binary_shift()
+{
+    // Parse BINARY BITWISE SHIFT expressions.
+    MhdToken::Kind op;
+    MhdExpr::Ptr expr = parse_expression_binary_add_sub();
+    while ((op = m_token.m_kind) == MhdToken::Kind::OP_LSHIFT ||
+            op == MhdToken::Kind::OP_RSHIFT) {
+        peek();
+        expr = std::make_shared<MhdExprBinaryBitwise>(op, expr, parse_expression_binary_add_sub());
     }
     return expr;
 }
@@ -448,20 +546,36 @@ ORCHID_INTERNAL
 MhdExpr::Ptr MhdParser::parse_expression_unary()
 {
     // Parse UNARY expression.
+    MhdExpr::Ptr expr;
     switch (m_token.m_kind) {
-        // Logic unary operations.
+        // Logic/Birwise unary operations.
         case MhdToken::Kind::OP_NOT:
-            return parse_expression_unary_not();
+        case MhdToken::Kind::OP_NOT_BW:
+            expr = parse_expression_unary_not();
+            return expr;
         // Arithmetic unary operations.
         case MhdToken::Kind::OP_ADD:
         case MhdToken::Kind::OP_SUB:
-            return parse_expression_unary_negate();
-        // Parentheses or cast operations.
+            expr = parse_expression_unary_negate();
+            return expr;
+        // Parentheses/Brace expression.
+        case MhdToken::Kind::OP_BRACE_OPEN:
+            peek();
+            expr = parse_expression_compound();
+            return expr;
         case MhdToken::Kind::OP_PAREN_OPEN:
-            return nullptr;
+            peek();
+            expr = parse_expression();
+            if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
+                peek();
+            } else {
+                throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+            }
+            return expr;
         // Expression operand.
         default:
-            return parse_expression_unary_factor();
+            expr = parse_expression_unary_factor();
+            return expr;
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -514,7 +628,7 @@ MhdExpr::Ptr MhdParser::parse_expression_unary_operand()
             return expr;
         // Error case.
         default:
-            return std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN);
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -551,8 +665,7 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_call()
                 peek();
                 break;
             default:
-                exprs = {std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN)};
-                return exprs;                
+                throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
         }
     }
     peek();
@@ -572,8 +685,7 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_index()
                 peek();
                 break;
             default:
-                exprs = {std::make_shared<MhdExprError>(MhdParserErr::ERR_UNEXP_TOKEN)};
-                break;
+                throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
         }
     }
     peek();
@@ -583,17 +695,20 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_index()
 //########################################################################################################
 //########################################################################################################
 
-std::map<std::string, MhdDynamic> g_vars;
+#include <cmath>
 #include <cstdio>
+std::map<std::string, MhdDynamic> g_vars;
 extern "C" void orchid_solver_scanner_test()
 {
-    MhdParser p("for(x=0;x<10;)x=x+1;");
-    auto e = p.parse();
+    g_vars["s"] = MhdDynamic(std::function<double(double)>((double(*)(double))sqrt));
+    MhdParser p("{for(x=0;x<10;)x=x+1; x=s(2);}");
+    //MhdParser p("{x=1+2;}");
+    auto e = p.parse_wrap();
     auto g = e.get();
-    printf("%u\n", g->eval());
+    printf("%s\n", g->eval().operator std::string().c_str());
 }
-//int main() 
-//{
-//    orchid_solver_scanner_test();
-//    return 0;
-//}
+int main() 
+{
+    orchid_solver_scanner_test();
+    return 0;
+}

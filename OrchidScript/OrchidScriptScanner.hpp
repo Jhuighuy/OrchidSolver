@@ -30,9 +30,12 @@ struct MhdToken
         KW_WHILE,
         KW_DO,
         KW_FOR,
+        KW_TRY,
+        KW_CATCH,
         KW_BREAK,
         KW_CONTINUE,
         KW_RETURN,
+        KW_THROW,
         OP_DOT,
         OP_COMMA,
         OP_COLON,
@@ -49,12 +52,17 @@ struct MhdToken
         OP_MOD,
         OP_MOD_ASG,
         OP_NOT,
+        OP_NOT_BW,
         OP_EQ,
         OP_NEQ,
         OP_LT,
         OP_LTE,
         OP_GT,
         OP_GTE,
+        OP_LSHIFT,
+        OP_LSHIFT_ASG,
+        OP_RSHIFT,
+        OP_RSHIFT_ASG,
         OP_AND,
         OP_AND_BW,
         OP_AND_BW_ASG,
@@ -97,7 +105,7 @@ public:
 /** Token scanner. */
 struct MhdTokenizer
 {
-private:
+public:
     const char* m_text;
     std::size_t m_text_peeked;
 public:
