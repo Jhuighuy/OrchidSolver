@@ -489,8 +489,8 @@ MhdExpr::Ptr MhdParser::parse_expression_binary_lt_lte_gt_gte()
     MhdToken::Kind op;
     MhdExpr::Ptr expr = parse_expression_binary_shift();
     while ((op = m_token.m_kind) == MhdToken::Kind::OP_LT || 
-            op == MhdToken::Kind::OP_LTE ||
             op == MhdToken::Kind::OP_GT || 
+            op == MhdToken::Kind::OP_LTE ||
             op == MhdToken::Kind::OP_GTE) {
         peek();
         expr = std::make_shared<MhdExprBinaryLogical>(op, expr, parse_expression_binary_shift());
