@@ -13,6 +13,7 @@ enum class MhdParserErr
 {
     ERR_UNEXP_TOKEN,
     ERR_UNEXP_DEFAULT,
+    ERR_FUNC_ARG_REDECL,
 };
 struct MhdParser
 {
@@ -59,10 +60,14 @@ private:
     MhdExpr::Ptr parse_expression_unary();
     MhdExpr::Ptr parse_expression_unary_not();
     MhdExpr::Ptr parse_expression_unary_negate();
+private:
     MhdExpr::Ptr parse_expression_unary_operand();
+    MhdExpr::Ptr parse_expression_unary_operand_func();
+private:
     MhdExpr::Ptr parse_expression_unary_factor();
     MhdExpr::Vec parse_expression_unary_factor_call();
     MhdExpr::Vec parse_expression_unary_factor_index();
+    MhdExpr::Vec parse_expression_unary_factor_subscript();
 private:
     void peek() { m_tokenizer.scan(m_token); }
 };	// struct MhdParser

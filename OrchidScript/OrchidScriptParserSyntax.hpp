@@ -5,10 +5,10 @@
 
 #include "OrchidScriptScanner.hpp"
 #include "OrchidScriptDynamic.hpp"
-//typedef int MhdDynamic;
-#include <utility>
+
 #include <memory>
 #include <vector>
+#include <set>
 #include <map>
 
 #include <cassert>
@@ -28,7 +28,36 @@ enum MhdExprBaseType
     ORCHID_EXPR_TYPE_DBL,
 };	// enum MhdExprBaseType
 typedef MhdExprBaseType MhdExprType;
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 extern std::map<std::string, MhdDynamic> g_vars;
+struct MhdVariableScope 
+{
+private:
+    std::map<std::string, MhdDynamic> m_vars;
+public:
+    MhdVariableScope()
+    {
+        m_vars = g_vars;
+    }
+    ~MhdVariableScope()
+    {
+        std::map<std::string, MhdDynamic> vars;
+        for (const auto& var : g_vars) {
+            vars[var.first] = m_vars[var.first];
+        }
+        g_vars = vars;
+    }
+};  // struct MhdVariableScope
+struct MhdVariable 
+{
+public:
+    MhdVariable(const std::string& name, const MhdDynamic& value)
+    {
+        g_vars[name] = value;
+    }
+};  // struct MhdVariable
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -77,10 +106,9 @@ public:
     typedef std::shared_ptr<MhdExpr> Ptr;
     typedef std::vector<Ptr> Vec;
     typedef std::vector<std::pair<Ptr, Ptr>> Map;
-    MhdExprType m_type;
 public:
+    MhdExpr() {}
     virtual ~MhdExpr() {}
-    MhdExpr(...): m_type(ORCHID_EXPR_TYPE_LGC) {}
 public:
     virtual MhdDynamic updt(MhdDynamic val) const { abort(); }
     virtual MhdDynamic eval() const { abort(); } 
@@ -107,6 +135,33 @@ public:
         return m_value;
     }
 };  // struct MhdExprConst
+//--------------------------------------------------------------------------------------------------------
+struct MhdExprConstFunc : public MhdExpr
+{
+public:
+    std::vector<std::string> m_args;
+    MhdExpr::Ptr m_body;
+public:
+    MhdExprConstFunc(const std::vector<std::string>& args, MhdExpr::Ptr body)
+        : m_args(args)
+        , m_body(body) {}
+public:
+    MhdDynamic eval() const override
+    {
+        const std::function<MhdDynamic(const std::vector<MhdDynamic>&)> func =
+            [args_name=m_args, body=m_body](const std::vector<MhdDynamic>& args) {
+                MhdVariableScope scope{};
+                if (args.size() != args_name.size()) {
+                    throw MhdInvalidOp(); 
+                }
+                for (std::size_t i = 0; i < args.size(); ++i) {
+                    MhdVariable var(args_name[i], args[i]);
+                }
+                return body->eval();
+            };
+        return MhdDynamic(func);
+    }
+};  // struct MhdExprConstFunc
 //--------------------------------------------------------------------------------------------------------
 struct MhdExprIdent : public MhdExpr
 {
@@ -371,6 +426,7 @@ public:
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         for (const MhdExpr::Ptr& comp_expr : m_exprs) {
             expr = comp_expr->eval();
         }
@@ -400,6 +456,7 @@ public:
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         const MhdDynamic cond = m_cond->eval();
         if (cond) {
             expr = m_then_branch->eval();
@@ -426,6 +483,7 @@ public:
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         const MhdDynamic cond = m_cond->eval();
         try {
             for (const std::pair<MhdExpr::Ptr, MhdExpr::Ptr>& case_expr : m_cases) {
@@ -468,6 +526,7 @@ public:
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         try {
             while (m_cond->eval()) {
                 try {
@@ -494,6 +553,7 @@ public:
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         try {
             do {
                 try {
@@ -522,6 +582,7 @@ public:
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         try {
             for (m_init == nullptr || m_init->eval(); 
                  m_cond == nullptr || m_cond->eval(); 
@@ -544,17 +605,20 @@ struct MhdExprTryCatch : public MhdExpr
 public:
     MhdExpr::Ptr m_try_block;
     MhdExpr::Ptr m_catch_block;
+    std::string m_catch_arg;
 public:
-    MhdExprTryCatch(MhdExpr::Ptr try_block, MhdExpr::Ptr catch_block)
+    MhdExprTryCatch(MhdExpr::Ptr try_block, MhdExpr::Ptr catch_block, const std::string& catch_arg)
         : m_try_block(try_block)
-        , m_catch_block(catch_block) {}
+        , m_catch_block(catch_block), m_catch_arg(catch_arg) {}
     MhdDynamic eval() const override
     {
         MhdDynamic expr;
+        MhdVariableScope scope{};
         try {
             expr = m_try_block->eval();
         } catch (const MhdJumpThrow& throw_jump) {
-            expr = throw_jump.m_val;
+            MhdVariable(m_catch_arg, throw_jump.m_val);
+            expr = m_catch_block->eval();
         }
         return expr;
     }

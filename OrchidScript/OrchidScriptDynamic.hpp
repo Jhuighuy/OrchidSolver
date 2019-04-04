@@ -159,7 +159,9 @@ public:
     MhdDynamic(double value);
 public:
     MhdDynamic(const std::string& value);
+    MhdDynamic(const char* value) : MhdDynamic(std::string(value)) {}
 public:
+    MhdDynamic(const std::function<MhdDynamic(const std::vector<MhdDynamic>&)>& value);
     template<typename... U>
     MhdDynamic(const std::function<void(U...)>& value)
         : m_impl(new MhdDynamicFuncT<sizeof...(U)>(

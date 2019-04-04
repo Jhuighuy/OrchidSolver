@@ -298,13 +298,29 @@ MhdExpr::Ptr MhdParser::parse_expression_try_catch()
     // Parse TRY-CATCH expression.
     MhdExpr::Ptr try_block;
     MhdExpr::Ptr catch_block;
-    MhdExpr::Ptr expr;
+    std::string catch_arg;
     try_block = parse();
     if (m_token.m_kind == MhdToken::Kind::KW_CATCH) {
         peek();
-        ORCHID_ASSERT(0);
+        if (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN) {
+            peek();
+        } else {
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+        }
+        if (m_token.m_kind == MhdToken::Kind::ID) {
+            catch_arg = m_token.m_value_str;
+            peek();
+        } else {
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+        }
+        if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
+            peek();
+        } else {
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+        }
     }
-    expr = std::make_shared<MhdExprTryCatch>(try_block, catch_block);
+    MhdExpr::Ptr expr;
+    expr = std::make_shared<MhdExprTryCatch>(try_block, catch_block, catch_arg);
     return expr; 
 }
 //########################################################################################################
@@ -606,19 +622,23 @@ MhdExpr::Ptr MhdParser::parse_expression_unary_operand()
     switch (m_token.m_kind) {
         // Constant expression operand.
         case MhdToken::Kind::CT_STR:
-            expr = std::make_shared<MhdExprConst>(m_token.m_value_str);
+            expr = std::make_shared<MhdExprConst>(MhdDynamic(m_token.m_value_str));
             peek();
             return expr;
         case MhdToken::Kind::CT_DBL:
-            expr = std::make_shared<MhdExprConst>(m_token.m_value_dbl);
+            expr = std::make_shared<MhdExprConst>(MhdDynamic(m_token.m_value_dbl));
             peek();
             return expr;
         case MhdToken::Kind::CT_INT:
-            expr = std::make_shared<MhdExprConst>(m_token.m_value_int);
+            expr = std::make_shared<MhdExprConst>(MhdDynamic(m_token.m_value_int));
             peek();
             return expr;
         case MhdToken::Kind::CT_LGC:
-            expr = std::make_shared<MhdExprConst>(m_token.m_value_int != 0);
+            expr = std::make_shared<MhdExprConst>(MhdDynamic(m_token.m_value_int != 0));
+            peek();
+            return expr;
+        case MhdToken::Kind::CT_NIL:
+            expr = std::make_shared<MhdExprConst>(MhdDynamic());
             peek();
             return expr;
         // Identifier expression operand.
@@ -626,10 +646,57 @@ MhdExpr::Ptr MhdParser::parse_expression_unary_operand()
             expr = std::make_shared<MhdExprIdent>(m_token.m_value_str);
             peek();
             return expr;
+        // Function expression operand.
+        case MhdToken::Kind::OP_BRACKET_OPEN:
+            peek();
+            expr = parse_expression_unary_operand_func();
+            return expr;
         // Error case.
         default:
             throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
     }
+}
+ORCHID_INTERNAL
+MhdExpr::Ptr MhdParser::parse_expression_unary_operand_func()
+{
+    // Parse FUNCTION OPERAND expression.
+    if (m_token.m_kind == MhdToken::Kind::OP_BRACKET_CLOSE) {
+        peek();
+    } else {
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+    }
+    if (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN) {
+        peek();
+    } else {
+        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+    }
+    std::set<std::string> args;
+    while (m_token.m_kind != MhdToken::Kind::OP_PAREN_CLOSE) {
+        if (m_token.m_kind == MhdToken::Kind::ID) {
+            if (args.count(m_token.m_value_str) == 0) {
+                args.insert(m_token.m_value_str);
+            } else {
+                throw MhdParseException(MhdParserErr::ERR_FUNC_ARG_REDECL);
+            }
+            peek();
+        } else {
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+        }
+        switch (m_token.m_kind) {
+            case MhdToken::Kind::OP_COMMA:
+                peek();
+                break;
+            case MhdToken::Kind::OP_PAREN_CLOSE:
+                break;
+            default:
+                throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+        }
+    }
+    peek();
+    MhdExpr::Ptr body = parse();
+    MhdExpr::Ptr expr;
+    expr = std::make_shared<MhdExprConstFunc>(std::vector<std::string>{args.cbegin(), args.cend()}, body);
+    return expr;
 }
 //--------------------------------------------------------------------------------------------------------
 ORCHID_INTERNAL
@@ -637,17 +704,27 @@ MhdExpr::Ptr MhdParser::parse_expression_unary_factor()
 {
     // Parse OPERAND expression FACTOR.
     MhdExpr::Ptr expr = parse_expression_unary_operand();
-    switch (m_token.m_kind) {
-        case MhdToken::Kind::OP_PAREN_OPEN:
-            peek();
-            expr = std::make_shared<MhdExprFactorCall>(expr, parse_expression_unary_factor_call());
-            break;
-        case MhdToken::Kind::OP_BRACKET_OPEN:
-            peek();
-            expr = std::make_shared<MhdExprFactorIndex>(expr, parse_expression_unary_factor_index());
-            break;
-        default:
-            break;
+    while (m_token.m_kind == MhdToken::Kind::OP_PAREN_OPEN ||
+           m_token.m_kind == MhdToken::Kind::OP_BRACKET_OPEN ||
+           m_token.m_kind == MhdToken::Kind::OP_DOT) {
+        switch (m_token.m_kind) {
+            case MhdToken::Kind::OP_PAREN_OPEN:
+                peek();
+                expr = std::make_shared<MhdExprFactorCall>(expr, 
+                    parse_expression_unary_factor_call());
+                break;
+            case MhdToken::Kind::OP_BRACKET_OPEN:
+                peek();
+                expr = std::make_shared<MhdExprFactorIndex>(expr, 
+                    parse_expression_unary_factor_index());
+                break;
+            case MhdToken::Kind::OP_DOT:
+                peek();
+                expr = std::make_shared<MhdExprFactorIndex>(expr, 
+                    parse_expression_unary_factor_subscript());
+            default:
+                break;
+        }
     }
     return expr;
 }
@@ -659,10 +736,10 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_call()
     while (m_token.m_kind != MhdToken::Kind::OP_PAREN_CLOSE) {
         exprs.push_back(parse_expression());
         switch (m_token.m_kind) {
-            case MhdToken::Kind::OP_PAREN_CLOSE:
-                break;
             case MhdToken::Kind::OP_COMMA:
                 peek();
+                break;
+            case MhdToken::Kind::OP_PAREN_CLOSE:
                 break;
             default:
                 throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
@@ -679,16 +756,176 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_index()
     while (m_token.m_kind != MhdToken::Kind::OP_BRACKET_CLOSE) {
         exprs.push_back(parse_expression());
         switch (m_token.m_kind) {
-            case MhdToken::Kind::OP_BRACKET_CLOSE:
-                break;
             case MhdToken::Kind::OP_COMMA:
                 peek();
+                break;
+            case MhdToken::Kind::OP_BRACKET_CLOSE:
                 break;
             default:
                 throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
         }
     }
     peek();
+    return exprs;
+}
+ORCHID_INTERNAL
+MhdExpr::Vec MhdParser::parse_expression_unary_factor_subscript()
+{
+    // Parse SUBSCRIPT expression FACTOR.
+    MhdExpr::Vec exprs;
+    switch (m_token.m_kind) {
+        case MhdToken::Kind::ID:
+            exprs.push_back(std::make_shared<MhdExprConst>(m_token.m_value_str));
+            peek();
+            break;
+        case MhdToken::Kind::KW_OPERATOR:
+            peek();
+            switch (m_token.m_kind) {
+                case MhdToken::Kind::OP_ADD:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator+"));
+                    break;
+                case MhdToken::Kind::OP_ADD_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator+="));
+                    break;
+                case MhdToken::Kind::OP_SUB:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator-"));
+                    break;
+                case MhdToken::Kind::OP_SUB_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator-="));
+                    break;
+                case MhdToken::Kind::OP_MUL:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator*"));
+                    break;
+                case MhdToken::Kind::OP_MUL_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator*="));
+                    break;
+                case MhdToken::Kind::OP_DIV:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator/"));
+                    break;
+                case MhdToken::Kind::OP_DIV_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator/="));
+                    break;
+                case MhdToken::Kind::OP_MOD:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator%"));
+                    break;
+                case MhdToken::Kind::OP_MOD_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator%="));
+                    break;
+                case MhdToken::Kind::OP_NOT:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator!"));
+                    break;
+                case MhdToken::Kind::OP_NOT_BW:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator~"));
+                    break;
+                case MhdToken::Kind::OP_EQ:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator=="));
+                    break;
+                case MhdToken::Kind::OP_NEQ:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator!="));
+                    break;
+                case MhdToken::Kind::OP_LT:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator<"));
+                    break;
+                case MhdToken::Kind::OP_LTE:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator<="));
+                    break;
+                case MhdToken::Kind::OP_GT:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator>"));
+                    break;
+                case MhdToken::Kind::OP_GTE:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator>="));
+                    break;
+                case MhdToken::Kind::OP_LSHIFT:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator<<"));
+                    break;
+                case MhdToken::Kind::OP_LSHIFT_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator<<="));
+                    break;
+                case MhdToken::Kind::OP_RSHIFT:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator>>"));
+                    break;
+                case MhdToken::Kind::OP_RSHIFT_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator>>="));
+                    break;
+                case MhdToken::Kind::OP_AND:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator&&"));
+                    break;
+                case MhdToken::Kind::OP_AND_BW:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator&"));
+                    break;
+                case MhdToken::Kind::OP_AND_BW_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator&="));
+                    break;
+                case MhdToken::Kind::OP_OR:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator||"));
+                    break;
+                case MhdToken::Kind::OP_OR_BW:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator|"));
+                    break;
+                case MhdToken::Kind::OP_OR_BW_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator|="));
+                    break;
+                case MhdToken::Kind::OP_XOR_BW:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator^"));
+                    break;
+                case MhdToken::Kind::OP_XOR_BW_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator^="));
+                    break;
+                case MhdToken::Kind::OP_PAREN_OPEN:
+                    peek();
+                    if (m_token.m_kind == MhdToken::Kind::OP_PAREN_CLOSE) {
+                        peek();
+                    } else {
+                        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+                    }
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator()"));
+                    break;
+                case MhdToken::Kind::OP_BRACKET_OPEN:
+                    peek();
+                    if (m_token.m_kind == MhdToken::Kind::OP_BRACKET_CLOSE) {
+                        peek();
+                    } else {
+                        throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+                    }
+                    exprs.push_back(std::make_shared<MhdExprConst>("operator[]"));
+                    break;
+                default:
+                    throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+            }
+            break;
+        default:
+            throw MhdParseException(MhdParserErr::ERR_UNEXP_TOKEN);
+    }
     return exprs;
 }
 //########################################################################################################
@@ -700,8 +937,11 @@ MhdExpr::Vec MhdParser::parse_expression_unary_factor_index()
 std::map<std::string, MhdDynamic> g_vars;
 extern "C" void orchid_solver_scanner_test()
 {
-    g_vars["s"] = MhdDynamic(std::function<double(double)>((double(*)(double))sqrt));
-    MhdParser p("{for(x=0;x<10;)x=x+1; x=s(2);}");
+    g_vars["s"] = MhdDynamic(std::function<MhdDynamic()>([]() -> MhdDynamic {
+        return MhdDynamic(std::function<int()>([](){ return 1488; }));
+    }));
+    //MhdParser p("{for(x=0;x<10;)x=x+1; x=s()();}");
+    MhdParser p("{y = 2;[](x){ y = 1; x; }(1234)+y;}");
     //MhdParser p("{x=1+2;}");
     auto e = p.parse_wrap();
     auto g = e.get();

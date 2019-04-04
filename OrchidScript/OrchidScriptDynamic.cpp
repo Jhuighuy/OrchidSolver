@@ -1,8 +1,6 @@
 // Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
-#pragma once
-
 #include "OrchidScriptDynamic.hpp"
 #include "OrchidScriptParserSyntax.hpp"
 
@@ -521,6 +519,36 @@ public:
 ORCHID_INTERFACE
 MhdDynamic::MhdDynamic(const std::string& value)
     : m_impl(new MhdDynamicStrT<>(value)) {}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+template<typename T>
+struct MhdDynamicFuncT<-1, T> final : public MhdDynamicT
+{
+public:
+    std::function<MhdDynamic(const std::vector<MhdDynamic>&)> m_value;
+public:
+    explicit MhdDynamicFuncT(const std::function<MhdDynamic(const std::vector<MhdDynamic>&)>& value)
+        : m_value(value) {}
+public:
+    MhdDynamicT* copy() const override
+    { 
+        return new MhdDynamicFuncT<-1, T>(m_value); 
+    }
+public:
+    MhdDynamicT* operator()(const std::vector<MhdDynamicT*>& impls) const override
+    { 
+        std::vector<MhdDynamic> dyns;
+        for (const MhdDynamicT* impl : impls) {
+            dyns.push_back(MhdDynamic(impl->copy()));
+        }
+        return m_value(dyns).m_impl->copy();
+    }
+};  // struct MhdDynamicFuncT
+//--------------------------------------------------------------------------------------------------------
+ORCHID_INTERFACE
+MhdDynamic::MhdDynamic(const std::function<MhdDynamic(const std::vector<MhdDynamic>&)>& value)
+    : m_impl(new MhdDynamicFuncT<-1>(value)) {}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
