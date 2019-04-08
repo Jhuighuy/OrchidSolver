@@ -419,17 +419,18 @@ MhdScriptParser::parse_expression_binary_asg()
     // Parse ASSIGNMENT expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_ternary();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_ASG ||
-            op == MhdScriptToken::Kind::OP_OR_BW_ASG ||
-            op == MhdScriptToken::Kind::OP_XOR_BW_ASG ||
-            op == MhdScriptToken::Kind::OP_AND_BW_ASG ||
-            op == MhdScriptToken::Kind::OP_LSHIFT_ASG ||
-            op == MhdScriptToken::Kind::OP_RSHIFT_ASG ||
-            op == MhdScriptToken::Kind::OP_ADD_ASG ||
-            op == MhdScriptToken::Kind::OP_SUB_ASG ||
-            op == MhdScriptToken::Kind::OP_MUL_ASG ||
-            op == MhdScriptToken::Kind::OP_DIV_ASG ||
-            op == MhdScriptToken::Kind::OP_MOD_ASG) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_ASG ||
+           op == MhdScriptToken::Kind::OP_OR_BW_ASG ||
+           op == MhdScriptToken::Kind::OP_XOR_BW_ASG ||
+           op == MhdScriptToken::Kind::OP_AND_BW_ASG ||
+           op == MhdScriptToken::Kind::OP_LSHIFT_ASG ||
+           op == MhdScriptToken::Kind::OP_RSHIFT_ASG ||
+           op == MhdScriptToken::Kind::OP_ADD_ASG ||
+           op == MhdScriptToken::Kind::OP_SUB_ASG ||
+           op == MhdScriptToken::Kind::OP_MUL_ASG ||
+           op == MhdScriptToken::Kind::OP_DIV_ASG ||
+           op == MhdScriptToken::Kind::OP_MOD_ASG) {
         peek();
         expr = std::make_shared<MhdScriptExprAssignment>(op, expr, parse_expression_ternary());
     }
@@ -465,7 +466,8 @@ MhdScriptParser::parse_expression_binary_or()
     // Parse BINARY LOGICAL OR expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_and();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_OR) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_OR) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_and());
     }
@@ -478,7 +480,8 @@ MhdScriptParser::parse_expression_binary_and()
     // Parse BINARY LOGICAL AND expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_or_bw();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_AND) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_AND) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_or_bw());
     }
@@ -492,7 +495,8 @@ MhdScriptParser::parse_expression_binary_or_bw()
     // Parse BINARY BITWISE OR expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_xor_bw();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_OR_BW) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_OR_BW) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_xor_bw());
     }
@@ -505,7 +509,8 @@ MhdScriptParser::parse_expression_binary_xor_bw()
     // Parse BINARY BITWISE XOR expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_and_bw();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_XOR_BW) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_XOR_BW) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_and_bw());
     }
@@ -518,7 +523,8 @@ MhdScriptParser::parse_expression_binary_and_bw()
     // Parse BINARY BITWISE AND expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_eq_neq();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_XOR_BW) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_XOR_BW) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_eq_neq());
     }
@@ -532,8 +538,9 @@ MhdScriptParser::parse_expression_binary_eq_neq()
     // Parse BINARY EQUALS or NOT EQUALS expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_lt_lte_gt_gte();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_EQ ||
-            op == MhdScriptToken::Kind::OP_NEQ) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_EQ ||
+           op == MhdScriptToken::Kind::OP_NEQ) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_lt_lte_gt_gte());
     }
@@ -546,10 +553,11 @@ MhdScriptParser::parse_expression_binary_lt_lte_gt_gte()
     // Parse BINARY LESS(-EQUALS) or GREATER(-EQUALS) expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_shift();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_LT || 
-            op == MhdScriptToken::Kind::OP_LTE ||
-            op == MhdScriptToken::Kind::OP_GT || 
-            op == MhdScriptToken::Kind::OP_GTE) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_LT || 
+           op == MhdScriptToken::Kind::OP_LTE ||
+           op == MhdScriptToken::Kind::OP_GT || 
+           op == MhdScriptToken::Kind::OP_GTE) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_shift());
     }
@@ -563,8 +571,9 @@ MhdScriptParser::parse_expression_binary_shift()
     // Parse BINARY BITWISE SHIFT expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_add_sub();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_LSHIFT ||
-            op == MhdScriptToken::Kind::OP_RSHIFT) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_LSHIFT ||
+           op == MhdScriptToken::Kind::OP_RSHIFT) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_add_sub());
     }
@@ -578,8 +587,9 @@ MhdScriptParser::parse_expression_binary_add_sub()
     // Parse BINARY ADD or SUBTRACT expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_mul_div_mod();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_ADD ||
-            op == MhdScriptToken::Kind::OP_SUB) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_ADD ||
+           op == MhdScriptToken::Kind::OP_SUB) {
         peek();
         expr = std::make_shared<MhdScriptExprArithmetic>(op, expr, parse_expression_binary_mul_div_mod());
     }
@@ -592,9 +602,10 @@ MhdScriptParser::parse_expression_binary_mul_div_mod()
     // Parse BINARY MULTIPLY or DIVIDE expressions.
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_unary();
-    while ((op = m_token.m_kind) == MhdScriptToken::Kind::OP_MUL ||
-            op == MhdScriptToken::Kind::OP_DIV ||
-            op == MhdScriptToken::Kind::OP_MOD) {
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_MUL ||
+           op == MhdScriptToken::Kind::OP_DIV ||
+           op == MhdScriptToken::Kind::OP_MOD) {
         peek();
         expr = std::make_shared<MhdScriptExprArithmetic>(op, expr, parse_expression_unary());
     }
