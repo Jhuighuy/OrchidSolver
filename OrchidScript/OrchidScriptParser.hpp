@@ -45,6 +45,7 @@ private:
     MhdScriptExpr::Ptr parse_expression_jump_return();
     MhdScriptExpr::Ptr parse_expression_jump_throw();
 private:
+    MhdScriptExpr::Ptr parse_expression_comma();
     MhdScriptExpr::Ptr parse_expression_binary_asg();
     MhdScriptExpr::Ptr parse_expression_ternary();
     MhdScriptExpr::Ptr parse_expression_binary_or();

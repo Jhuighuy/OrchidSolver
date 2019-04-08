@@ -454,6 +454,8 @@ public:
 public:
     MhdScriptExprCompound(const MhdScriptExpr::Vec& exprs)
         : m_exprs(exprs) {}
+    MhdScriptExprCompound(MhdScriptExpr::Ptr expr1, MhdScriptExpr::Ptr expr2)
+        : m_exprs({ expr1, expr2 }) {}
 public:
     MhdDynamic eval() const override
     {

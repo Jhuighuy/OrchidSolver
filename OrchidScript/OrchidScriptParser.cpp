@@ -414,6 +414,21 @@ MhdScriptParser::parse_expression()
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
+MhdScriptParser::parse_expression_comma()
+{
+    // Parse COMMA expressions.
+    MhdScriptToken::Kind op;
+    MhdScriptExpr::Ptr expr = parse_expression_binary_asg();
+    while (op = m_token.m_kind,
+           op == MhdScriptToken::Kind::OP_COMMA) {
+        peek();
+        expr = std::make_shared<MhdScriptExprCompound>(expr, parse_expression_binary_asg());
+    }
+    return expr;
+}
+//--------------------------------------------------------------------------------------------------------
+MHD_INTERNAL
+MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_asg()
 {
     // Parse ASSIGNMENT expressions.
