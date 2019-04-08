@@ -871,6 +871,10 @@ MhdScriptParser::parse_expression_unary_factor_subscript()
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator+="));
                     break;
+                case MhdScriptToken::Kind::OP_INC:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator++"));
+                    break;
                 case MhdScriptToken::Kind::OP_SUB:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator-"));
@@ -878,6 +882,10 @@ MhdScriptParser::parse_expression_unary_factor_subscript()
                 case MhdScriptToken::Kind::OP_SUB_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator-="));
+                    break;
+                case MhdScriptToken::Kind::OP_DEC:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator--"));
                     break;
                 case MhdScriptToken::Kind::OP_MUL:
                     peek();
@@ -985,21 +993,49 @@ MhdScriptParser::parse_expression_unary_factor_subscript()
                     break;
                 case MhdScriptToken::Kind::OP_PAREN_OPEN:
                     peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator()"));
                     if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
                         peek();
                     } else {
                         throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
                     }
-                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator()"));
                     break;
                 case MhdScriptToken::Kind::OP_BRACKET_OPEN:
                     peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator[]"));
                     if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACKET_CLOSE) {
                         peek();
                     } else {
                         throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
                     }
-                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator[]"));
+                    break;
+                case MhdScriptToken::Kind::OP_BRACE_OPEN:
+                    peek();
+                    switch (m_token.m_kind) {
+                        case MhdScriptToken::Kind::OP_ADD:
+                            peek();
+                            exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{+}"));
+                            break;
+                        case MhdScriptToken::Kind::OP_INC:
+                            peek();
+                            exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{++}"));
+                            break;
+                        case MhdScriptToken::Kind::OP_SUB:
+                            peek();
+                            exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{-}"));
+                            break;
+                        case MhdScriptToken::Kind::OP_DEC:
+                            peek();
+                            exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{--}"));
+                            break;
+                        default:
+                            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                    }
+                    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACE_CLOSE) {
+                        peek();
+                    } else {
+                        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                    }
                     break;
                 default:
                     throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
