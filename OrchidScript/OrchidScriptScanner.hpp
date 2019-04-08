@@ -9,7 +9,7 @@
 //########################################################################################################
 //########################################################################################################
 /** Token. */
-struct MhdToken
+struct MhdScriptToken
 {
     enum class Kind
     {
@@ -41,6 +41,7 @@ struct MhdToken
         OP_DOT,
         OP_COMMA,
         OP_COLON,
+        OP_QUESTION,
         OP_SEMICOLON,
         OP_ASG,
         OP_INC,
@@ -90,19 +91,19 @@ public:
     double       m_value_dbl;
 public:
     /** Initialize an empty token. */
-    MhdToken()
-        : m_kind(MhdToken::Kind::NONE)
+    MhdScriptToken()
+        : m_kind(MhdScriptToken::Kind::NONE)
         , m_value_int(0), m_value_dbl(0.0) { }
 public:
-    bool operator==(MhdToken::Kind kind) const
+    bool operator==(MhdScriptToken::Kind kind) const
     {
         return m_kind == kind;
     }
-    bool operator!=(MhdToken::Kind kind) const
+    bool operator!=(MhdScriptToken::Kind kind) const
     {
         return m_kind != kind;
     }
-};	// struct MhdToken
+};	// struct MhdScriptToken
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -118,11 +119,11 @@ public:
         : m_text(text)
         , m_text_peeked(0) { }
 public:
-    bool scan(MhdToken& token);
+    bool scan(MhdScriptToken& token);
 private:
-    bool scan_str(MhdToken& token);
-    bool scan_num(MhdToken& token);
-    bool scan_id(MhdToken& token);
+    bool scan_str(MhdScriptToken& token);
+    bool scan_num(MhdScriptToken& token);
+    bool scan_id(MhdScriptToken& token);
 private:
     char peek()
     {

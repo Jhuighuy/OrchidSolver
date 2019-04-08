@@ -10,10 +10,10 @@
 /** 
  * Scan a single token. 
  */
-ORCHID_INTERNAL 
-bool MhdTokenizer::scan(MhdToken& token)
+MHD_INTERNAL 
+bool MhdTokenizer::scan(MhdScriptToken& token)
 {
-    token = MhdToken();
+    token = MhdScriptToken();
     char character;
     while (isspace(character = peek())) {
         advance();
@@ -64,171 +64,171 @@ bool MhdTokenizer::scan(MhdToken& token)
             if (character == 'i' &&
                 peek_next() == 'f') {
                 advance();
-                token.m_kind = MhdToken::Kind::KW_IF;
+                token.m_kind = MhdScriptToken::Kind::KW_IF;
                 return true;
             }
             if (character == 'e' &&
                 peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
                 advance();
-                token.m_kind = MhdToken::Kind::KW_ELSE;
+                token.m_kind = MhdScriptToken::Kind::KW_ELSE;
                 return true;
             }
             if (character == 'f' &&
                 peek_next() == 'o' && peek_next() == 'r') {
                 advance();
-                token.m_kind = MhdToken::Kind::KW_FOR;
+                token.m_kind = MhdScriptToken::Kind::KW_FOR;
                 return true;
             }
             if (character == 't' &&
                 peek_next() == 'r' && peek_next() == 'u' && peek_next() == 'e') {
                 advance();
-                token.m_kind = MhdToken::Kind::CT_LGC;
+                token.m_kind = MhdScriptToken::Kind::CT_LGC;
                 token.m_value_int = 1;
                 return true;
             }
             if (character == 'f' &&
                 peek_next() == 'a' && peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
                 advance();
-                token.m_kind = MhdToken::Kind::CT_LGC;
+                token.m_kind = MhdScriptToken::Kind::CT_LGC;
                 token.m_value_int = 0;
                 return true;
             }
             if (character == 'w' &&
                 peek_next() == 'h' && peek_next() == 'i' && peek_next() == 'l' && peek_next() == 'e') {
                 advance();
-                token.m_kind = MhdToken::Kind::KW_WHILE;
+                token.m_kind = MhdScriptToken::Kind::KW_WHILE;
                 token.m_value_int = 0;
                 return true;
             }
             if (character == 'b' &&
                 peek_next() == 'r' && peek_next() == 'e' && peek_next() == 'a' && peek_next() == 'k') {
                 advance();
-                token.m_kind = MhdToken::Kind::KW_BREAK;
+                token.m_kind = MhdScriptToken::Kind::KW_BREAK;
                 token.m_value_int = 0;
                 return true;
             }
             return scan_id(token);
         case '.':
             advance();
-            token.m_kind = MhdToken::Kind::OP_DOT;
+            token.m_kind = MhdScriptToken::Kind::OP_DOT;
             return true;
         case ',':
             advance();
-            token.m_kind = MhdToken::Kind::OP_COMMA;
+            token.m_kind = MhdScriptToken::Kind::OP_COMMA;
             return true;
         case ';':
             advance();
-            token.m_kind = MhdToken::Kind::OP_SEMICOLON;
+            token.m_kind = MhdScriptToken::Kind::OP_SEMICOLON;
             return true;
         case '=':
             advance();
             if (peek() == '=') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_EQ;
+                token.m_kind = MhdScriptToken::Kind::OP_EQ;
             } else {
-                token.m_kind = MhdToken::Kind::OP_ASG;
+                token.m_kind = MhdScriptToken::Kind::OP_ASG;
             }
             return true;
         case '+':
             advance();
-            token.m_kind = MhdToken::Kind::OP_ADD;
+            token.m_kind = MhdScriptToken::Kind::OP_ADD;
             return true;
         case '-':
             advance();
-            token.m_kind = MhdToken::Kind::OP_SUB;
+            token.m_kind = MhdScriptToken::Kind::OP_SUB;
             return true;
         case '*':
             advance();
-            token.m_kind = MhdToken::Kind::OP_MUL;
+            token.m_kind = MhdScriptToken::Kind::OP_MUL;
             return true;
         case '/':
             advance();
-            token.m_kind = MhdToken::Kind::OP_DIV;
+            token.m_kind = MhdScriptToken::Kind::OP_DIV;
             return true;
         case '%':
             advance();
-            token.m_kind = MhdToken::Kind::OP_MOD;
+            token.m_kind = MhdScriptToken::Kind::OP_MOD;
             return true;
         case '!':
             advance();
             if (peek() == '=') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_NEQ;
+                token.m_kind = MhdScriptToken::Kind::OP_NEQ;
             } else {
-                token.m_kind = MhdToken::Kind::OP_NOT;
+                token.m_kind = MhdScriptToken::Kind::OP_NOT;
             }
             return true;
         case '<':
             advance();
             if (peek() == '=') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_LTE;
+                token.m_kind = MhdScriptToken::Kind::OP_LTE;
             } else {
-                token.m_kind = MhdToken::Kind::OP_LT;
+                token.m_kind = MhdScriptToken::Kind::OP_LT;
             }
             return true;
         case '>':
             advance();
             if (peek() == '=') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_GTE;
+                token.m_kind = MhdScriptToken::Kind::OP_GTE;
             } else {
-                token.m_kind = MhdToken::Kind::OP_GT;
+                token.m_kind = MhdScriptToken::Kind::OP_GT;
             }
             return true;
         case '&':
             advance();
             if (peek() == '&') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_AND;
+                token.m_kind = MhdScriptToken::Kind::OP_AND;
             } else {
-                token.m_kind = MhdToken::Kind::OP_AND_BW;
+                token.m_kind = MhdScriptToken::Kind::OP_AND_BW;
             }
             return true;
         case '|':
             advance();
             if (peek() == '|') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_OR;
+                token.m_kind = MhdScriptToken::Kind::OP_OR;
             } else {
-                token.m_kind = MhdToken::Kind::OP_OR_BW;
+                token.m_kind = MhdScriptToken::Kind::OP_OR_BW;
             }
             return true;
         case '^':
             advance();
             if (peek() == '^') {
                 advance();
-                token.m_kind = MhdToken::Kind::OP_XOR;
+                token.m_kind = MhdScriptToken::Kind::OP_XOR;
             } else {
-                token.m_kind = MhdToken::Kind::OP_XOR_BW;
+                token.m_kind = MhdScriptToken::Kind::OP_XOR_BW;
             }
             return true;
         case '(':
             advance();
-            token.m_kind = MhdToken::Kind::OP_PAREN_OPEN;
+            token.m_kind = MhdScriptToken::Kind::OP_PAREN_OPEN;
             return true;
         case ')':
             advance();
-            token.m_kind = MhdToken::Kind::OP_PAREN_CLOSE;
+            token.m_kind = MhdScriptToken::Kind::OP_PAREN_CLOSE;
             return true;
         case '{':
             advance();
-            token.m_kind = MhdToken::Kind::OP_BRACE_OPEN;
+            token.m_kind = MhdScriptToken::Kind::OP_BRACE_OPEN;
             return true;
         case '}':
             advance();
-            token.m_kind = MhdToken::Kind::OP_BRACE_CLOSE;
+            token.m_kind = MhdScriptToken::Kind::OP_BRACE_CLOSE;
             return true;
         case '[':
             advance();
-            token.m_kind = MhdToken::Kind::OP_BRACKET_OPEN;
+            token.m_kind = MhdScriptToken::Kind::OP_BRACKET_OPEN;
             return true;
         case ']':
             advance();
-            token.m_kind = MhdToken::Kind::OP_BRACKET_CLOSE;
+            token.m_kind = MhdScriptToken::Kind::OP_BRACKET_CLOSE;
             return true;
         default:
-            token.m_kind = MhdToken::Kind::ERR;
+            token.m_kind = MhdScriptToken::Kind::ERR;
             token.m_value_str = "Invalid symbol in the input stream.";
             return false;
     }
@@ -239,8 +239,8 @@ bool MhdTokenizer::scan(MhdToken& token)
 /**
  * Scan a single string token.
  */
-ORCHID_INTERNAL 
-bool MhdTokenizer::scan_str(MhdToken& token)
+MHD_INTERNAL 
+bool MhdTokenizer::scan_str(MhdScriptToken& token)
 {
     return false;
 }
@@ -250,8 +250,8 @@ bool MhdTokenizer::scan_str(MhdToken& token)
 /**
  * Scan a single numeric token.
  */
-ORCHID_INTERNAL 
-bool MhdTokenizer::scan_num(MhdToken& token)
+MHD_INTERNAL 
+bool MhdTokenizer::scan_num(MhdScriptToken& token)
 {
     bool can_be_hex = false;
     bool can_be_oct = false;
@@ -296,7 +296,7 @@ bool MhdTokenizer::scan_num(MhdToken& token)
                     token.m_value_str.push_back(character);
                 }
             } else {
-                token.m_kind = MhdToken::Kind::ERR;
+                token.m_kind = MhdScriptToken::Kind::ERR;
                 token.m_value_str = "Invalid numeric literal fraction.";
                 return false;
             }
@@ -321,7 +321,7 @@ bool MhdTokenizer::scan_num(MhdToken& token)
                 }
             }
             else {
-                token.m_kind = MhdToken::Kind::ERR;
+                token.m_kind = MhdScriptToken::Kind::ERR;
                 token.m_value_str = "Invalid numeric literal exponent.";
                 return false;
             }
@@ -329,27 +329,27 @@ bool MhdTokenizer::scan_num(MhdToken& token)
         }
         can_be_oct &= !has_frc && !has_exp;
         if (can_be_oct && !has_oct_chars) {
-            token.m_kind = MhdToken::Kind::ERR;
+            token.m_kind = MhdScriptToken::Kind::ERR;
             token.m_value_str = "Invalid octal number.";
             return false;
         }
     }
     if (has_frc || has_exp) {
         char* end_ptr = nullptr;
-        token.m_kind = MhdToken::Kind::CT_DBL;
+        token.m_kind = MhdScriptToken::Kind::CT_DBL;
         token.m_value_dbl = std::strtod(token.m_value_str.c_str(), &end_ptr);
         if (token.m_value_str.c_str() == end_ptr) {
-            token.m_kind = MhdToken::Kind::ERR;
+            token.m_kind = MhdScriptToken::Kind::ERR;
             token.m_value_str = "Floating point overflow.";
             return false;
         }
     } else {
         char* end_ptr = nullptr;
-        token.m_kind = MhdToken::Kind::CT_INT;
+        token.m_kind = MhdScriptToken::Kind::CT_INT;
         token.m_value_int = std::strtol(token.m_value_str.c_str(), &end_ptr,
                                         can_be_hex ? 16 : can_be_oct ? 8 : 10);
         if (token.m_value_str.c_str() == end_ptr) {
-            token.m_kind = MhdToken::Kind::ERR;
+            token.m_kind = MhdScriptToken::Kind::ERR;
             token.m_value_str = "Integer overflow.";
             return false;
         }
@@ -362,10 +362,10 @@ bool MhdTokenizer::scan_num(MhdToken& token)
 /**
  * Scan a single identifier token.
  */
-bool MhdTokenizer::scan_id(MhdToken& token)
+bool MhdTokenizer::scan_id(MhdScriptToken& token)
 {
     token.m_value_str.push_back(peek());
-    token.m_kind = MhdToken::Kind::ID;
+    token.m_kind = MhdScriptToken::Kind::ID;
     advance();
     return true;
 }
