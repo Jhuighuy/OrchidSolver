@@ -871,16 +871,16 @@ MHD_INTERFACE
 MhdScriptVal::operator int() const 
 {
     // Apply a CAST TO INT operator.
-    bool val;
+    int val{};
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
-            val = m_val_lgc->size() > 0 && int((*m_val_lgc)[0]);
+            val = m_val_lgc->size() > 0 ? int((*m_val_lgc)[0]) : val;
             break;
         case MhdScriptVal::Type::INT:
-            val = m_val_int->size() > 0 && int((*m_val_int)[0]);
+            val = m_val_int->size() > 0 ? int((*m_val_int)[0]) : val;
             break;
         case MhdScriptVal::Type::DBL:
-            val = m_val_dbl->size() > 0 && int((*m_val_dbl)[0]);
+            val = m_val_dbl->size() > 0 ? int((*m_val_dbl)[0]) : val;
             break;
         default:
             throw MhdInvalidOp(*this);
@@ -891,16 +891,16 @@ MHD_INTERFACE
 MhdScriptVal::operator double() const 
 {
     // Apply a CAST TO DOUBLE operator.
-    bool val;
+    double val{};
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
-            val = m_val_lgc->size() > 0 && double((*m_val_lgc)[0]);
+            val = m_val_lgc->size() > 0 ? double((*m_val_lgc)[0]) : val;
             break;
         case MhdScriptVal::Type::INT:
-            val = m_val_int->size() > 0 && double((*m_val_int)[0]);
+            val = m_val_int->size() > 0 ? double((*m_val_int)[0]) : val;
             break;
         case MhdScriptVal::Type::DBL:
-            val = m_val_dbl->size() > 0 && double((*m_val_dbl)[0]);
+            val = m_val_dbl->size() > 0 ? double((*m_val_dbl)[0]) : val;
             break;
         default:
             throw MhdInvalidOp(*this);
