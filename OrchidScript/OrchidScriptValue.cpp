@@ -5,6 +5,7 @@
 
 #include <type_traits>
 #include <algorithm>
+#include <sstream>
 
 //########################################################################################################
 //########################################################################################################
@@ -342,6 +343,20 @@ operator_logical_apply(MhdScriptToken::Kind op,
             throw MhdInvalidOp(op);
     }
 }
+template<typename T, typename U>
+void
+operator_logical_apply(MhdScriptToken::Kind op,
+                       U& val, const T& lhs)
+{
+    // Apply an UNARY LOGICAL operator for arbitrary objects. 
+    switch (op) {
+        case MhdScriptToken::Kind::OP_NOT: 
+            val = std::move(!lhs);
+            break;
+        default:
+            throw MhdInvalidOp(op);
+    }
+}
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
@@ -349,20 +364,33 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
                                const MhdScriptVal& lhs)
 {
     // Apply an UNARY LOGICAL operator.
-    // switch (lhs.m_type) {
-    //     case MhdScriptVal::Type::LGC:
-    //     case MhdScriptVal::Type::INT:
-    //     case MhdScriptVal::Type::DBL:
-    //     case MhdScriptVal::Type::PTR:
-    //         break;
-    //     default:
-    //         throw MhdInvalidOp(lhs);
-    // }
-    // switch (lhs.m_type) {
-    //     default:
-    //         ORCHID_ASSERT(0); 
-    //         break;
-    // }
+    switch (lhs.m_type) {
+        case MhdScriptVal::Type::LGC:
+        case MhdScriptVal::Type::INT:
+        case MhdScriptVal::Type::DBL:
+        case MhdScriptVal::Type::PTR:
+            break;
+        default:
+            throw MhdInvalidOp(lhs);
+    }
+    MhdScriptVal new_lhs = lhs;
+    switch (lhs.m_type) {
+        case MhdScriptVal::Type::LGC:
+            operator_logical_apply(op, new_lhs, *new_lhs.m_val_lgc);
+            break;
+        case MhdScriptVal::Type::INT:
+            operator_logical_apply(op, new_lhs, *new_lhs.m_val_int);
+            break;
+        case MhdScriptVal::Type::DBL:
+            operator_logical_apply(op, new_lhs, *new_lhs.m_val_dbl);
+            break;
+        case MhdScriptVal::Type::PTR:
+            operator_logical_apply(op, new_lhs,  new_lhs.m_val_ptr);
+            break;
+        default:
+            ORCHID_ASSERT(0); 
+            break;
+    }
     throw 0;
 }
 //########################################################################################################
@@ -684,14 +712,131 @@ MhdScriptVal::operator()(const std::vector<MhdScriptVal>& args) const
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
+template<typename X, typename T, typename U>
+typename std::enable_if<std::is_convertible<T, X>::value>::type 
+operator_cast_apply(U& val,
+                    const std::valarray<T>& lhs)
+{
+    // Apply a CAST operator for convertible value arrays. 
+    std::valarray<X> rhs_cast(lhs.size());
+    for (std::size_t i = 0; i < lhs.size(); ++i) {
+        rhs_cast[i] = static_cast<X>(lhs[i]);
+    }
+    val = std::move(rhs_cast);
+}
+template<typename X, typename T, typename U>
+void
+operator_cast_apply(U& val,
+                    const std::basic_string<T>& lhs)
+{
+    // Apply a CAST operator from string to value. 
+    X rhs_cast{};
+    std::basic_istringstream<T>(lhs) >> rhs_cast;
+    val = std::move(rhs_cast);
+}
+template<typename X, typename T, typename U>
+void
+operator_cast_apply(U& val,
+                    const T& lhs)
+{
+    // Apply a CAST operator for arbitrary objects. 
+    X rhs_cast{std::move(*reinterpret_cast<const X*>(&lhs))};
+    val = std::move(rhs_cast);
+}
+//--------------------------------------------------------------------------------------------------------
+template<typename X, typename T, typename U>
+void
+operator_cast_apply_string(U& val,
+                           const std::valarray<T>& lhs)
+{
+    // Apply a CAST operator for value arrays to string. 
+    std::basic_ostringstream<X> rhs_cast;
+    rhs_cast << "[";
+    if (lhs.size() > 0) {
+        rhs_cast << lhs[0];
+        for (size_t i = 1; i < lhs.size(); ++i) {
+            rhs_cast << ", " << lhs[i];
+        }
+    }
+    rhs_cast << "]";
+    val = std::move(rhs_cast.str());
+}
+template<typename X, typename T, typename U>
+void 
+operator_cast_apply_string(U& val,
+                           const T& lhs)
+{
+    // Apply a CAST operator for arbitrary objects to string. 
+    std::basic_ostringstream<X> rhs_cast;
+    rhs_cast << lhs;
+    val = std::move(rhs_cast.str());
+}
+//--------------------------------------------------------------------------------------------------------
+template<typename T, typename U>
+void
+operator_cast_apply(MhdScriptVal::Type tp, U& val,
+                    const T& lhs)
+{
+    // Apply a CAST operator for arbitrary objects.
+    switch (tp) {
+        case MhdScriptVal::Type::LGC:
+            operator_cast_apply<bool>(val, lhs);
+            break;
+        case MhdScriptVal::Type::INT:
+            operator_cast_apply<int>(val, lhs);
+            break;
+        case MhdScriptVal::Type::DBL:
+            operator_cast_apply<double>(val, lhs);
+            break;
+        case MhdScriptVal::Type::STR:
+            operator_cast_apply_string<char>(val, lhs);
+            break;
+        default:
+            throw MhdInvalidOp(lhs);
+    }
+}
+//--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
                             const MhdScriptVal& lhs)
 {
-    // Perform a TYPE CAST.
-    ORCHID_ASSERT(0);
-    return lhs;
+    // Apply a CAST operator.
+    if (lhs.m_type == tp) {
+        return lhs;
+    }
+    switch (lhs.m_type) {
+        case MhdScriptVal::Type::LGC:
+        case MhdScriptVal::Type::INT:
+        case MhdScriptVal::Type::DBL:
+        case MhdScriptVal::Type::STR:
+        case MhdScriptVal::Type::PTR:
+            break;
+        default:
+            throw MhdInvalidOp(lhs);
+    }
+    MhdScriptVal new_lhs = lhs;
+    switch (lhs.m_type) {
+        case MhdScriptVal::Type::LGC:
+            operator_cast_apply(tp, new_lhs, *new_lhs.m_val_lgc);
+            break;
+        case MhdScriptVal::Type::INT:
+            operator_cast_apply(tp, new_lhs, *new_lhs.m_val_int);
+            break;
+        case MhdScriptVal::Type::DBL:
+            operator_cast_apply(tp, new_lhs, *new_lhs.m_val_dbl);
+            break;
+        case MhdScriptVal::Type::STR:
+            operator_cast_apply(tp, new_lhs, *new_lhs.m_val_str);
+            break;
+        case MhdScriptVal::Type::PTR:
+            operator_cast_apply(tp, new_lhs,  new_lhs.m_val_ptr);
+            break;
+        default:
+            ORCHID_ASSERT(0); 
+            break;
+    }
+    return new_lhs;
 }
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE

@@ -75,6 +75,9 @@ public:
         : m_type(Type::DBL)
         , m_val_dbl(new std::valarray<double>(val)) {}
 public:
+    MhdScriptVal(const char* val)
+        : m_type(Type::STR)
+        , m_val_str(new std::string(val)) {}
     MhdScriptVal(const std::string& val)
         : m_type(Type::STR)
         , m_val_str(new std::string(val)) {}
@@ -101,31 +104,31 @@ public:
                                             const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator+() const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this);
     }
     MhdScriptVal operator-() const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this);
     }
     MhdScriptVal operator+(const MhdScriptVal& other) const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this, other));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this, other);
     }
     MhdScriptVal operator-(const MhdScriptVal& other) const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this, other));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this, other);
     }
     MhdScriptVal operator*(const MhdScriptVal& other) const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_MUL, *this, other));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_MUL, *this, other);
     }
     MhdScriptVal operator/(const MhdScriptVal& other) const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_DIV, *this, other));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_DIV, *this, other);
     }
     MhdScriptVal operator%(const MhdScriptVal& other) const
     {
-        return std::move(operator_arithmetic(MhdScriptToken::Kind::OP_MOD, *this, other));
+        return operator_arithmetic(MhdScriptToken::Kind::OP_MOD, *this, other);
     }
 public:
     static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
@@ -134,39 +137,39 @@ public:
                                          const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator!() const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_NOT, *this));
+        return operator_logical(MhdScriptToken::Kind::OP_NOT, *this);
     }
     MhdScriptVal operator==(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_EQ, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_EQ, *this, other);
     }
     MhdScriptVal operator!=(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_NEQ, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_NEQ, *this, other);
     }
     MhdScriptVal operator<(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_LT, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_LT, *this, other);
     }
     MhdScriptVal operator<=(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_LTE, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_LTE, *this, other);
     }
     MhdScriptVal operator>(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_GT, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_GT, *this, other);
     }
     MhdScriptVal operator>=(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_GTE, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_GTE, *this, other);
     }
     MhdScriptVal operator&&(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_AND, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_AND, *this, other);
     }
     MhdScriptVal operator||(const MhdScriptVal& other) const
     {
-        return std::move(operator_logical(MhdScriptToken::Kind::OP_OR, *this, other));
+        return operator_logical(MhdScriptToken::Kind::OP_OR, *this, other);
     }
 public:
     static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
@@ -175,27 +178,27 @@ public:
                                          const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator~() const
     {
-        return std::move(operator_bitwise(MhdScriptToken::Kind::OP_NOT_BW, *this));
+        return operator_bitwise(MhdScriptToken::Kind::OP_NOT_BW, *this);
     }
     MhdScriptVal operator&(const MhdScriptVal& other) const
     {
-        return std::move(operator_bitwise(MhdScriptToken::Kind::OP_AND_BW, *this, other));
+        return operator_bitwise(MhdScriptToken::Kind::OP_AND_BW, *this, other);
     }
     MhdScriptVal operator|(const MhdScriptVal& other) const
     {
-        return std::move(operator_bitwise(MhdScriptToken::Kind::OP_OR_BW, *this, other));
+        return operator_bitwise(MhdScriptToken::Kind::OP_OR_BW, *this, other);
     }
     MhdScriptVal operator^(const MhdScriptVal& other) const
     {
-        return std::move(operator_bitwise(MhdScriptToken::Kind::OP_XOR_BW, *this, other));
+        return operator_bitwise(MhdScriptToken::Kind::OP_XOR_BW, *this, other);
     }
     MhdScriptVal operator<<(const MhdScriptVal& other) const
     {
-        return std::move(operator_bitwise(MhdScriptToken::Kind::OP_LSHIFT, *this, other));
+        return operator_bitwise(MhdScriptToken::Kind::OP_LSHIFT, *this, other);
     }
     MhdScriptVal operator>>(const MhdScriptVal& other) const
     {
-        return std::move(operator_bitwise(MhdScriptToken::Kind::OP_RSHIFT, *this, other));
+        return operator_bitwise(MhdScriptToken::Kind::OP_RSHIFT, *this, other);
     }
 public:
     MhdScriptRef operator[](const MhdScriptVal& index) const;
