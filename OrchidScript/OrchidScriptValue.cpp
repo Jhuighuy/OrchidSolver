@@ -489,6 +489,8 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::LGC:
         case MhdScriptVal::Type::INT:
         case MhdScriptVal::Type::DBL:
+            tp = lhs.m_type;
+            break;
         case MhdScriptVal::Type::STR:
         case MhdScriptVal::Type::PTR:
             tp = lhs.m_type;
