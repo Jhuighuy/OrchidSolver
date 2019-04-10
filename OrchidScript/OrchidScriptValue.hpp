@@ -209,6 +209,7 @@ public:
                                       const MhdScriptVal& lhs);
     operator bool() const;
     operator int() const;
+    operator double() const;
     operator std::string() const;
 };	// struct MhdScriptVal
 //########################################################################################################

@@ -749,7 +749,7 @@ void
 operator_cast_apply_string(U& val,
                            const std::valarray<T>& lhs)
 {
-    // Apply a CAST operator for value arrays to string. 
+    // Apply a CAST TO STRING operator for value arrays. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast << "[";
     if (lhs.size() > 0) {
@@ -766,7 +766,7 @@ void
 operator_cast_apply_string(U& val,
                            const T& lhs)
 {
-    // Apply a CAST operator for arbitrary objects to string. 
+    // Apply a CAST TO STRING operator for arbitrary objects. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast << lhs;
     val = std::move(rhs_cast.str());
@@ -838,22 +838,86 @@ MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
     }
     return new_lhs;
 }
-//--------------------------------------------------------------------------------------------------------
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 MHD_INTERFACE
 MhdScriptVal::operator bool() const 
 {
-    return (*m_val_int)[0] != 0;
+    // Apply a CAST TO BOOL operator.
+    bool val;
+    switch (m_type) {
+        case MhdScriptVal::Type::LGC:
+            val = m_val_lgc->size() > 0 && bool((*m_val_lgc)[0]);
+            break;
+        case MhdScriptVal::Type::INT:
+            val = m_val_int->size() > 0 && bool((*m_val_int)[0]);
+            break;
+        case MhdScriptVal::Type::DBL:
+            val = m_val_dbl->size() > 0 && bool((*m_val_dbl)[0]);
+            break;
+        case MhdScriptVal::Type::STR:
+            val = !m_val_str->empty();
+            break;
+        case MhdScriptVal::Type::PTR:
+            val = m_val_ptr != nullptr;
+            break;
+        default:
+            throw MhdInvalidOp(*this);
+    }
+    return val;
 }
 MHD_INTERFACE
 MhdScriptVal::operator int() const 
 {
-    return (*m_val_int)[0];
+    // Apply a CAST TO INT operator.
+    bool val;
+    switch (m_type) {
+        case MhdScriptVal::Type::LGC:
+            val = m_val_lgc->size() > 0 && int((*m_val_lgc)[0]);
+            break;
+        case MhdScriptVal::Type::INT:
+            val = m_val_int->size() > 0 && int((*m_val_int)[0]);
+            break;
+        case MhdScriptVal::Type::DBL:
+            val = m_val_dbl->size() > 0 && int((*m_val_dbl)[0]);
+            break;
+        default:
+            throw MhdInvalidOp(*this);
+    }
+    return val;
+}
+MHD_INTERFACE
+MhdScriptVal::operator double() const 
+{
+    // Apply a CAST TO DOUBLE operator.
+    bool val;
+    switch (m_type) {
+        case MhdScriptVal::Type::LGC:
+            val = m_val_lgc->size() > 0 && double((*m_val_lgc)[0]);
+            break;
+        case MhdScriptVal::Type::INT:
+            val = m_val_int->size() > 0 && double((*m_val_int)[0]);
+            break;
+        case MhdScriptVal::Type::DBL:
+            val = m_val_dbl->size() > 0 && double((*m_val_dbl)[0]);
+            break;
+        default:
+            throw MhdInvalidOp(*this);
+    }
+    return val;
 }
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal::operator std::string() const 
 {
-    return std::to_string((*m_val_int)[0]);
+    std::string val;
+    if (m_type == MhdScriptVal::Type::STR) {
+        val = *m_val_str;
+    } else {
+        val = *operator_cast(MhdScriptVal::Type::STR, *this).m_val_str;
+    }
+    return val;
 }
 //########################################################################################################
 //########################################################################################################

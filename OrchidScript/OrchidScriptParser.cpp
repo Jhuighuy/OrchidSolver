@@ -1087,10 +1087,10 @@ extern "C" void orchid_solver_scanner_test()
 int main() 
 {
     //printf("%d\n", sizeof(true + 1ul));
-    MhdScriptVal a1 = MhdScriptVal::operator_cast(MhdScriptVal::Type::INT, MhdScriptVal("100"));
+    MhdScriptVal a1("100");
     MhdScriptVal a2(2.0);
     a2[0] = 200.0;
-    printf("%lf\n", (*(a1 = a1 + a2).m_val_dbl)[0]);
+    printf("%s\n", (a1 = a1 + a2).operator std::string().c_str());
 
     orchid_solver_scanner_test();
     return 0;
