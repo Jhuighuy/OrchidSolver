@@ -916,6 +916,7 @@ MhdScriptVal::operator double() const
 MHD_INTERFACE
 MhdScriptVal::operator std::string() const 
 {
+    // Apply a CAST TO STRING operator.
     std::string val;
     if (m_type == MhdScriptVal::Type::STR) {
         val = *m_val_str;

@@ -100,8 +100,6 @@ public:
 public:
     static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
                                             const MhdScriptVal& lhs);
-    static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
-                                            const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator+() const
     {
         return operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this);
@@ -110,6 +108,9 @@ public:
     {
         return operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this);
     }
+public:
+    static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
+                                            const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator+(const MhdScriptVal& other) const
     {
         return operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this, other);
@@ -133,12 +134,13 @@ public:
 public:
     static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
                                          const MhdScriptVal& lhs);
-    static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
-                                         const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator!() const
     {
         return operator_logical(MhdScriptToken::Kind::OP_NOT, *this);
     }
+public:
+    static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
+                                         const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator==(const MhdScriptVal& other) const
     {
         return operator_logical(MhdScriptToken::Kind::OP_EQ, *this, other);
@@ -174,12 +176,13 @@ public:
 public:
     static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
                                          const MhdScriptVal& lhs);
-    static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
-                                         const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator~() const
     {
         return operator_bitwise(MhdScriptToken::Kind::OP_NOT_BW, *this);
     }
+public:
+    static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
+                                         const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator&(const MhdScriptVal& other) const
     {
         return operator_bitwise(MhdScriptToken::Kind::OP_AND_BW, *this, other);
