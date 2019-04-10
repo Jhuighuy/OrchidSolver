@@ -161,39 +161,39 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
-								  const MhdScriptVal& lhs)
+                                  const MhdScriptVal& lhs)
 {
     // Apply an UNARY ARITHMETIC operator.
-	MhdScriptVal::Type tp;
-	switch (lhs.m_type) {
+    MhdScriptVal::Type tp;
+    switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
-		case MhdScriptVal::Type::INT:
-			tp = MhdScriptVal::Type::INT;
-			break;
-		case MhdScriptVal::Type::DBL:
-			tp = MhdScriptVal::Type::DBL;
-			break;
-		default:
-			throw MhdInvalidOp(lhs);
-	}
-	MhdScriptVal new_lhs;
-	if (lhs.m_type != tp) {
-		new_lhs = MhdScriptVal::operator_cast(tp, lhs);
-	} else {
-		new_lhs = lhs;
-	}
-	switch (tp) {
-		case MhdScriptVal::Type::INT:
+        case MhdScriptVal::Type::INT:
+            tp = MhdScriptVal::Type::INT;
+            break;
+        case MhdScriptVal::Type::DBL:
+            tp = MhdScriptVal::Type::DBL;
+            break;
+        default:
+            throw MhdInvalidOp(lhs);
+    }
+    MhdScriptVal new_lhs;
+    if (lhs.m_type != tp) {
+        new_lhs = MhdScriptVal::operator_cast(tp, lhs);
+    } else {
+        new_lhs = lhs;
+    }
+    switch (tp) {
+        case MhdScriptVal::Type::INT:
             operator_arithmetic_apply(op, *new_lhs.m_val_int);
-			break;
-		case MhdScriptVal::Type::DBL:
+            break;
+        case MhdScriptVal::Type::DBL:
             operator_arithmetic_apply(op, *new_lhs.m_val_dbl);
-			break;
+            break;
         default:
             ORCHID_ASSERT(0); 
-			break;
-	}
-	return new_lhs;
+            break;
+    }
+    return new_lhs;
 }
 //########################################################################################################
 //########################################################################################################
@@ -265,65 +265,65 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
-								  const MhdScriptVal& lhs, const MhdScriptVal& rhs)
+                                  const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
-	// Apply a BINARY ARITHMETIC operator.
-	MhdScriptVal::Type tp;
-	switch (lhs.m_type) {
-		case MhdScriptVal::Type::LGC:
-		case MhdScriptVal::Type::INT:
-			tp = MhdScriptVal::Type::INT;
-			break;
-		case MhdScriptVal::Type::DBL:
-			tp = MhdScriptVal::Type::DBL;
-			break;
+    // Apply a BINARY ARITHMETIC operator.
+    MhdScriptVal::Type tp;
+    switch (lhs.m_type) {
+        case MhdScriptVal::Type::LGC:
+        case MhdScriptVal::Type::INT:
+            tp = MhdScriptVal::Type::INT;
+            break;
+        case MhdScriptVal::Type::DBL:
+            tp = MhdScriptVal::Type::DBL;
+            break;
         case MhdScriptVal::Type::STR:
             tp = MhdScriptVal::Type::STR;
             break;
-		default:
-			throw MhdInvalidOp(lhs);
-	}
-	switch (rhs.m_type) {
-		case MhdScriptVal::Type::LGC:
-		case MhdScriptVal::Type::INT:
-		case MhdScriptVal::Type::DBL:
+        default:
+            throw MhdInvalidOp(lhs);
+    }
+    switch (rhs.m_type) {
+        case MhdScriptVal::Type::LGC:
+        case MhdScriptVal::Type::INT:
+        case MhdScriptVal::Type::DBL:
             tp = std::max(tp, rhs.m_type);
-			break;
+            break;
         case MhdScriptVal::Type::STR:
             if (tp != rhs.m_type) {
                 throw MhdInvalidOp(rhs);
             }
             break;
-		default:
-			throw MhdInvalidOp(rhs);
-	}
-	MhdScriptVal new_lhs;
-	MhdScriptVal new_rhs;
-	if (lhs.m_type != tp) {
-		new_lhs = MhdScriptVal::operator_cast(tp, lhs);
-	} else {
-		new_lhs = lhs;
-	}
-	if (rhs.m_type != tp) {
-		new_rhs = MhdScriptVal::operator_cast(tp, rhs);
-	} else {
-		new_rhs = rhs;
-	}
-	switch (tp) {
-		case MhdScriptVal::Type::INT:
+        default:
+            throw MhdInvalidOp(rhs);
+    }
+    MhdScriptVal new_lhs;
+    MhdScriptVal new_rhs;
+    if (lhs.m_type != tp) {
+        new_lhs = MhdScriptVal::operator_cast(tp, lhs);
+    } else {
+        new_lhs = lhs;
+    }
+    if (rhs.m_type != tp) {
+        new_rhs = MhdScriptVal::operator_cast(tp, rhs);
+    } else {
+        new_rhs = rhs;
+    }
+    switch (tp) {
+        case MhdScriptVal::Type::INT:
             operator_arithmetic_apply(op, *new_lhs.m_val_int, *new_rhs.m_val_int);
-			break;
-		case MhdScriptVal::Type::DBL:
+            break;
+        case MhdScriptVal::Type::DBL:
             operator_arithmetic_apply(op, *new_lhs.m_val_dbl, *new_rhs.m_val_dbl);
-			break;
+            break;
         case MhdScriptVal::Type::STR:
             operator_arithmetic_apply(op, *new_lhs.m_val_str, *new_rhs.m_val_str);
             break;
         default:
             ORCHID_ASSERT(0); 
-			break;
-	}
-	return new_lhs;
+            break;
+    }
+    return new_lhs;
 }
 //########################################################################################################
 //########################################################################################################
@@ -453,9 +453,9 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
-							   const MhdScriptVal& lhs, const MhdScriptVal& rhs)
+                               const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
-	// Apply a BINARY LOGICAL operator.
+    // Apply a BINARY LOGICAL operator.
     MhdScriptVal::Type tp;
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
