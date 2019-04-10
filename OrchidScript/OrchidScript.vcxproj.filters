@@ -35,9 +35,6 @@
     <ClInclude Include="OrchidScriptScanner.hpp">
       <Filter>Source\Scanner</Filter>
     </ClInclude>
-    <ClInclude Include="OrchidScriptDynamic.hpp">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="OrchidScriptValue.hpp">
       <Filter>Source</Filter>
     </ClInclude>

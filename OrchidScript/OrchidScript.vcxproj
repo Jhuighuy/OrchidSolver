@@ -12,7 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OrchidScriptParserSyntax.hpp" />
-    <ClInclude Include="OrchidScriptDynamic.hpp" />
     <ClInclude Include="OrchidScriptParser.hpp" />
     <ClInclude Include="OrchidScriptScanner.hpp" />
     <ClInclude Include="OrchidScriptValue.hpp" />
