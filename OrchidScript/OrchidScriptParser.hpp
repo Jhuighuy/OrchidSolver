@@ -30,6 +30,7 @@ private:
     MhdScriptExpr::Ptr parse_expression();
 private:
     MhdScriptExpr::Ptr parse_expression_compound();
+    MhdScriptExpr::Ptr parse_expression_namespace();
 private:
     MhdScriptExpr::Ptr parse_expression_cond_if();
     MhdScriptExpr::Ptr parse_expression_cond_switch();

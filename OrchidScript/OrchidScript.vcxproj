@@ -15,12 +15,13 @@
     <ClInclude Include="OrchidScriptDynamic.hpp" />
     <ClInclude Include="OrchidScriptParser.hpp" />
     <ClInclude Include="OrchidScriptScanner.hpp" />
+    <ClInclude Include="OrchidScriptValue.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidScriptParserSyntax.cpp" />
-    <ClCompile Include="OrchidScriptDynamic.cpp" />
     <ClCompile Include="OrchidScriptParser.cpp" />
     <ClCompile Include="OrchidScriptScanner.cpp" />
+    <ClCompile Include="OrchidScriptValue.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

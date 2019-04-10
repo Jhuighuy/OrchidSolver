@@ -93,18 +93,36 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
                 token.m_value_int = 0;
                 return true;
             }
+            if (character == 's' &&
+                peek_next() == 'w' && peek_next() == 'i' && peek_next() == 't' && peek_next() == 'c' && 
+                peek_next() == 'h') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::KW_SWITCH;
+                return true;
+            }
+            if (character == 'c' &&
+                peek_next() == 'a' && peek_next() == 's' && peek_next() == 'e') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::KW_CASE;
+                return true;
+            }
+            if (character == 'd' &&
+                peek_next() == 'e' && peek_next() == 'f' && peek_next() == 'a' && peek_next() == 'u' && 
+                peek_next() == 'l' && peek_next() == 't') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::KW_DEFAULT;
+                return true;
+            }
             if (character == 'w' &&
                 peek_next() == 'h' && peek_next() == 'i' && peek_next() == 'l' && peek_next() == 'e') {
                 advance();
                 token.m_kind = MhdScriptToken::Kind::KW_WHILE;
-                token.m_value_int = 0;
                 return true;
             }
             if (character == 'b' &&
                 peek_next() == 'r' && peek_next() == 'e' && peek_next() == 'a' && peek_next() == 'k') {
                 advance();
                 token.m_kind = MhdScriptToken::Kind::KW_BREAK;
-                token.m_value_int = 0;
                 return true;
             }
             return scan_id(token);
@@ -115,6 +133,10 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
         case ',':
             advance();
             token.m_kind = MhdScriptToken::Kind::OP_COMMA;
+            return true;
+        case ':':
+            advance();
+            token.m_kind = MhdScriptToken::Kind::OP_COLON;
             return true;
         case ';':
             advance();

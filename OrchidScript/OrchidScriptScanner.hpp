@@ -5,6 +5,14 @@
 #include <cinttypes>
 #include <string>
 
+
+#define ORCHID_ASSERT(...) do { if(!(__VA_ARGS__)){ \
+    fprintf(stderr, "%s(%d): %s\n", __FILE__, __LINE__, #__VA_ARGS__); \
+    abort(); } } while (false)
+#define MHD_INTERNAL
+#define MHD_INTERFACE
+#define ORCHID_INTERFACE
+
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -23,6 +31,7 @@ struct MhdScriptToken
         CT_NIL,
         KW_TRUE,
         KW_FALSE,
+        KW_NAMESPACE,
         KW_IF,
         KW_ELSE,
         KW_SWITCH,

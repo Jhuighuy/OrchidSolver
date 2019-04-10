@@ -6,10 +6,10 @@
 
 #include <exception>
 
-struct MhdParseException
+struct MhdParseException : std::runtime_error
 {
 public:
-    MhdParseException(...) {}
+    MhdParseException(...) : std::runtime_error("Hui!") {}
 };  // struct MhdParseException
 
 //########################################################################################################
@@ -22,7 +22,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_wrap()
     try {
         expr = parse();
     } catch (const MhdParseException& parse_exc) {
-        //printf("Error: %s\n%s\n", m_tokenizer.m_text, parse_exc.what());
+        printf("Error: %s\n%s\n", m_tokenizer.m_text, parse_exc.what());
     }
     return expr;
 }
@@ -45,6 +45,10 @@ MhdScriptParser::parse()
         case MhdScriptToken::Kind::OP_BRACE_OPEN:
             peek();
             expr = parse_expression_compound();
+            return expr;
+        case MhdScriptToken::Kind::KW_NAMESPACE:
+            peek();
+            expr = parse_expression_namespace();
             return expr;
         // Selection statement.
         case MhdScriptToken::Kind::KW_IF:
@@ -110,6 +114,14 @@ MhdScriptParser::parse_expression_compound()
     expr = std::make_shared<MhdScriptExprCompound>(exprs);
     return expr; 
 }
+//--------------------------------------------------------------------------------------------------------
+MHD_INTERNAL
+MhdScriptExpr::Ptr 
+MhdScriptParser::parse_expression_namespace()
+{
+    ORCHID_ASSERT(0);
+    return nullptr;
+}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -150,46 +162,51 @@ MhdScriptParser::parse_expression_cond_switch()
     MhdScriptExpr::Ptr cond;
     MhdScriptExpr::Map cases;
     MhdScriptExpr::Ptr case_default;
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
         throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
     }
     cond = parse_expression();
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
         peek();
     } else {
         throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
     }
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_OPEN) {
+    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACE_OPEN) {
         peek();
     } else {
         throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
     }
     while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE) {
-        MhdScriptExpr::Ptr* pcase = nullptr;
+        MhdScriptExpr::Ptr* pcase_branch = nullptr;
         if (m_token.m_kind == MhdScriptToken::Kind::KW_CASE) {
             peek();
             cases.push_back({});
             cases.back().first = parse_expression();
-            pcase = &cases.back().second;
+            pcase_branch = &cases.back().second;
         } else if (m_token.m_kind == MhdScriptToken::Kind::KW_DEFAULT) {
             peek();
             if (case_default == nullptr) {
-                pcase = &case_default;
+                pcase_branch = &case_default;
             } else {
                 throw MhdParseException(MhdScriptError::ERR_UNEXP_DEFAULT);
             }
         } else {
             throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
         }
-        if (m_token.m_kind != MhdScriptToken::Kind::OP_COLON) {
+        if (m_token.m_kind == MhdScriptToken::Kind::OP_COLON) {
             peek();
         } else {
             throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
         }
-        MhdScriptExpr::Vec exprs;
-        ORCHID_ASSERT(0);
+        MhdScriptExpr::Vec case_branch_exprs;
+        while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE &&
+               m_token.m_kind != MhdScriptToken::Kind::KW_CASE &&
+               m_token.m_kind != MhdScriptToken::Kind::KW_DEFAULT) {
+            case_branch_exprs.push_back(parse());
+        }
+        *pcase_branch = std::make_shared<MhdScriptExprCompound>(case_branch_exprs); 
     }
     peek();
     MhdScriptExpr::Ptr expr;
@@ -702,23 +719,23 @@ MhdScriptParser::parse_expression_unary_operand()
     switch (m_token.m_kind) {
         // Constant expression operand.
         case MhdScriptToken::Kind::CT_NIL:
-            expr = std::make_shared<MhdScriptExprConst>(MhdDynamic());
+            expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal());
             peek();
             return expr;
         case MhdScriptToken::Kind::CT_LGC:
-            expr = std::make_shared<MhdScriptExprConst>(MhdDynamic(m_token.m_value_int != 0));
+            expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_int != 0));
             peek();
             return expr;
         case MhdScriptToken::Kind::CT_INT:
-            expr = std::make_shared<MhdScriptExprConst>(MhdDynamic(m_token.m_value_int));
+            expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_int));
             peek();
             return expr;
         case MhdScriptToken::Kind::CT_DBL:
-            expr = std::make_shared<MhdScriptExprConst>(MhdDynamic(m_token.m_value_dbl));
+            expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_dbl));
             peek();
             return expr;
         case MhdScriptToken::Kind::CT_STR:
-            expr = std::make_shared<MhdScriptExprConst>(MhdDynamic(m_token.m_value_str));
+            expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_str));
             peek();
             return expr;
         // Identifier expression operand.
@@ -1050,14 +1067,15 @@ MhdScriptParser::parse_expression_unary_factor_subscript()
 //########################################################################################################
 //########################################################################################################
 
+#include "OrchidScriptValue.hpp"
 #include <cmath>
 #include <cstdio>
-std::map<std::string, MhdDynamic> g_vars;
+std::map<std::string, MhdScriptVal> g_vars;
 extern "C" void orchid_solver_scanner_test()
 {
-    g_vars["s"] = MhdDynamic(std::function<MhdDynamic()>([]() -> MhdDynamic {
-        return MhdDynamic(std::function<int()>([](){ return 1488; }));
-    }));
+    //g_vars["s"] = MhdScriptVal(std::function<MhdScriptVal()>([]() -> MhdScriptVal {
+    //    return MhdScriptVal(std::function<int()>([](){ return 1488; }));
+    //}));
     //MhdScriptParser p("{for(x=0;x<10;)x=x+1; x=s()();}");
     MhdScriptParser p("{y = 2;[](x){ y = 1; x; }(1234)+y;}");
     //MhdScriptParser p("{x=1+2;}");
@@ -1067,6 +1085,12 @@ extern "C" void orchid_solver_scanner_test()
 }
 int main() 
 {
+    //printf("%d\n", sizeof(true + 1ul));
+    MhdScriptVal a1(100.0);
+    MhdScriptVal a2(2.0);
+    a2[0] = 200.0;
+    printf("%lf\n", (*(a1 + a2).m_val_dbl)[0]);
+
     orchid_solver_scanner_test();
     return 0;
 }
