@@ -280,6 +280,9 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
             break;
         case MhdScriptVal::Type::STR:
             tp = MhdScriptVal::Type::STR;
+            if (tp != rhs.m_type) {
+                throw MhdInvalidOp(rhs);
+            }
             break;
         default:
             throw MhdInvalidOp(lhs);
@@ -291,9 +294,6 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
             tp = std::max(tp, rhs.m_type);
             break;
         case MhdScriptVal::Type::STR:
-            if (tp != rhs.m_type) {
-                throw MhdInvalidOp(rhs);
-            }
             break;
         default:
             throw MhdInvalidOp(rhs);
@@ -492,6 +492,9 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::STR:
         case MhdScriptVal::Type::PTR:
             tp = lhs.m_type;
+            if (tp != rhs.m_type) {
+                throw MhdInvalidOp(rhs);
+            }
             break;
         default:
             throw MhdInvalidOp(lhs);
@@ -504,9 +507,6 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
             break;
         case MhdScriptVal::Type::STR:
         case MhdScriptVal::Type::PTR:
-            if (tp != rhs.m_type) {
-                throw MhdInvalidOp(rhs);
-            }
             break;
         default:
             throw MhdInvalidOp(rhs);
@@ -658,6 +658,7 @@ MhdScriptRef
 MhdScriptVal::operator[](const MhdScriptVal& index) const
 {
     // Apply an INDEX OPERATOR.
+    /// @TODO Implement me correctly.
     std::size_t idx;
     MhdScriptRef ref;
     switch (m_type) {
@@ -690,19 +691,23 @@ MhdScriptVal::operator[](const MhdScriptVal& index) const
     }
     return ref;
 }
+//--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptRef
 MhdScriptVal::operator[](const std::vector<MhdScriptVal>& args) const
 {
-    // Apply an INDEX OPERATOR.
+    // Apply an INDEX operator.
+    /// @TODO Implement me correctly.
     return (*this)[args[0]];
 }
-//--------------------------------------------------------------------------------------------------------
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 MHD_INTERFACE
 MhdScriptVal 
 MhdScriptVal::operator()(const std::vector<MhdScriptVal>& args) const
 {
-    // Apply a CALL OPERATOR.
+    // Apply a CALL operator.
     if (m_type == MhdScriptVal::Type::FUN) {
         return (*m_val_fun)(args);
     } else {
