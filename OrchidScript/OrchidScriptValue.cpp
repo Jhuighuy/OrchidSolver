@@ -863,6 +863,7 @@ operator_cast_apply_string(U& val,
 {
     // Apply a CAST TO STRING operator for value arrays. 
     std::basic_ostringstream<X> rhs_cast;
+    rhs_cast.setf(std::ios::showpoint);
     rhs_cast << "[";
     if (lhs.size() > 0) {
         rhs_cast << lhs[0];
