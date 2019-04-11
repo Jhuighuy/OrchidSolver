@@ -10,6 +10,45 @@
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
+const std::string&
+type_to_string(MhdScriptVal::Type tp) {
+    switch (tp) {
+        case MhdScriptVal::Type::LGC: {
+            static const std::string tp_str("<bool>");
+            return tp_str;
+        }
+        case MhdScriptVal::Type::INT: {
+            static const std::string tp_str("<int>");
+            return tp_str;
+        }
+        case MhdScriptVal::Type::DBL: {
+            static const std::string tp_str("<double>");
+            return tp_str;
+        }
+        case MhdScriptVal::Type::STR: {
+            static const std::string tp_str("<string>");
+            return tp_str;
+        }
+        case MhdScriptVal::Type::PTR: {
+            static const std::string tp_str("<pointer>");
+            return tp_str;
+        }
+        case MhdScriptVal::Type::FUN: {
+            static const std::string tp_str("<function>");
+            return tp_str;
+        }
+        case MhdScriptVal::Type::MAP: {
+            static const std::string tp_str("<map>");
+            return tp_str;
+        }
+        default:
+            ORCHID_ASSERT(0); 
+            break;
+    }
+}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 MHD_INTERFACE
 MhdScriptVal::~MhdScriptVal()
 {
@@ -31,6 +70,9 @@ MhdScriptVal::~MhdScriptVal()
         case MhdScriptVal::Type::FUN:
             delete m_val_fun;
             break;
+        case MhdScriptVal::Type::MAP:
+            delete m_val_map;
+            break;
         default:
             ORCHID_ASSERT(0); 
             break;
@@ -41,28 +83,6 @@ MhdScriptVal::~MhdScriptVal()
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-MHD_INTERFACE
-MhdScriptVal::MhdScriptVal(MhdScriptVal&& other) noexcept
-    : m_type(Type::PTR)
-    , m_val_ptr(nullptr)
-{
-    *this = std::forward<MhdScriptVal>(other);
-}
-MHD_INTERFACE
-MhdScriptVal::MhdScriptVal(const MhdScriptVal& other)
-    : m_type(Type::PTR)
-    , m_val_ptr(nullptr)
-{
-    *this = other;
-}
-MHD_INTERFACE
-MhdScriptVal::MhdScriptVal(const MhdScriptRef& other)
-    : m_type(Type::PTR)
-    , m_val_ptr(nullptr)
-{
-    *this = other;
-}
-//--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal& 
 MhdScriptVal::operator=(MhdScriptVal&& other) noexcept
@@ -75,6 +95,25 @@ MhdScriptVal::operator=(MhdScriptVal&& other) noexcept
     }
     return *this;
 }
+//--------------------------------------------------------------------------------------------------------
+template<typename T>
+void
+operator_assignment_apply(T*& lhs, const T* rhs)
+{
+    // Apply ASSIGNMENT operator for arbitrary objects.
+    lhs = new T(*rhs);
+}
+template<typename T, typename U>
+void
+operator_assignment_apply(std::valarray<T>*& lhs, const std::vector<U>& rhs)
+{
+    // Apply ASSIGNMENT operator for arbitrary value arrays.
+    lhs = new std::valarray<T>(rhs.size());
+    for (std::size_t i = 0; i < rhs.size(); ++i) {
+        (*lhs)[i] = static_cast<T>(rhs[i]);
+    }
+}
+//--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal& 
 MhdScriptVal::operator=(const MhdScriptVal& other)
@@ -85,23 +124,25 @@ MhdScriptVal::operator=(const MhdScriptVal& other)
         m_type = other.m_type;
         switch (m_type) {
             case MhdScriptVal::Type::LGC:
-                m_val_lgc = new std::valarray<bool  >(*other.m_val_lgc);
+                operator_assignment_apply(m_val_lgc, other.m_val_lgc);
                 break;
             case MhdScriptVal::Type::INT:
-                m_val_int = new std::valarray<int   >(*other.m_val_int);
+                operator_assignment_apply(m_val_int, other.m_val_int);
                 break;
             case MhdScriptVal::Type::DBL:
-                m_val_dbl = new std::valarray<double>(*other.m_val_dbl);
+                operator_assignment_apply(m_val_dbl, other.m_val_dbl);
                 break;
             case MhdScriptVal::Type::STR:
-                m_val_str = new std::string(*other.m_val_str);
+                operator_assignment_apply(m_val_str, other.m_val_str);
                 break;
             case MhdScriptVal::Type::PTR:
                 m_val_ptr = other.m_val_ptr;
                 break;
             case MhdScriptVal::Type::FUN:
-                m_val_fun = new std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(
-                    *other.m_val_fun);
+                operator_assignment_apply(m_val_fun, other.m_val_fun);
+                break;
+            case MhdScriptVal::Type::MAP:
+                operator_assignment_apply(m_val_map, other.m_val_map);
                 break;
             default:
                 ORCHID_ASSERT(0); 
@@ -110,6 +151,43 @@ MhdScriptVal::operator=(const MhdScriptVal& other)
     }
     return *this;
 }
+MHD_INTERFACE
+MhdScriptVal&
+MhdScriptVal::operator=(const std::vector<MhdScriptVal>& others)
+{
+    // Assign VALUE of an ARRAY OF VALUES.
+    this->~MhdScriptVal();
+    m_type = MhdScriptVal::Type::LGC;
+    for (const MhdScriptVal& val : others) {
+        switch (val.m_type) {
+            case MhdScriptVal::Type::LGC:
+            case MhdScriptVal::Type::INT:
+            case MhdScriptVal::Type::DBL:
+                m_type = std::max(m_type, val.m_type);
+                break;
+            default:
+                throw MhdSciptInvalidOp(val);
+        }
+    }
+    switch (m_type) {
+        case MhdScriptVal::Type::LGC:
+            operator_assignment_apply(m_val_lgc, others);
+            break;
+        case MhdScriptVal::Type::INT:
+            operator_assignment_apply(m_val_int, others);
+            break;
+        case MhdScriptVal::Type::DBL:
+            operator_assignment_apply(m_val_dbl, others);
+            break;
+        default:
+            ORCHID_ASSERT(0); 
+            break;
+    }
+    return *this;
+}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 MHD_INTERFACE
 MhdScriptVal& 
 MhdScriptVal::operator=(const MhdScriptRef& other)
@@ -120,13 +198,13 @@ MhdScriptVal::operator=(const MhdScriptRef& other)
         m_type = other.m_type;
         switch (m_type) {
             case MhdScriptVal::Type::LGC:
-                m_val_lgc = new std::valarray<bool  >(other.m_ref_lgc, 1);
+                *this = *other.m_ref_lgc;
                 break;
             case MhdScriptVal::Type::INT:
-                m_val_int = new std::valarray<int   >(other.m_ref_int, 1);
+                *this = *other.m_ref_int;
                 break;
             case MhdScriptVal::Type::DBL:
-                m_val_dbl = new std::valarray<double>(other.m_ref_dbl, 1);
+                *this = *other.m_ref_dbl;
                 break;
             case MhdScriptVal::Type::MAP:
                 *this = *other.m_ref;
@@ -135,6 +213,33 @@ MhdScriptVal::operator=(const MhdScriptRef& other)
                 ORCHID_ASSERT(0); 
                 break;
         }
+    }
+    return *this;
+}
+//--------------------------------------------------------------------------------------------------------
+MHD_INTERFACE
+MhdScriptRef& 
+MhdScriptRef::operator=(const MhdScriptVal& other) 
+{ 
+    // Assign VALUE of a VALUE.
+    switch (m_type) {
+        case MhdScriptVal::Type::LGC:
+            *m_ref_lgc = static_cast<bool>(other);
+            break;
+        case MhdScriptVal::Type::INT:
+            *m_ref_int = static_cast<int>(other);
+            break;
+        case MhdScriptVal::Type::DBL:
+            *m_ref_dbl = static_cast<double>(other);
+            break;
+        case MhdScriptVal::Type::PTR:
+            *m_ref_ptr = static_cast<void*>(other);
+            break;
+        case MhdScriptVal::Type::MAP:
+            *m_ref = other;
+            break;
+        default:
+            throw MhdSciptInvalidOp(other);
     }
     return *this;
 }
@@ -155,7 +260,7 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
             lhs = std::move(-lhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -175,7 +280,7 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
             tp = MhdScriptVal::Type::DBL;
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(op, lhs);
     }
     MhdScriptVal new_lhs;
     if (lhs.m_type != tp) {
@@ -222,7 +327,7 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
             lhs %= rhs;
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 template<typename T>
@@ -245,7 +350,7 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
             lhs /= rhs;
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 template<typename T>
@@ -259,7 +364,7 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
             lhs += rhs;
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -281,11 +386,11 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::STR:
             tp = MhdScriptVal::Type::STR;
             if (tp != rhs.m_type) {
-                throw MhdInvalidOp(rhs);
+                throw MhdSciptInvalidOp(rhs);
             }
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
     switch (rhs.m_type) {
         case MhdScriptVal::Type::LGC:
@@ -296,7 +401,7 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::STR:
             break;
         default:
-            throw MhdInvalidOp(rhs);
+            throw MhdSciptInvalidOp(rhs);
     }
     MhdScriptVal new_lhs;
     MhdScriptVal new_rhs;
@@ -340,7 +445,7 @@ operator_logical_apply(MhdScriptToken::Kind op,
             val = std::move(!lhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 template<typename T, typename U>
@@ -354,7 +459,7 @@ operator_logical_apply(MhdScriptToken::Kind op,
             val = std::move(!lhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -371,7 +476,7 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::PTR:
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
     MhdScriptVal new_lhs = lhs;
     switch (lhs.m_type) {
@@ -391,7 +496,7 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
             ORCHID_ASSERT(0); 
             break;
     }
-    throw 0;
+    return new_lhs;
 }
 //########################################################################################################
 //########################################################################################################
@@ -428,7 +533,7 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
             val = std::move(lhs || rhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 template<typename T, typename U>
@@ -457,7 +562,7 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
             val = std::move(lhs >= rhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 template<typename T, typename U>
@@ -474,7 +579,7 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
             val = std::move(lhs != rhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -495,11 +600,11 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::PTR:
             tp = lhs.m_type;
             if (tp != rhs.m_type) {
-                throw MhdInvalidOp(rhs);
+                throw MhdSciptInvalidOp(rhs);
             }
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
     switch (rhs.m_type) {
         case MhdScriptVal::Type::LGC:
@@ -511,7 +616,7 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::PTR:
             break;
         default:
-            throw MhdInvalidOp(rhs);
+            throw MhdSciptInvalidOp(rhs);
     }
     MhdScriptVal new_lhs;
     MhdScriptVal new_rhs;
@@ -561,7 +666,7 @@ operator_bitwise_apply(MhdScriptToken::Kind op,
             lhs = std::move(~lhs);
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -576,7 +681,7 @@ MhdScriptVal::operator_bitwise(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::INT:
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
     MhdScriptVal new_lhs;
     if (lhs.m_type != MhdScriptVal::Type::INT) {
@@ -613,7 +718,7 @@ operator_bitwise_apply(MhdScriptToken::Kind op,
             lhs >>= rhs;
             break;
         default:
-            throw MhdInvalidOp(op);
+            throw MhdSciptInvalidOp(op);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -628,14 +733,14 @@ MhdScriptVal::operator_bitwise(MhdScriptToken::Kind op,
         case MhdScriptVal::Type::INT:
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
     switch (rhs.m_type) {
         case MhdScriptVal::Type::LGC:
         case MhdScriptVal::Type::INT:
             break;
         default:
-            throw MhdInvalidOp(rhs);
+            throw MhdSciptInvalidOp(rhs);
     }
     MhdScriptVal new_lhs;
     MhdScriptVal new_rhs;
@@ -689,7 +794,7 @@ MhdScriptVal::operator[](const MhdScriptVal& index) const
             ref = MhdScriptRef(&(*m_val_map)[index]);
             break;
         default:
-            throw MhdInvalidOp(*this);
+            throw MhdSciptInvalidOp(*this);
     }
     return ref;
 }
@@ -713,7 +818,7 @@ MhdScriptVal::operator()(const std::vector<MhdScriptVal>& args) const
     if (m_type == MhdScriptVal::Type::FUN) {
         return (*m_val_fun)(args);
     } else {
-        throw MhdInvalidOp(*this);
+        throw MhdSciptInvalidOp(*this);
     }
 }
 //########################################################################################################
@@ -799,7 +904,7 @@ operator_cast_apply(MhdScriptVal::Type tp, U& val,
             operator_cast_apply_string<char>(val, lhs);
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
 }
 //--------------------------------------------------------------------------------------------------------
@@ -820,7 +925,7 @@ MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
         case MhdScriptVal::Type::PTR:
             break;
         default:
-            throw MhdInvalidOp(lhs);
+            throw MhdSciptInvalidOp(lhs);
     }
     MhdScriptVal new_lhs = lhs;
     switch (lhs.m_type) {
@@ -870,7 +975,7 @@ MhdScriptVal::operator bool() const
             val = m_val_ptr != nullptr;
             break;
         default:
-            throw MhdInvalidOp(*this);
+            throw MhdSciptInvalidOp(*this);
     }
     return val;
 }
@@ -890,7 +995,7 @@ MhdScriptVal::operator int() const
             val = m_val_dbl->size() > 0 ? int((*m_val_dbl)[0]) : val;
             break;
         default:
-            throw MhdInvalidOp(*this);
+            throw MhdSciptInvalidOp(*this);
     }
     return val;
 }
@@ -910,7 +1015,7 @@ MhdScriptVal::operator double() const
             val = m_val_dbl->size() > 0 ? double((*m_val_dbl)[0]) : val;
             break;
         default:
-            throw MhdInvalidOp(*this);
+            throw MhdSciptInvalidOp(*this);
     }
     return val;
 }
@@ -924,6 +1029,18 @@ MhdScriptVal::operator std::string() const
         val = *m_val_str;
     } else {
         val = *operator_cast(MhdScriptVal::Type::STR, *this).m_val_str;
+    }
+    return val;
+}
+MHD_INTERFACE
+MhdScriptVal::operator void*() const 
+{
+    // Apply a CAST TO POINTER operator.
+    void* val;
+    if (m_type == MhdScriptVal::Type::PTR) {
+        val = m_val_ptr;
+    } else {
+        throw MhdSciptInvalidOp(*this);
     }
     return val;
 }

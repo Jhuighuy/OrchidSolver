@@ -16,10 +16,11 @@ struct MhdInvalidOp
 public:
     MhdInvalidOp(...) {}
 };
+#define MhdSciptInvalidOp MhdInvalidOp
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 struct MhdScriptRef;
-//########################################################################################################
-//########################################################################################################
-//########################################################################################################
 struct MhdScriptVal final
 {
 public:
@@ -50,53 +51,83 @@ public:
     MhdScriptVal()
         : m_type(Type::PTR)
         , m_val_ptr(nullptr) {}
-    MhdScriptVal(void* val)
+    explicit MhdScriptVal(void* val)
         : m_type(Type::PTR)
         , m_val_ptr(val) {}
 public:
-    MhdScriptVal(bool val)
+    explicit MhdScriptVal(bool val)
         : m_type(Type::LGC)
         , m_val_lgc(new std::valarray<bool>(&val, 1)) {}
-    MhdScriptVal(const std::valarray<bool>& val)
+    explicit MhdScriptVal(const std::valarray<bool>& val)
         : m_type(Type::LGC)
         , m_val_lgc(new std::valarray<bool>(val)) {}
 public:
-    MhdScriptVal(int val)
+    explicit MhdScriptVal(int val)
         : m_type(Type::INT)
         , m_val_int(new std::valarray<int>(&val, 1)) {}
-    MhdScriptVal(const std::valarray<int>& val)
+    explicit MhdScriptVal(const std::valarray<int>& val)
         : m_type(Type::INT)
         , m_val_int(new std::valarray<int>(val)) {}
 public:
-    MhdScriptVal(double val)
+    explicit MhdScriptVal(double val)
         : m_type(Type::DBL)
         , m_val_dbl(new std::valarray<double>(&val, 1)) {}
-    MhdScriptVal(const std::valarray<double>& val)
+    explicit MhdScriptVal(const std::valarray<double>& val)
         : m_type(Type::DBL)
         , m_val_dbl(new std::valarray<double>(val)) {}
 public:
-    MhdScriptVal(const char* val)
+    explicit MhdScriptVal(const char* val)
         : m_type(Type::STR)
         , m_val_str(new std::string(val)) {}
-    MhdScriptVal(const std::string& val)
+    explicit MhdScriptVal(const std::string& val)
         : m_type(Type::STR)
         , m_val_str(new std::string(val)) {}
 public:
-    MhdScriptVal(const std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>& val)
+    explicit MhdScriptVal(const std::map<MhdScriptVal, MhdScriptVal>& val)
+        : m_type(Type::MAP)
+        , m_val_map(new std::map<MhdScriptVal, MhdScriptVal>(val)) {}
+public:
+    explicit MhdScriptVal(MhdScriptVal(*val)(const std::vector<MhdScriptVal>&))
+        : m_type(Type::FUN)
+        , m_val_fun(new std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(val)) {}
+    explicit MhdScriptVal(const std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>& val)
         : m_type(Type::FUN)
         , m_val_fun(new std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(val)) {}
 public:
-    MhdScriptVal(MhdScriptVal&& val) noexcept;
-    MhdScriptVal(const MhdScriptVal& val);
-    MhdScriptVal(const MhdScriptRef& ref);
+    MhdScriptVal(MhdScriptVal&& other) noexcept
+        : m_type(Type::PTR)
+        , m_val_ptr(nullptr)
+    {
+        *this = std::forward<MhdScriptVal>(other);
+    }
+    MhdScriptVal(const MhdScriptVal& other)
+        : m_type(Type::PTR)
+        , m_val_ptr(nullptr)
+    {
+        *this = other;
+    }
+    explicit MhdScriptVal(const std::vector<MhdScriptVal>& others)
+        : m_type(Type::PTR)
+        , m_val_ptr(nullptr)
+    {
+        *this = others;
+    }
     MhdScriptVal& operator=(MhdScriptVal&& other) noexcept;
     MhdScriptVal& operator=(const MhdScriptVal& other);
-    MhdScriptVal& operator=(const MhdScriptRef& other);
+    MhdScriptVal& operator=(const std::vector<MhdScriptVal>& others);
     template<typename T>
     MhdScriptVal& operator=(const T& t)
     {
         return *this = MhdScriptVal(t);
     }
+public:
+    MhdScriptVal(const MhdScriptRef& other)
+        : m_type(Type::PTR)
+        , m_val_ptr(nullptr)
+    {
+        *this = other;
+    }
+    MhdScriptVal& operator=(const MhdScriptRef& other);
 public:
     static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
                                             const MhdScriptVal& lhs);
@@ -206,14 +237,26 @@ public:
 public:
     MhdScriptRef operator[](const MhdScriptVal& index) const;
     MhdScriptRef operator[](const std::vector<MhdScriptVal>& args) const;
+    //template<typename T>
+    //MhdScriptRef operator[](const T& index) const
+    //{
+    //    return (*this)[MhdScriptVal(index)];
+    //}
+public:
     MhdScriptVal operator()(const std::vector<MhdScriptVal>& args) const;
+    template<typename... T>
+    MhdScriptVal operator()(const T&... args) const
+    {
+        return (*this)({ MhdScriptVal(args)... });
+    }
 public:
     static MhdScriptVal operator_cast(MhdScriptVal::Type tp,
                                       const MhdScriptVal& lhs);
     operator bool() const;
-    operator int() const;
-    operator double() const;
-    operator std::string() const;
+    explicit operator int() const;
+    explicit operator double() const;
+    explicit operator std::string() const;
+    explicit operator void*() const;
 };	// struct MhdScriptVal
 //########################################################################################################
 //########################################################################################################
@@ -224,31 +267,53 @@ public:
     MhdScriptVal::Type m_type;
     union {
         MhdScriptVal* m_ref;
-        void ** m_ref_ptr;
         bool  * m_ref_lgc;
         int   * m_ref_int;
         double* m_ref_dbl;
+        void ** m_ref_ptr;
     };
 public:
-    MhdScriptRef(void* = nullptr): m_type(MhdScriptVal::Type::PTR), m_ref(nullptr) {}
-    MhdScriptRef(int* ref): m_type(MhdScriptVal::Type::INT), m_ref_int(ref) {}
-    MhdScriptRef(double* ref): m_type(MhdScriptVal::Type::DBL), m_ref_dbl(ref) {}
+    MhdScriptRef()
+        : m_type(MhdScriptVal::Type::PTR)
+        , m_ref_ptr(nullptr) {}
+    explicit MhdScriptRef(void** ref)
+        : m_type(MhdScriptVal::Type::PTR)
+        , m_ref_ptr(ref) {}
 public:
+    explicit MhdScriptRef(bool* ref)
+        : m_type(MhdScriptVal::Type::LGC)
+        , m_ref_lgc(ref) {}
+public:
+    explicit MhdScriptRef(int* ref)
+        : m_type(MhdScriptVal::Type::INT)
+        , m_ref_int(ref) {}
+public:
+    explicit MhdScriptRef(double* ref)
+        : m_type(MhdScriptVal::Type::DBL)
+        , m_ref_dbl(ref) {}
+public:
+    explicit MhdScriptRef(MhdScriptVal* ref)
+        : m_type(MhdScriptVal::Type::MAP)
+        , m_ref(ref) {}
+public:
+    MhdScriptRef& operator=(const MhdScriptVal& val);
+    template<typename T>
+    MhdScriptRef& operator=(const T& t)
+    {
+        return *this = MhdScriptVal(t);
+    }
+public:
+    MhdScriptRef(const MhdScriptRef& other)
+        : m_type(MhdScriptVal::Type::PTR)
+        , m_ref_ptr(nullptr) 
+    {
+        *this = other;
+    }
     MhdScriptRef& operator=(const MhdScriptRef& other) 
     { 
         m_type = other.m_type;
         m_ref = other.m_ref;
         return *this; 
-    }
-    MhdScriptRef& operator=(const MhdScriptVal& val) 
-    { 
-        *m_ref_dbl = (*val.m_val_dbl)[0];
-        return *this;
-    }
-    template<typename T>
-    MhdScriptRef& operator=(const T& t)
-    {
-        return *this = MhdScriptVal(t);
     }
 public:
     MhdScriptVal operator+() const
@@ -340,6 +405,15 @@ public:
     MhdScriptVal operator>>(const MhdScriptVal& other) const
     {
         return MhdScriptVal(*this) >> other;
+    }
+public:
+    MhdScriptRef operator[](const std::vector<MhdScriptVal>& args) const
+    {
+        if (m_type == MhdScriptVal::Type::MAP) {
+            return (*m_ref)[args];
+        } else {
+            throw MhdInvalidOp(*this);
+        }
     }
 };	// struct MhdScriptRef
 //########################################################################################################

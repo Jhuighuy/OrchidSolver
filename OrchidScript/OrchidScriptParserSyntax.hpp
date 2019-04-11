@@ -106,8 +106,14 @@ public:
     explicit MhdScriptExpr() noexcept {}
     virtual ~MhdScriptExpr() noexcept {}
 public:
-    virtual MhdScriptVal updt(MhdScriptVal val) const { abort(); }
-    virtual MhdScriptVal eval() const { abort(); } 
+    virtual MhdScriptVal eval() const 
+    { 
+        throw MhdInvalidOp();
+    } 
+    virtual MhdScriptRef eval_ref() const 
+    { 
+        throw MhdInvalidOp();
+    }
 };  // struct MhdScriptExpr
 //--------------------------------------------------------------------------------------------------------
 struct MhdScriptExprEmpty : public MhdScriptExpr
@@ -123,6 +129,9 @@ struct MhdScriptExprConst : public MhdScriptExpr
 public:
     MhdScriptVal m_value;
 public:
+    template<typename T>
+    MhdScriptExprConst(const T& value) noexcept
+        : m_value(MhdScriptVal(value)) {}
     MhdScriptExprConst(MhdScriptVal value) noexcept
         : m_value(value) {}
 public:
@@ -159,6 +168,24 @@ public:
     }
 };  // struct MhdScriptExprConstFunc
 //--------------------------------------------------------------------------------------------------------
+struct MhdScriptExprConstArray : public MhdScriptExpr
+{
+public:
+    MhdScriptExpr::Vec m_array;
+public:
+    MhdScriptExprConstArray(const MhdScriptExpr::Vec& array)
+        : m_array(array) {}
+public:
+    MhdScriptVal eval() const override
+    {
+        std::vector<MhdScriptVal> array;
+        for (MhdScriptExpr::Ptr value : m_array) {
+            array.push_back(value->eval());
+        }
+        return MhdScriptVal(array);
+    }
+};  // struct MhdScriptExprConstArray
+//--------------------------------------------------------------------------------------------------------
 struct MhdScriptExprIdent : public MhdScriptExpr
 {
 public:
@@ -167,13 +194,13 @@ public:
     MhdScriptExprIdent(const std::string& id)
         : m_id(id) {}
 public:
-    MhdScriptVal updt(MhdScriptVal val) const override
-    {
-        return g_vars[m_id] = val;
-    }
     MhdScriptVal eval() const override
     {
         return g_vars[m_id];
+    }
+    MhdScriptRef eval_ref() const override
+    { 
+        return MhdScriptRef(&g_vars[m_id]);
     }
 };  // struct MhdScriptExprIdent
 //########################################################################################################
@@ -212,11 +239,6 @@ public:
     MhdScriptExprIndex(MhdScriptExpr::Ptr array, const MhdScriptExpr::Vec& index) noexcept
         : m_array(array), m_index(index) {}
 public:
-    MhdScriptVal updt(MhdScriptVal val) const override
-    {
-        // @todo Implement me.
-        abort();
-    }
     MhdScriptVal eval() const override
     {
         const MhdScriptVal array = m_array->eval();
@@ -225,6 +247,14 @@ public:
             index.push_back(arg->eval());
         }
         return array[index];
+    }
+    MhdScriptRef eval_ref() const override
+    { 
+        std::vector<MhdScriptVal> index;
+        for (MhdScriptExpr::Ptr arg : m_index) {
+            index.push_back(arg->eval());
+        }
+        return MhdScriptRef(m_array->eval_ref()[index]);
     }
 };  // struct MhdScriptExprIndex
 //########################################################################################################
@@ -306,34 +336,38 @@ public:
 public:
     MhdScriptVal eval() const override
     {
-        const MhdScriptVal lhs = m_lhs->eval();
+        return eval_ref();
+    }
+    MhdScriptRef eval_ref() const override
+    {
+        MhdScriptRef lhs = m_lhs->eval_ref();
         const MhdScriptVal rhs = m_rhs->eval();
         switch (m_op) {
             case MhdScriptToken::Kind::OP_ASG:        
-                return m_lhs->updt(rhs);
+                return lhs = rhs;
             case MhdScriptToken::Kind::OP_ADD_ASG: 
-                return m_lhs->updt(lhs + rhs);
+                return lhs = lhs + rhs;
             case MhdScriptToken::Kind::OP_SUB_ASG: 
-                return m_lhs->updt(lhs - rhs);
+                return lhs = lhs - rhs;
             case MhdScriptToken::Kind::OP_MUL_ASG: 
-                return m_lhs->updt(lhs * rhs);
+                return lhs = lhs * rhs;
             case MhdScriptToken::Kind::OP_DIV_ASG: 
-                return m_lhs->updt(lhs / rhs);
+                return lhs = lhs / rhs;
             case MhdScriptToken::Kind::OP_MOD_ASG: 
-                return m_lhs->updt(lhs % rhs);
+                return lhs = lhs % rhs;
             case MhdScriptToken::Kind::OP_OR_BW_ASG:  
-                return m_lhs->updt(lhs | rhs);
+                return lhs = lhs | rhs;
             case MhdScriptToken::Kind::OP_XOR_BW_ASG: 
-                return m_lhs->updt(lhs ^ rhs);
+                return lhs = lhs ^ rhs;
             case MhdScriptToken::Kind::OP_AND_BW_ASG: 
-                return m_lhs->updt(rhs & rhs);
+                return lhs = rhs & rhs;
             case MhdScriptToken::Kind::OP_LSHIFT_ASG: 
-                return m_lhs->updt(rhs << rhs);
+                return lhs = rhs << rhs;
             case MhdScriptToken::Kind::OP_RSHIFT_ASG: 
-                return m_lhs->updt(rhs >> rhs);
+                return lhs = rhs >> rhs;
             default: 
                 ORCHID_ASSERT(0); 
-                return MhdScriptVal();
+                return MhdScriptRef();
         }
     }
 };  // struct MhdScriptExprAssignment

@@ -747,7 +747,12 @@ MhdScriptParser::parse_expression_unary_operand()
         // Function expression operand.
         case MhdScriptToken::Kind::OP_BRACKET_OPEN:
             peek();
-            expr = parse_expression_unary_operand_func();
+            if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACKET_CLOSE) {
+                peek();
+                expr = parse_expression_unary_operand_func();
+            } else {
+                expr = parse_expression_unary_operand_array();
+            }
             return expr;
         // Error case.
         default:
@@ -759,11 +764,6 @@ MhdScriptExpr::Ptr
 MhdScriptParser::parse_expression_unary_operand_func()
 {
     // Parse FUNCTION OPERAND expression.
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACKET_CLOSE) {
-        peek();
-    } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
-    }
     if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
         peek();
     } else {
@@ -797,6 +797,15 @@ MhdScriptParser::parse_expression_unary_operand_func()
     expr = std::make_shared<MhdScriptExprConstFunc>(std::vector<std::string>{args.cbegin(), args.cend()}, body);
     return expr;
 }
+MHD_INTERNAL
+MhdScriptExpr::Ptr 
+MhdScriptParser::parse_expression_unary_operand_array()
+{
+    ORCHID_ASSERT(0);
+    MhdScriptExpr::Ptr expr;
+    //expr = std::make_shared<MhdScriptExprConstArray>(parse_expression_unary_factor_index());
+    return expr;
+}
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
@@ -810,15 +819,15 @@ MhdScriptParser::parse_expression_unary_factor()
         switch (m_token.m_kind) {
             case MhdScriptToken::Kind::OP_PAREN_OPEN:
                 peek();
-                expr = std::make_shared<MhdScriptExprCall>(expr, parse_expression_unary_factor_call());
+                expr = parse_expression_unary_factor_call(expr);
                 break;
             case MhdScriptToken::Kind::OP_BRACKET_OPEN:
                 peek();
-                expr = std::make_shared<MhdScriptExprIndex>(expr, parse_expression_unary_factor_index());
+                expr = parse_expression_unary_factor_index(expr);
                 break;
             case MhdScriptToken::Kind::OP_DOT:
                 peek();
-                expr = std::make_shared<MhdScriptExprIndex>(expr, parse_expression_unary_factor_subscript());
+                expr = parse_expression_unary_factor_subscript(expr);
             default:
                 break;
         }
@@ -826,11 +835,16 @@ MhdScriptParser::parse_expression_unary_factor()
     return expr;
 }
 MHD_INTERNAL
-MhdScriptExpr::Vec 
-MhdScriptParser::parse_expression_unary_factor_call()
+MhdScriptExpr::Ptr 
+MhdScriptParser::parse_expression_unary_factor_call(MhdScriptExpr::Ptr expr)
 {
     // Parse CALL expression FACTOR.
     MhdScriptExpr::Vec exprs;
+    MhdScriptExprIndex* expr_index;
+    if (expr_index = dynamic_cast<MhdScriptExprIndex*>(expr.get()),
+        expr_index != nullptr) {
+        exprs.push_back(expr_index->m_array);
+    }
     while (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_CLOSE) {
         exprs.push_back(parse_expression());
         switch (m_token.m_kind) {
@@ -844,11 +858,12 @@ MhdScriptParser::parse_expression_unary_factor_call()
         }
     }
     peek();
-    return exprs;
+    expr = std::make_shared<MhdScriptExprCall>(expr, exprs);
+    return expr;
 }
 MHD_INTERNAL
-MhdScriptExpr::Vec 
-MhdScriptParser::parse_expression_unary_factor_index()
+MhdScriptExpr::Ptr 
+MhdScriptParser::parse_expression_unary_factor_index(MhdScriptExpr::Ptr expr)
 {
     // Parse INDEX expression FACTOR.
     MhdScriptExpr::Vec exprs;
@@ -865,11 +880,12 @@ MhdScriptParser::parse_expression_unary_factor_index()
         }
     }
     peek();
-    return exprs;
+    expr = std::make_shared<MhdScriptExprIndex>(expr, exprs);
+    return expr;
 }
 MHD_INTERNAL
-MhdScriptExpr::Vec 
-MhdScriptParser::parse_expression_unary_factor_subscript()
+MhdScriptExpr::Ptr 
+MhdScriptParser::parse_expression_unary_factor_subscript(MhdScriptExpr::Ptr expr)
 {
     // Parse SUBSCRIPT expression FACTOR.
     MhdScriptExpr::Vec exprs;
@@ -1062,7 +1078,8 @@ MhdScriptParser::parse_expression_unary_factor_subscript()
         default:
             throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
     }
-    return exprs;
+    expr = std::make_shared<MhdScriptExprIndex>(expr, exprs);
+    return expr;
 }
 //########################################################################################################
 //########################################################################################################
@@ -1077,8 +1094,17 @@ extern "C" void orchid_solver_scanner_test()
     //g_vars["s"] = MhdScriptVal(std::function<MhdScriptVal()>([]() -> MhdScriptVal {
     //    return MhdScriptVal(std::function<int()>([](){ return 1488; }));
     //}));
+    g_vars["m"] = MhdScriptVal(
+        std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(
+            [](const std::vector<MhdScriptVal>&) { 
+                return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>()); }));
     //MhdScriptParser p("{for(x=0;x<10;)x=x+1; x=s()();}");
-    MhdScriptParser p("{y = 2;[](x){ y = 1; x; }(1234)+y;}");
+    MhdScriptParser p(R"({
+        y=m(); 
+        y.z=2;
+        y.f=[](t, x){ x + t.z; }; 
+        y.f(1234.0);
+    })");
     //MhdScriptParser p("{x=1+2;}");
     auto e = p.parse_wrap();
     auto g = e.get();
@@ -1087,9 +1113,9 @@ extern "C" void orchid_solver_scanner_test()
 int main() 
 {
     //printf("%d\n", sizeof(true + 1ul));
-    MhdScriptVal a1(100);
+    MhdScriptVal a1(100.0);
     MhdScriptVal a2(2.0);
-    a2[1] = 200.0;
+    a2[MhdScriptVal(0)] = MhdScriptVal(200.0);
     printf("%s\n", (a1 = a1 + a2).operator std::string().c_str());
 
     orchid_solver_scanner_test();

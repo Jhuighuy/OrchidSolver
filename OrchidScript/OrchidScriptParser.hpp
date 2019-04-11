@@ -66,11 +66,12 @@ private:
 private:
     MhdScriptExpr::Ptr parse_expression_unary_operand();
     MhdScriptExpr::Ptr parse_expression_unary_operand_func();
+    MhdScriptExpr::Ptr parse_expression_unary_operand_array();
 private:
     MhdScriptExpr::Ptr parse_expression_unary_factor();
-    MhdScriptExpr::Vec parse_expression_unary_factor_call();
-    MhdScriptExpr::Vec parse_expression_unary_factor_index();
-    MhdScriptExpr::Vec parse_expression_unary_factor_subscript();
+    MhdScriptExpr::Ptr parse_expression_unary_factor_call(MhdScriptExpr::Ptr);
+    MhdScriptExpr::Ptr parse_expression_unary_factor_index(MhdScriptExpr::Ptr);
+    MhdScriptExpr::Ptr parse_expression_unary_factor_subscript(MhdScriptExpr::Ptr);
 private:
     void peek() { m_tokenizer.scan(m_token); }
 };	// struct MhdScriptParser
