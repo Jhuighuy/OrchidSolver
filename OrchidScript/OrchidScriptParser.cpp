@@ -696,8 +696,9 @@ MhdScriptParser::parse_expression_unary_not()
 {
     // Parse UNARY NOT expression.
     MhdScriptExpr::Ptr expr;
-    expr = std::make_shared<MhdScriptExprNot>(m_token.m_kind, parse_expression_unary());
+    MhdScriptToken::Kind op = m_token.m_kind;
     peek();
+    expr = std::make_shared<MhdScriptExprNot>(op, parse_expression_unary());
     return expr;
 }
 MHD_INTERNAL
@@ -706,8 +707,9 @@ MhdScriptParser::parse_expression_unary_negate()
 {
     // Parse UNARY NEGATE expression.
     MhdScriptExpr::Ptr expr;
-    expr = std::make_shared<MhdScriptExprNegate>(m_token.m_kind, parse_expression_unary());
+    MhdScriptToken::Kind op = m_token.m_kind;
     peek();
+    expr = std::make_shared<MhdScriptExprNegate>(op, parse_expression_unary());
     return expr;
 }
 //--------------------------------------------------------------------------------------------------------
@@ -1102,21 +1104,25 @@ extern "C" void orchid_solver_scanner_test()
     MhdScriptParser p(R"({
         y=m(); 
         y.z=2;
-        y.f=[](t, x){ x + t.z; }; 
-        y.f(1234.0);
+        y.f=[](t, x){ t.a = -1488; x + t.z; };
+        y.f(1234.0) + y.a;
     })");
+    /*
+    */
     //MhdScriptParser p("{x=1+2;}");
     auto e = p.parse_wrap();
     auto g = e.get();
-    printf("%s\n", g->eval().operator std::string().c_str());
+    auto a = g->eval();
+    printf("%s\n", a.operator std::string().c_str());
 }
 int main() 
 {
     //printf("%d\n", sizeof(true + 1ul));
-    MhdScriptVal a1(100.0);
-    MhdScriptVal a2(2.0);
-    a2[MhdScriptVal(0)] = MhdScriptVal(200.0);
-    printf("%s\n", (a1 = a1 + a2).operator std::string().c_str());
+    //MhdScriptVal a1(100.0);
+    //MhdScriptVal a2(2.0);
+    //a2[MhdScriptVal(0)] = MhdScriptVal(200.0);
+    //a1 = a1 + a2;
+    //printf("%s\n", (a1).operator std::string().c_str());
 
     orchid_solver_scanner_test();
     return 0;

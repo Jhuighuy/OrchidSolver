@@ -108,11 +108,11 @@ public:
 public:
     virtual MhdScriptVal eval() const 
     { 
-        throw MhdInvalidOp();
+        throw MhdScriptInvalidOp();
     } 
     virtual MhdScriptRef eval_ref() const 
     { 
-        throw MhdInvalidOp();
+        throw MhdScriptInvalidOp();
     }
 };  // struct MhdScriptExpr
 //--------------------------------------------------------------------------------------------------------
@@ -157,7 +157,7 @@ public:
             [args_name=m_args, body=m_body](const std::vector<MhdScriptVal>& args) {
                 MhdVariableScope scope{};
                 if (args.size() != args_name.size()) {
-                    throw MhdInvalidOp(); 
+                    throw MhdScriptInvalidOp(); 
                 }
                 for (std::size_t i = 0; i < args.size(); ++i) {
                     MhdVariable var(args_name[i], args[i]);
@@ -336,7 +336,8 @@ public:
 public:
     MhdScriptVal eval() const override
     {
-        return eval_ref();
+        MhdScriptRef lhs = eval_ref();
+        return lhs;
     }
     MhdScriptRef eval_ref() const override
     {

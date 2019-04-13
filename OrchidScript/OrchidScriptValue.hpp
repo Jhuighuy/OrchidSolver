@@ -7,25 +7,23 @@
 
 #include <functional>
 #include <valarray>
+#include <memory>
 #include <vector>
 #include <string>
 #include <map>
 
-struct MhdInvalidOp
+struct MhdScriptInvalidOp
 {
 public:
-    MhdInvalidOp(...) {}
+    MhdScriptInvalidOp(...) {}
 };
-#define MhdSciptInvalidOp MhdInvalidOp
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-struct MhdScriptRef;
 struct MhdScriptVal final
 {
-public:
-    enum class Type
-    {
+    friend struct MhdScriptRef;
+    enum class Type {
         LGC,
         INT,
         DBL, 
@@ -38,14 +36,15 @@ public:
     Type m_type;
     union {
         void* m_val_ptr;
-        std::string* m_val_str;
-        std::valarray<bool  >* m_val_lgc;
-        std::valarray<int   >* m_val_int;
-        std::valarray<double>* m_val_dbl;
-        std::map<MhdScriptVal, MhdScriptVal>* m_val_map;
-        std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>* m_val_fun;
+        std::string m_val_str;
+        std::valarray<bool  > m_val_lgc;
+        std::valarray<int   > m_val_int;
+        std::valarray<double> m_val_dbl;
+        std::shared_ptr<std::map<MhdScriptVal, MhdScriptVal>> m_val_map;
+        std::shared_ptr<std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>> m_val_fun;
     };
 public:
+    MHD_INTERFACE
     ~MhdScriptVal();
 public:
     MhdScriptVal()
@@ -54,81 +53,83 @@ public:
     explicit MhdScriptVal(void* val)
         : m_type(Type::PTR)
         , m_val_ptr(val) {}
-public:
     explicit MhdScriptVal(bool val)
         : m_type(Type::LGC)
-        , m_val_lgc(new std::valarray<bool>(&val, 1)) {}
+        , m_val_lgc(&val, 1) {}
     explicit MhdScriptVal(const std::valarray<bool>& val)
         : m_type(Type::LGC)
-        , m_val_lgc(new std::valarray<bool>(val)) {}
-public:
+        , m_val_lgc(val) {}
     explicit MhdScriptVal(int val)
         : m_type(Type::INT)
-        , m_val_int(new std::valarray<int>(&val, 1)) {}
+        , m_val_int(&val, 1) {}
     explicit MhdScriptVal(const std::valarray<int>& val)
         : m_type(Type::INT)
-        , m_val_int(new std::valarray<int>(val)) {}
-public:
+        , m_val_int(val) {}
     explicit MhdScriptVal(double val)
         : m_type(Type::DBL)
-        , m_val_dbl(new std::valarray<double>(&val, 1)) {}
+        , m_val_dbl(&val, 1) {}
     explicit MhdScriptVal(const std::valarray<double>& val)
         : m_type(Type::DBL)
-        , m_val_dbl(new std::valarray<double>(val)) {}
-public:
+        , m_val_dbl(val) {}
     explicit MhdScriptVal(const char* val)
         : m_type(Type::STR)
-        , m_val_str(new std::string(val)) {}
+        , m_val_str(val) {}
     explicit MhdScriptVal(const std::string& val)
         : m_type(Type::STR)
-        , m_val_str(new std::string(val)) {}
-public:
+        , m_val_str(val) {}
     explicit MhdScriptVal(const std::map<MhdScriptVal, MhdScriptVal>& val)
         : m_type(Type::MAP)
-        , m_val_map(new std::map<MhdScriptVal, MhdScriptVal>(val)) {}
-public:
+        , m_val_map(std::make_shared<std::map<MhdScriptVal, MhdScriptVal>>(val)) {}
     explicit MhdScriptVal(MhdScriptVal(*val)(const std::vector<MhdScriptVal>&))
         : m_type(Type::FUN)
-        , m_val_fun(new std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(val)) {}
+        , m_val_fun(std::make_shared<std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>>(val)) {}
     explicit MhdScriptVal(const std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>& val)
         : m_type(Type::FUN)
-        , m_val_fun(new std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(val)) {}
+        , m_val_fun(std::make_shared<std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>>(val)) {}
+    template<typename T>
+    MhdScriptVal& operator=(const T& t)
+    {
+        return *this = MhdScriptVal(t);
+    }
+#if 0
 public:
+    MHD_INTERFACE
+    MhdScriptVal& operator=(MhdScriptVal&& other) noexcept;
     MhdScriptVal(MhdScriptVal&& other) noexcept
         : m_type(Type::PTR)
         , m_val_ptr(nullptr)
     {
         *this = std::forward<MhdScriptVal>(other);
     }
+#endif
+public:
+    MHD_INTERFACE
+    MhdScriptVal& operator=(const MhdScriptVal& other);
     MhdScriptVal(const MhdScriptVal& other)
         : m_type(Type::PTR)
         , m_val_ptr(nullptr)
     {
         *this = other;
     }
+    MHD_INTERFACE
+    MhdScriptVal& operator=(const std::vector<MhdScriptVal>& others);
     explicit MhdScriptVal(const std::vector<MhdScriptVal>& others)
         : m_type(Type::PTR)
         , m_val_ptr(nullptr)
     {
         *this = others;
     }
-    MhdScriptVal& operator=(MhdScriptVal&& other) noexcept;
-    MhdScriptVal& operator=(const MhdScriptVal& other);
-    MhdScriptVal& operator=(const std::vector<MhdScriptVal>& others);
-    template<typename T>
-    MhdScriptVal& operator=(const T& t)
-    {
-        return *this = MhdScriptVal(t);
-    }
 public:
+    MHD_INTERFACE
+    MhdScriptVal& operator=(const MhdScriptRef& other);
     MhdScriptVal(const MhdScriptRef& other)
         : m_type(Type::PTR)
         , m_val_ptr(nullptr)
     {
         *this = other;
     }
-    MhdScriptVal& operator=(const MhdScriptRef& other);
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
                                             const MhdScriptVal& lhs);
     MhdScriptVal operator+() const
@@ -140,6 +141,7 @@ public:
         return operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this);
     }
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
                                             const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator+(const MhdScriptVal& other) const
@@ -163,6 +165,7 @@ public:
         return operator_arithmetic(MhdScriptToken::Kind::OP_MOD, *this, other);
     }
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
                                          const MhdScriptVal& lhs);
     MhdScriptVal operator!() const
@@ -170,6 +173,7 @@ public:
         return operator_logical(MhdScriptToken::Kind::OP_NOT, *this);
     }
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
                                          const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator==(const MhdScriptVal& other) const
@@ -205,6 +209,7 @@ public:
         return operator_logical(MhdScriptToken::Kind::OP_OR, *this, other);
     }
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
                                          const MhdScriptVal& lhs);
     MhdScriptVal operator~() const
@@ -212,6 +217,7 @@ public:
         return operator_bitwise(MhdScriptToken::Kind::OP_NOT_BW, *this);
     }
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
                                          const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator&(const MhdScriptVal& other) const
@@ -235,14 +241,16 @@ public:
         return operator_bitwise(MhdScriptToken::Kind::OP_RSHIFT, *this, other);
     }
 public:
-    MhdScriptRef operator[](const MhdScriptVal& index) const;
-    MhdScriptRef operator[](const std::vector<MhdScriptVal>& args) const;
-    //template<typename T>
-    //MhdScriptRef operator[](const T& index) const
-    //{
-    //    return (*this)[MhdScriptVal(index)];
-    //}
+    MHD_INTERFACE
+    MhdScriptRef operator[](const MhdScriptVal&);
+    MHD_INTERFACE
+    MhdScriptRef operator[](const std::vector<MhdScriptVal>&);
+    MHD_INTERFACE
+    MhdScriptVal operator[](const MhdScriptVal&) const;
+    MHD_INTERFACE
+    MhdScriptVal operator[](const std::vector<MhdScriptVal>&) const;
 public:
+    MHD_INTERFACE
     MhdScriptVal operator()(const std::vector<MhdScriptVal>& args) const;
     template<typename... T>
     MhdScriptVal operator()(const T&... args) const
@@ -250,12 +258,18 @@ public:
         return (*this)({ MhdScriptVal(args)... });
     }
 public:
+    MHD_INTERFACE
     static MhdScriptVal operator_cast(MhdScriptVal::Type tp,
                                       const MhdScriptVal& lhs);
+    MHD_INTERFACE
     operator bool() const;
+    MHD_INTERFACE
     explicit operator int() const;
+    MHD_INTERFACE
     explicit operator double() const;
+    MHD_INTERFACE
     explicit operator std::string() const;
+    MHD_INTERFACE
     explicit operator void*() const;
 };	// struct MhdScriptVal
 //########################################################################################################
@@ -263,6 +277,7 @@ public:
 //########################################################################################################
 struct MhdScriptRef final
 {
+    friend struct MhdScriptVal;
 public:
     MhdScriptVal::Type m_type;
     union {
@@ -279,41 +294,37 @@ public:
     explicit MhdScriptRef(void** ref)
         : m_type(MhdScriptVal::Type::PTR)
         , m_ref_ptr(ref) {}
-public:
     explicit MhdScriptRef(bool* ref)
         : m_type(MhdScriptVal::Type::LGC)
         , m_ref_lgc(ref) {}
-public:
     explicit MhdScriptRef(int* ref)
         : m_type(MhdScriptVal::Type::INT)
         , m_ref_int(ref) {}
-public:
     explicit MhdScriptRef(double* ref)
         : m_type(MhdScriptVal::Type::DBL)
         , m_ref_dbl(ref) {}
-public:
     explicit MhdScriptRef(MhdScriptVal* ref)
         : m_type(MhdScriptVal::Type::MAP)
         , m_ref(ref) {}
-public:
-    MhdScriptRef& operator=(const MhdScriptVal& val);
     template<typename T>
     MhdScriptRef& operator=(const T& t)
     {
         return *this = MhdScriptVal(t);
     }
 public:
-    MhdScriptRef(const MhdScriptRef& other)
-        : m_type(MhdScriptVal::Type::PTR)
-        , m_ref_ptr(nullptr) 
-    {
-        *this = other;
-    }
+    MHD_INTERFACE
+    MhdScriptRef& operator=(const MhdScriptVal& val);
     MhdScriptRef& operator=(const MhdScriptRef& other) 
     { 
         m_type = other.m_type;
         m_ref = other.m_ref;
         return *this; 
+    }
+    MhdScriptRef(const MhdScriptRef& other)
+        : m_type(MhdScriptVal::Type::PTR)
+        , m_ref_ptr(nullptr) 
+    {
+        *this = other;
     }
 public:
     MhdScriptVal operator+() const
@@ -412,7 +423,25 @@ public:
         if (m_type == MhdScriptVal::Type::MAP) {
             return (*m_ref)[args];
         } else {
-            throw MhdInvalidOp(*this);
+            throw MhdScriptInvalidOp(*this);
+        }
+    }
+    MhdScriptVal operator[](const std::vector<MhdScriptVal>& args)
+    {
+        if (m_type == MhdScriptVal::Type::MAP) {
+            return (*m_ref)[args];
+        } else {
+            throw MhdScriptInvalidOp(*this);
+        }
+    }
+public:
+    MhdScriptVal operator()(const std::vector<MhdScriptVal>& args) const
+    {
+        if (m_type == MhdScriptVal::Type::MAP) {
+            return (*m_ref)(args);
+        }
+        else {
+            throw MhdScriptInvalidOp(*this);
         }
     }
 };	// struct MhdScriptRef
