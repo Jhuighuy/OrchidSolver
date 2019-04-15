@@ -254,7 +254,7 @@ public:
         for (MhdScriptExpr::Ptr arg : m_index) {
             index.push_back(arg->eval());
         }
-        return MhdScriptRef(m_array->eval_ref()[index]);
+        return m_array->eval_ref()[index];
     }
 };  // struct MhdScriptExprIndex
 //########################################################################################################
@@ -281,8 +281,10 @@ public:
     {
         const MhdScriptVal expr = m_expr->eval();
         switch (m_op) {
-            case MhdScriptToken::Kind::OP_NOT:    return !expr;
-            case MhdScriptToken::Kind::OP_NOT_BW: return ~expr;
+            case MhdScriptToken::Kind::OP_NOT:    
+                return !expr;
+            case MhdScriptToken::Kind::OP_NOT_BW: 
+                return ~expr;
             default: 
                 ORCHID_ASSERT(0); 
                 return MhdScriptVal();
@@ -587,7 +589,8 @@ public:
     MhdScriptExpr::Ptr m_cond;
     MhdScriptExpr::Ptr m_body;
 public:
-    MhdScriptExprWhile(MhdScriptExpr::Ptr cond, MhdScriptExpr::Ptr body)
+    MhdScriptExprWhile(MhdScriptExpr::Ptr cond, 
+                       MhdScriptExpr::Ptr body)
         : m_cond(cond)
         , m_body(body) {}
 public:
@@ -643,7 +646,8 @@ public:
     MhdScriptExpr::Ptr m_iter;
     MhdScriptExpr::Ptr m_body;
 public:
-    MhdScriptExprFor(MhdScriptExpr::Ptr init, MhdScriptExpr::Ptr cond, MhdScriptExpr::Ptr iter, MhdScriptExpr::Ptr body) 
+    MhdScriptExprFor(MhdScriptExpr::Ptr init, MhdScriptExpr::Ptr cond, MhdScriptExpr::Ptr iter, 
+                     MhdScriptExpr::Ptr body) 
         : m_init(init), m_cond(cond), m_iter(iter)
         , m_body(body) {}
 public:
@@ -675,7 +679,8 @@ public:
     MhdScriptExpr::Ptr m_catch_block;
     std::string m_catch_arg;
 public:
-    MhdScriptExprTryCatch(MhdScriptExpr::Ptr try_block, MhdScriptExpr::Ptr catch_block, const std::string& catch_arg)
+    MhdScriptExprTryCatch(MhdScriptExpr::Ptr try_block, 
+                          MhdScriptExpr::Ptr catch_block, const std::string& catch_arg)
         : m_try_block(try_block)
         , m_catch_block(catch_block), m_catch_arg(catch_arg) {}
     MhdScriptVal eval() const override

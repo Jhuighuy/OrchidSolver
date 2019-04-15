@@ -418,7 +418,7 @@ public:
         return MhdScriptVal(*this) >> other;
     }
 public:
-    MhdScriptRef operator[](const std::vector<MhdScriptVal>& args) const
+    MhdScriptRef operator[](const std::vector<MhdScriptVal>& args)
     {
         if (m_type == MhdScriptVal::Type::MAP) {
             return (*m_ref)[args];
@@ -426,7 +426,7 @@ public:
             throw MhdScriptInvalidOp(*this);
         }
     }
-    MhdScriptVal operator[](const std::vector<MhdScriptVal>& args)
+    MhdScriptVal operator[](const std::vector<MhdScriptVal>& args) const
     {
         if (m_type == MhdScriptVal::Type::MAP) {
             return (*m_ref)[args];

@@ -587,9 +587,9 @@ MhdScriptParser::parse_expression_binary_lt_lte_gt_gte()
     MhdScriptToken::Kind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_shift();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_LT || 
+           op == MhdScriptToken::Kind::OP_LT  || 
            op == MhdScriptToken::Kind::OP_LTE ||
-           op == MhdScriptToken::Kind::OP_GT || 
+           op == MhdScriptToken::Kind::OP_GT  || 
            op == MhdScriptToken::Kind::OP_GTE) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_shift());
