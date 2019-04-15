@@ -106,7 +106,7 @@ MhdScriptVal::operator=(const MhdScriptVal& other)
                 operator_assignment_apply(m_val_str, other.m_val_str);
                 break;
             case MhdScriptVal::Type::PTR:
-                m_val_ptr = other.m_val_ptr;
+                operator_assignment_apply(m_val_ptr, other.m_val_ptr);
                 break;
             case MhdScriptVal::Type::FUN:
                 operator_assignment_apply(m_val_fun, other.m_val_fun);
@@ -295,6 +295,9 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
         case MhdScriptToken::Kind::OP_MOD: 
             lhs %= rhs;
             break;
+        case MhdScriptToken::Kind::OP_POW: 
+            lhs = std::move(std::pow(lhs, rhs));
+            break;
         default:
             throw MhdScriptInvalidOp(op);
     }
@@ -317,6 +320,9 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
             break;
         case MhdScriptToken::Kind::OP_DIV: 
             lhs /= rhs;
+            break;
+        case MhdScriptToken::Kind::OP_POW: 
+            lhs = std::move(std::pow(lhs, rhs));
             break;
         default:
             throw MhdScriptInvalidOp(op);
@@ -844,7 +850,7 @@ inline void
 operator_cast_apply_string(U& val,
                            const std::valarray<T>& lhs)
 {
-    // Apply a CAST TO STRING operator for value arrays. 
+    // Cast to STRING operator for value arrays. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast.setf(std::ios::showpoint);
     rhs_cast << "[";
@@ -862,7 +868,7 @@ inline void
 operator_cast_apply_string(U& val,
                            const T& lhs)
 {
-    // Apply a CAST TO STRING operator for arbitrary objects. 
+    // Cast to STRING operator for arbitrary objects. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast << lhs;
     val = std::move(rhs_cast.str());
@@ -940,7 +946,7 @@ MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
 MHD_INTERFACE
 MhdScriptVal::operator bool() const 
 {
-    // Apply a CAST TO BOOL operator.
+    // Cast to BOOL operator.
     bool val;
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
@@ -966,7 +972,7 @@ MhdScriptVal::operator bool() const
 MHD_INTERFACE
 MhdScriptVal::operator int() const 
 {
-    // Apply a CAST TO INT operator.
+    // Cast to INT operator.
     int val{};
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
@@ -986,7 +992,7 @@ MhdScriptVal::operator int() const
 MHD_INTERFACE
 MhdScriptVal::operator double() const 
 {
-    // Apply a CAST TO DOUBLE operator.
+    // Cast to DOUBLE operator.
     double val{};
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
@@ -1007,7 +1013,7 @@ MhdScriptVal::operator double() const
 MHD_INTERFACE
 MhdScriptVal::operator std::string() const 
 {
-    // Apply a CAST TO STRING operator.
+    // Cast to STRING operator.
     std::string val;
     if (m_type == MhdScriptVal::Type::STR) {
         val = m_val_str;
@@ -1019,7 +1025,7 @@ MhdScriptVal::operator std::string() const
 MHD_INTERFACE
 MhdScriptVal::operator void*() const 
 {
-    // Apply a CAST TO POINTER operator.
+    // Cast to POINTER operator.
     void* val;
     if (m_type == MhdScriptVal::Type::PTR) {
         val = m_val_ptr;

@@ -12,10 +12,19 @@
 #include <string>
 #include <map>
 
+struct MhdScriptVal;
+struct MhdScriptRef;
 struct MhdScriptInvalidOp
 {
 public:
-    MhdScriptInvalidOp(...) {}
+    template<typename... T>
+    MhdScriptInvalidOp(T...) {}
+};
+struct MhdScriptInvalidBinOp : MhdScriptInvalidOp
+{
+public:
+    template<typename... T>
+    MhdScriptInvalidBinOp(T... t): MhdScriptInvalidOp(t...) {}
 };
 //########################################################################################################
 //########################################################################################################
@@ -269,6 +278,10 @@ public:
     explicit operator double() const;
     MHD_INTERFACE
     explicit operator std::string() const;
+    explicit operator const char*() const
+    {
+        return static_cast<std::string>(*this).c_str();
+    }
     MHD_INTERFACE
     explicit operator void*() const;
 };	// struct MhdScriptVal
@@ -439,8 +452,7 @@ public:
     {
         if (m_type == MhdScriptVal::Type::MAP) {
             return (*m_ref)(args);
-        }
-        else {
+        } else {
             throw MhdScriptInvalidOp(*this);
         }
     }

@@ -65,6 +65,8 @@ struct MhdScriptToken
         OP_DIV_ASG,
         OP_MOD,
         OP_MOD_ASG,
+        OP_POW,
+        OP_POW_ASG,
         OP_NOT,
         OP_NOT_BW,
         OP_EQ,
