@@ -1,8 +1,7 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #include "OrchidScriptParser.hpp"
-#include "OrchidScriptParserSyntax.hpp"
 
 #include <stdexcept>
 #include <exception>
@@ -106,6 +105,7 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_compound()
 {
+    // Parse COMPOUND expression.
     MhdScriptExpr::Vec exprs;
     while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE) {
         exprs.push_back(parse());
@@ -120,8 +120,39 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_namespace()
 {
-    ORCHID_ASSERT(0);
-    return nullptr;
+    // Parse NAMESPACE expression.
+    std::string id;
+    //MhdScriptToken::Kind op;
+    MhdScriptExpr::Vec exprs;
+    switch (m_token.m_kind) {
+        case MhdScriptToken::Kind::OP_ADD:
+        case MhdScriptToken::Kind::OP_AND_BW:
+            //op = m_token.m_kind;
+            peek();
+            ORCHID_ASSERT(0);
+            break;
+        default:
+            //op = MhdScriptToken::Kind::NONE;
+            break;
+    }
+    if (m_token.m_kind == MhdScriptToken::Kind::ID) {
+        id = m_token.m_value_str;
+        peek();
+    } else {
+        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+    }
+    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACE_OPEN) {
+        peek();
+    } else {
+        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+    }
+    while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE) {
+        exprs.push_back(parse());
+    }
+    peek();
+    MhdScriptExpr::Ptr expr;
+    expr = std::make_shared<MhdScriptExprNamespace>(id, exprs);
+    return expr;
 }
 //########################################################################################################
 //########################################################################################################
@@ -746,6 +777,15 @@ MhdScriptParser::parse_expression_unary_operand()
             expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str);
             peek();
             return expr;
+        case MhdScriptToken::Kind::KW_LET:
+            peek();
+            if (m_token.m_kind == MhdScriptToken::Kind::ID) {
+                expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str, true);
+                peek();
+            } else {
+                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            }
+            return expr;
         // Function expression operand.
         case MhdScriptToken::Kind::OP_BRACKET_OPEN:
             peek();
@@ -771,11 +811,11 @@ MhdScriptParser::parse_expression_unary_operand_func()
     } else {
         throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
     }
-    std::set<std::string> args;
+    std::set<std::string> args_set;
     while (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_CLOSE) {
         if (m_token.m_kind == MhdScriptToken::Kind::ID) {
-            if (args.count(m_token.m_value_str) == 0) {
-                args.insert(m_token.m_value_str);
+            if (args_set.count(m_token.m_value_str) == 0) {
+                args_set.insert(m_token.m_value_str);
             } else {
                 throw MhdParseException(MhdScriptError::ERR_FUNC_ARG_REDECL);
             }
@@ -796,7 +836,8 @@ MhdScriptParser::parse_expression_unary_operand_func()
     peek();
     MhdScriptExpr::Ptr body = parse();
     MhdScriptExpr::Ptr expr;
-    expr = std::make_shared<MhdScriptExprConstFunc>(std::vector<std::string>{args.cbegin(), args.cend()}, body);
+    const std::vector<std::string> args{args_set.cbegin(), args_set.cend()};
+    expr = std::make_shared<MhdScriptExprConstFunc>(args, body);
     return expr;
 }
 MHD_INTERNAL
@@ -1086,44 +1127,3 @@ MhdScriptParser::parse_expression_unary_factor_subscript(MhdScriptExpr::Ptr expr
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-
-#include "OrchidScriptValue.hpp"
-#include <cmath>
-#include <cstdio>
-std::map<std::string, MhdScriptVal> g_vars;
-extern "C" void orchid_solver_scanner_test()
-{
-    //g_vars["s"] = MhdScriptVal(std::function<MhdScriptVal()>([]() -> MhdScriptVal {
-    //    return MhdScriptVal(std::function<int()>([](){ return 1488; }));
-    //}));
-    g_vars["m"] = MhdScriptVal(
-        std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(
-            [](const std::vector<MhdScriptVal>&) { 
-                return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>()); }));
-    //MhdScriptParser p("{for(x=0;x<10;)x=x+1; x=s()();}");
-    MhdScriptParser p(R"({
-        y=m(); 
-        y.z=2;
-        y.f=[](t, x){ t.a = -1488; x + t.z; };
-        y.f(1234.0) + y.a;
-    })");
-    /*
-    */
-    //MhdScriptParser p("{x=1+2;}");
-    auto e = p.parse_wrap();
-    auto g = e.get();
-    auto a = g->eval();
-    printf("%s\n", a.operator std::string().c_str());
-}
-int main() 
-{
-    //printf("%d\n", sizeof(true + 1ul));
-    //MhdScriptVal a1(100.0);
-    //MhdScriptVal a2(2.0);
-    //a2[MhdScriptVal(0)] = MhdScriptVal(200.0);
-    //a1 = a1 + a2;
-    //printf("%s\n", (a1).operator std::string().c_str());
-
-    orchid_solver_scanner_test();
-    return 0;
-}

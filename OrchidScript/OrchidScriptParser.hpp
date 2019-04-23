@@ -1,10 +1,10 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #pragma once
 
 #include "OrchidScriptScanner.hpp"
-#include "OrchidScriptParserSyntax.hpp"
+#include "OrchidScriptSyntax.hpp"
 
 //########################################################################################################
 //########################################################################################################

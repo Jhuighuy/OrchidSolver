@@ -11,13 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="OrchidScriptParserSyntax.hpp" />
+    <ClInclude Include="OrchidScriptSyntax.hpp" />
     <ClInclude Include="OrchidScriptParser.hpp" />
     <ClInclude Include="OrchidScriptScanner.hpp" />
     <ClInclude Include="OrchidScriptValue.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="OrchidScriptParserSyntax.cpp" />
+    <ClCompile Include="OrchidScriptSyntax.cpp" />
     <ClCompile Include="OrchidScriptParser.cpp" />
     <ClCompile Include="OrchidScriptScanner.cpp" />
     <ClCompile Include="OrchidScriptValue.cpp" />

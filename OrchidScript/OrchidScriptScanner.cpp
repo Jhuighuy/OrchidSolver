@@ -1,20 +1,56 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #include "OrchidScriptScanner.hpp"
-#include "OrchidScriptParserSyntax.hpp"
+#include "OrchidScriptSyntax.hpp"
+
+#include <cstdlib>
+#include <cctype>
 
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-MHD_INTERNAL 
-bool MhdTokenizer::scan(MhdScriptToken& token)
+MHD_INTERFACE 
+bool 
+MhdTokenizer::scan(MhdScriptToken& token)
 {
+    // Scan a token.
     token = MhdScriptToken();
     char character;
-    while (isspace(character = peek())) {
-        advance();
+    /* Skip a trivia. */
+    for (;;) {
+        if (character = peek(),
+            std::isspace(character)) {
+            /* Skip spaces. */
+            advance();
+            while (std::isspace(peek())) {
+                advance();
+            }
+        } else if (character == '/') {
+            if (character = peek_next(),
+                character == '/') {
+                /* Skip single-line comment. */
+                advance();
+                while (peek() != '\n') {
+                    advance();
+                }
+                advance();
+            } else if (character == '*') {
+                /* Skip multi-line comment. */
+                advance();
+                while (peek() != '*' || peek_next() != '/') {
+                    peek();
+                    advance();
+                }
+                advance();
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
     }
+    /* Scan a token. */
     character = peek();
     switch (character) {
         case '\'':
@@ -58,70 +94,6 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
         case 'X': case 'x':
         case 'Y': case 'y':
         case 'Z': case 'z':
-            if (character == 'i' &&
-                peek_next() == 'f') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_IF;
-                return true;
-            }
-            if (character == 'e' &&
-                peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_ELSE;
-                return true;
-            }
-            if (character == 'f' &&
-                peek_next() == 'o' && peek_next() == 'r') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_FOR;
-                return true;
-            }
-            if (character == 't' &&
-                peek_next() == 'r' && peek_next() == 'u' && peek_next() == 'e') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::CT_LGC;
-                token.m_value_int = 1;
-                return true;
-            }
-            if (character == 'f' &&
-                peek_next() == 'a' && peek_next() == 'l' && peek_next() == 's' && peek_next() == 'e') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::CT_LGC;
-                token.m_value_int = 0;
-                return true;
-            }
-            if (character == 's' &&
-                peek_next() == 'w' && peek_next() == 'i' && peek_next() == 't' && peek_next() == 'c' && 
-                peek_next() == 'h') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_SWITCH;
-                return true;
-            }
-            if (character == 'c' &&
-                peek_next() == 'a' && peek_next() == 's' && peek_next() == 'e') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_CASE;
-                return true;
-            }
-            if (character == 'd' &&
-                peek_next() == 'e' && peek_next() == 'f' && peek_next() == 'a' && peek_next() == 'u' && 
-                peek_next() == 'l' && peek_next() == 't') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_DEFAULT;
-                return true;
-            }
-            if (character == 'w' &&
-                peek_next() == 'h' && peek_next() == 'i' && peek_next() == 'l' && peek_next() == 'e') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_WHILE;
-                return true;
-            }
-            if (character == 'b' &&
-                peek_next() == 'r' && peek_next() == 'e' && peek_next() == 'a' && peek_next() == 'k') {
-                advance();
-                token.m_kind = MhdScriptToken::Kind::KW_BREAK;
-                return true;
-            }
             return scan_id(token);
         case '.':
             advance();
@@ -316,29 +288,37 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-/**
- * Scan a single string token.
- */
 MHD_INTERNAL 
-bool MhdTokenizer::scan_str(MhdScriptToken& token)
+bool 
+MhdTokenizer::scan_str(MhdScriptToken& token)
 {
-    return false;
+    // Scan a single string token.
+    const char end_character = peek();
+    advance();
+    char character;
+    while (character = peek(),
+           character != end_character) {
+        advance();
+        token.m_value_str.push_back(character);
+    } 
+    advance();
+    token.m_kind = MhdScriptToken::Kind::CT_STR;
+    return true;
 }
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-/**
- * Scan a single numeric token.
- */
 MHD_INTERNAL 
-bool MhdTokenizer::scan_num(MhdScriptToken& token)
+bool 
+MhdTokenizer::scan_num(MhdScriptToken& token)
 {
+    // Scan a single numeric token.
     bool can_be_hex = false;
     bool can_be_oct = false;
     bool has_frc = false;
     bool has_exp = false;
-    // Determine what possible radix is
-    // this numeric literal is using.
+    /* Determine what possible radix is
+     * this numeric literal is using. */
     char character = peek();
     if (character == '0') {
         character = peek_next();
@@ -350,28 +330,28 @@ bool MhdTokenizer::scan_num(MhdScriptToken& token)
         }
     }
     if (can_be_hex) {
-        // Parse a hexadecimal literal.
-        while (isxdigit(character = peek())) {
+        /* Parse a hexadecimal literal. */
+        while (character = peek(), std::isxdigit(character)) {
             advance();
             token.m_value_str.push_back(character);
         }
     } else {
-        // Parse a decimal, octal of floating point literal.
+        /* Parse a decimal, octal of floating point literal. */
         bool has_oct_chars = true;
-        while (isdigit(character = peek())) {
+        while (character = peek(), std::isdigit(character)) {
             advance();
             token.m_value_str.push_back(character);
             has_oct_chars &= character <= '7';
         }
-        // Parse fraction.
+        /* Parse fraction. */
         character = peek();
         if (character == '.') {
             advance();
             token.m_value_str.push_back(character);
-            if (isdigit(character = peek())) {
+            if (character = peek(), std::isdigit(character)) {
                 advance();
                 token.m_value_str.push_back(character);
-                while (isdigit(character = peek())) {
+                while (character = peek(), std::isdigit(character)) {
                     advance();
                     token.m_value_str.push_back(character);
                 }
@@ -382,7 +362,7 @@ bool MhdTokenizer::scan_num(MhdScriptToken& token)
             }
             has_frc = true;
         }
-        // Parse exponent.
+        /* Parse exponent. */
         character = peek();
         if (character == 'e' || character == 'E' ||
             character == 'd' || character == 'D') {
@@ -392,15 +372,14 @@ bool MhdTokenizer::scan_num(MhdScriptToken& token)
                 advance();
                 token.m_value_str.push_back(character);
             }
-            if (isdigit(character = peek())) {
+            if (character = peek(), std::isdigit(character)) {
                 advance();
                 token.m_value_str.push_back(character);
-                while (isdigit(character = peek())) {
+                while (character = peek(), std::isdigit(character)) {
                     advance();
                     token.m_value_str.push_back(character);
                 }
-            }
-            else {
+            } else {
                 token.m_kind = MhdScriptToken::Kind::ERR;
                 token.m_value_str = "Invalid numeric literal exponent.";
                 return false;
@@ -439,11 +418,170 @@ bool MhdTokenizer::scan_num(MhdScriptToken& token)
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-bool MhdTokenizer::scan_id(MhdScriptToken& token)
+MHD_INTERNAL 
+bool 
+MhdTokenizer::scan_id(MhdScriptToken& token)
 {
-    token.m_value_str.push_back(peek());
-    token.m_kind = MhdScriptToken::Kind::ID;
-    advance();
+    // Scan an idenifier or a keyword.
+    char character = peek();
+    if (character == 't' &&
+        peek_next() == 'r' &&
+        peek_next() == 'u' &&
+        peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_TRUE;
+        token.m_value_str = "true";
+    } else if (character == 'f' &&
+               peek_next() == 'a' &&
+               peek_next() == 'l' &&
+               peek_next() == 's' &&
+               peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_FALSE;
+        token.m_value_str = "false";
+    } else if (character == 'i' &&
+               peek_next() == 'f') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_IF;
+        token.m_value_str = "if";
+    } else if (character == 'e' &&
+               peek_next() == 'l' &&
+               peek_next() == 's' &&
+               peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_ELSE;
+        token.m_value_str = "else";
+    } else if (character == 's' &&
+               peek_next() == 'w' &&
+               peek_next() == 'i' &&
+               peek_next() == 't' &&
+               peek_next() == 'c' &&
+               peek_next() == 'h') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_SWITCH;
+        token.m_value_str = "switch";
+    } else if (character == 'c' &&
+               peek_next() == 'a' &&
+               peek_next() == 's' &&
+               peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_CASE;
+        token.m_value_str = "case";
+    } else if (character == 'd' &&
+               peek_next() == 'e' &&
+               peek_next() == 'f' &&
+               peek_next() == 'a' &&
+               peek_next() == 'u' &&
+               peek_next() == 'l' &&
+               peek_next() == 't') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_DEFAULT;
+        token.m_value_str = "default";
+    } else if (character == 'w' &&
+               peek_next() == 'h' &&
+               peek_next() == 'i' &&
+               peek_next() == 'l' &&
+               peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_WHILE;
+        token.m_value_str = "while";
+    } else if (character == 'd' &&
+               peek_next() == 'o') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_DO;
+        token.m_value_str = "do";
+    } else if (character == 'f' &&
+               peek_next() == 'o' &&
+               peek_next() == 'r') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_FOR;
+        token.m_value_str = "for";
+    } else if (character == 't' &&
+               peek_next() == 'r' &&
+               peek_next() == 'y') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_TRY;
+        token.m_value_str = "try";
+    } else if (character == 'c' &&
+               peek_next() == 'a' &&
+               peek_next() == 't' &&
+               peek_next() == 'c' &&
+               peek_next() == 'h') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_CATCH;
+        token.m_value_str = "catch";
+    } else if (character == 'b' &&
+               peek_next() == 'r' &&
+               peek_next() == 'e' &&
+               peek_next() == 'a' &&
+               peek_next() == 'k') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_BREAK;
+        token.m_value_str = "break";
+    } else if (character == 'c' &&
+               peek_next() == 'o' &&
+               peek_next() == 'n' &&
+               peek_next() == 't' &&
+               peek_next() == 'i' &&
+               peek_next() == 'n' &&
+               peek_next() == 'u' &&
+               peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_CONTINUE;
+        token.m_value_str = "continue";
+    } else if (character == 'r' &&
+               peek_next() == 'e' &&
+               peek_next() == 't' &&
+               peek_next() == 'u' &&
+               peek_next() == 'r' &&
+               peek_next() == 'n') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_RETURN;
+        token.m_value_str = "return";
+    } else if (character == 't' &&
+               peek_next() == 'h' &&
+               peek_next() == 'r' &&
+               peek_next() == 'o' &&
+               peek_next() == 'w') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_THROW;
+        token.m_value_str = "throw";
+    } else if (character == 'o' &&
+               peek_next() == 'p' &&
+               peek_next() == 'e' &&
+               peek_next() == 'r' &&
+               peek_next() == 'a' &&
+               peek_next() == 't' &&
+               peek_next() == 'o' &&
+               peek_next() == 'r') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_OPERATOR;
+        token.m_value_str = "operator";
+    } else if (character == 'n' &&
+               peek_next() == 'a' &&
+               peek_next() == 'm' &&
+               peek_next() == 'e' &&
+               peek_next() == 's' &&
+               peek_next() == 'p' &&
+               peek_next() == 'a' &&
+               peek_next() == 'c' &&
+               peek_next() == 'e') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_NAMESPACE;
+        token.m_value_str = "namespace";
+    } else if (character == 'l' &&
+               peek_next() == 'e' &&
+               peek_next() == 't') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::KW_LET;
+        token.m_value_str = "let";
+    }
+    while (character = peek(), std::isalnum(character) || 
+           character == '_' || character == '$') {
+        advance();
+        token.m_kind = MhdScriptToken::Kind::ID;
+        token.m_value_str.push_back(character);
+    }
     return true;
 }
 //########################################################################################################

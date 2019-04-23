@@ -1,4 +1,4 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #pragma once
@@ -29,7 +29,6 @@ struct MhdScriptToken
         CT_NIL,
         KW_TRUE,
         KW_FALSE,
-        KW_NAMESPACE,
         KW_IF,
         KW_ELSE,
         KW_SWITCH,
@@ -45,6 +44,8 @@ struct MhdScriptToken
         KW_RETURN,
         KW_THROW,
         KW_OPERATOR,
+        KW_NAMESPACE,
+        KW_LET,
         OP_DOT,
         OP_COMMA,
         OP_COLON,
@@ -121,11 +122,11 @@ public:
     const char* m_text;
     std::size_t m_text_peeked;
 public:
-    /** Initialize a tokenizer. */
     MhdTokenizer(const char* text)
         : m_text(text)
         , m_text_peeked(0) { }
 public:
+    MHD_INTERFACE
     bool scan(MhdScriptToken& token);
 private:
     bool scan_str(MhdScriptToken& token);

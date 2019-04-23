@@ -1,4 +1,4 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #pragma once
@@ -94,13 +94,16 @@ public:
         , m_val_str(val) {}
     explicit MhdScriptVal(const std::map<MhdScriptVal, MhdScriptVal>& val)
         : m_type(Type::MAP)
-        , m_val_map(std::make_shared<std::map<MhdScriptVal, MhdScriptVal>>(val)) {}
+        , m_val_map(std::make_shared<
+                    std::map<MhdScriptVal, MhdScriptVal>>(val)) {}
     explicit MhdScriptVal(MhdScriptVal(*val)(const std::vector<MhdScriptVal>&))
         : m_type(Type::FUN)
-        , m_val_fun(std::make_shared<std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>>(val)) {}
+        , m_val_fun(std::make_shared<
+                    std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>>(val)) {}
     explicit MhdScriptVal(const std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>& val)
         : m_type(Type::FUN)
-        , m_val_fun(std::make_shared<std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>>(val)) {}
+        , m_val_fun(std::make_shared<
+                    std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>>(val)) {}
     template<typename T>
     MhdScriptVal& operator=(const T& t)
     {

@@ -1,10 +1,11 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #pragma once
 
 #include "OrchidScriptScanner.hpp"
 #include "OrchidScriptValue.hpp"
+#include "OrchidScriptVar.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -14,46 +15,6 @@
 
 struct MhdRuntimeException {};
 
-//########################################################################################################
-//########################################################################################################
-//########################################################################################################
-enum MhdExprBaseType
-{
-    ORCHID_EXPR_TYPE_LGC,
-    ORCHID_EXPR_TYPE_INT,
-    ORCHID_EXPR_TYPE_DBL,
-};	// enum MhdExprBaseType
-typedef MhdExprBaseType MhdExprType;
-//########################################################################################################
-//########################################################################################################
-//########################################################################################################
-extern std::map<std::string, MhdScriptVal> g_vars;
-struct MhdVariableScope 
-{
-private:
-    std::map<std::string, MhdScriptVal> m_vars;
-public:
-    MhdVariableScope()
-    {
-        m_vars = g_vars;
-    }
-    ~MhdVariableScope()
-    {
-        std::map<std::string, MhdScriptVal> vars;
-        for (const auto& var : g_vars) {
-            vars[var.first] = m_vars[var.first];
-        }
-        g_vars = vars;
-    }
-};  // struct MhdVariableScope
-struct MhdVariable 
-{
-public:
-    MhdVariable(const std::string& name, const MhdScriptVal& value)
-    {
-        g_vars[name] = value;
-    }
-};  // struct MhdVariable
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -155,12 +116,12 @@ public:
     {
         const std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)> func =
             [args_name=m_args, body=m_body](const std::vector<MhdScriptVal>& args) {
-                MhdVariableScope scope{};
+                MhdScriptVarScope scope{true};
                 if (args.size() != args_name.size()) {
                     throw MhdScriptInvalidOp(); 
                 }
                 for (std::size_t i = 0; i < args.size(); ++i) {
-                    MhdVariable var(args_name[i], args[i]);
+                    MhdScriptVarScope::var(args_name[i]) = args[i];
                 }
                 return body->eval();
             };
@@ -190,17 +151,26 @@ struct MhdScriptExprIdent : public MhdScriptExpr
 {
 public:
     std::string m_id;
+    bool m_let;
 public:
-    MhdScriptExprIdent(const std::string& id)
-        : m_id(id) {}
+    MhdScriptExprIdent(const std::string& id, bool let = false)
+        : m_id(id), m_let(let) {}
 public:
     MhdScriptVal eval() const override
     {
-        return g_vars[m_id];
+        if (m_let) {
+            return MhdScriptVarScope::let(m_id);
+        } else {
+            return MhdScriptVarScope::var(m_id);
+        }
     }
     MhdScriptRef eval_ref() const override
     { 
-        return MhdScriptRef(&g_vars[m_id]);
+        if (m_let) {
+            return MhdScriptRef(&MhdScriptVarScope::let(m_id));
+        } else {
+            return MhdScriptRef(&MhdScriptVarScope::var(m_id));
+        }
     }
 };  // struct MhdScriptExprIdent
 //########################################################################################################
@@ -495,13 +465,41 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         for (const MhdScriptExpr::Ptr& comp_expr : m_exprs) {
             expr = comp_expr->eval();
         }
         return expr;
     }
 };  // struct MhdScriptExprCompound
+//--------------------------------------------------------------------------------------------------------
+struct MhdScriptExprNamespace final : public MhdScriptExpr
+{
+public:
+    std::string m_id;
+    MhdScriptExpr::Vec m_exprs;
+public:
+    MhdScriptExprNamespace(const std::string& id,
+                           const MhdScriptExpr::Vec& exprs) noexcept
+        : m_id(id)
+        , m_exprs(exprs)
+    {}
+public:
+    MhdScriptVal eval() const override
+    {
+        return MhdScriptVarScope::let(m_id) = [&](){
+            const MhdScriptVal& prev = MhdScriptVarScope::let(m_id);
+            MhdScriptVarScope scope{};
+            if (prev.m_type == MhdScriptVal::Type::MAP) {
+                MhdScriptVarScope::load(*prev.m_val_map.get());
+            }
+            for (const MhdScriptExpr::Ptr& comp_expr : m_exprs) {
+                comp_expr->eval();
+            }
+            return MhdScriptVarScope::dump();
+        }();
+    }
+};  // struct MhdScriptExprNamespace
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -526,7 +524,7 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         const MhdScriptVal cond = m_cond->eval();
         if (cond) {
             expr = m_then_branch->eval();
@@ -554,19 +552,21 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         const MhdScriptVal cond = m_cond->eval();
         try {
             const auto iter = std::find_if(m_cases.begin(), m_cases.end(), 
-            [&](const std::pair<MhdScriptExpr::Ptr, MhdScriptExpr::Ptr>& case_expr) {
-                const MhdScriptExpr::Ptr& case_value = case_expr.first;
-                return case_value->eval() == cond;
-            });
+                [&](const std::pair<MhdScriptExpr::Ptr, MhdScriptExpr::Ptr>& case_expr) {
+                    const MhdScriptExpr::Ptr& case_value = case_expr.first;
+                    return case_value->eval() == cond;
+                });
             if (iter != m_cases.end()) {
                 const MhdScriptExpr::Ptr& case_branch = iter->second;
                 expr = case_branch->eval();
             } else {
-                expr = m_case_default->eval();
+                if (m_case_default != nullptr) {
+                    expr = m_case_default->eval();
+                }
             }
         } catch (const MhdJumpBreak& break_jump) {
             expr = break_jump.m_val;
@@ -597,7 +597,7 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         try {
             while (m_cond->eval()) {
                 try {
@@ -624,7 +624,7 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         try {
             do {
                 try {
@@ -654,7 +654,7 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         try {
             for (m_init == nullptr || m_init->eval(); 
                  m_cond == nullptr || m_cond->eval(); 
@@ -686,11 +686,11 @@ public:
     MhdScriptVal eval() const override
     {
         MhdScriptVal expr;
-        MhdVariableScope scope{};
+        MhdScriptVarScope scope{};
         try {
             expr = m_try_block->eval();
         } catch (const MhdJumpThrow& throw_jump) {
-            MhdVariable(m_catch_arg, throw_jump.m_val);
+            MhdScriptVarScope::var(m_catch_arg) = throw_jump.m_val;
             expr = m_catch_block->eval();
         }
         return expr;

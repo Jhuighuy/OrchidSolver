@@ -1,4 +1,4 @@
-// Orchid-- 2D / 3D Euler / MagnetoHydroDynamics solver.
+// Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
 #include "OrchidScriptValue.hpp"
@@ -884,14 +884,36 @@ operator_cast_apply_str(U& val,
     // Cast to STRING operator for value arrays. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast.setf(std::ios::showpoint);
-    rhs_cast << "[";
+    rhs_cast << "(/";
     if (lhs.size() > 0) {
         rhs_cast << lhs[0];
         for (size_t i = 1; i < lhs.size(); ++i) {
             rhs_cast << ", " << lhs[i];
         }
     }
-    rhs_cast << "]";
+    rhs_cast << "/)";
+    val = std::move(rhs_cast.str());
+}
+template<typename X, typename T, typename S, typename U>
+inline void
+operator_cast_apply_str(U& val,
+                        const std::map<T, S>& lhs)
+{
+    // Cast to STRING operator for maps. 
+    std::basic_ostringstream<X> rhs_cast;
+    rhs_cast.setf(std::ios::showpoint);
+    rhs_cast << "{/";
+    if (lhs.size() > 0) {
+        auto lhs_iter = lhs.begin();
+        rhs_cast << static_cast<std::string>(lhs_iter->first ) << ":"
+                 << static_cast<std::string>(lhs_iter->second);
+        for (++lhs_iter; lhs_iter != lhs.end(); ++lhs_iter) {
+            rhs_cast << ", "
+                     << static_cast<std::string>(lhs_iter->first ) << ":"
+                     << static_cast<std::string>(lhs_iter->second);
+        }
+    }
+    rhs_cast << "/}";
     val = std::move(rhs_cast.str());
 }
 template<typename X, typename T, typename U>
@@ -928,12 +950,26 @@ operator_cast_apply(MhdScriptVal::Type tp, U& val,
             throw MhdScriptInvalidOp(lhs);
     }
 }
+template<typename T, typename S, typename U>
+inline void
+operator_cast_apply(MhdScriptVal::Type tp, U& val,
+                    const std::map<T, S>& lhs)
+{
+    // Apply a CAST operator for arbitrary maps.
+    switch (tp) {
+        case MhdScriptVal::Type::STR:
+            operator_cast_apply_str<char>(val, lhs);
+            break;
+        default:
+            throw MhdScriptInvalidOp(lhs);
+    }
+}
 template<typename U>
 inline void
 operator_cast_apply(MhdScriptVal::Type tp, U& val,
                     void* lhs)
 {
-    // Apply a CAST operator for arbitrary objects.
+    // Apply a CAST operator for pointers.
     switch (tp) {
         case MhdScriptVal::Type::LGC:
             operator_cast_apply<bool>(val, lhs != nullptr);
@@ -961,6 +997,7 @@ MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
         case MhdScriptVal::Type::DBL:
         case MhdScriptVal::Type::STR:
         case MhdScriptVal::Type::PTR:
+        case MhdScriptVal::Type::MAP:
             break;
         default:
             throw MhdScriptInvalidOp(lhs);
@@ -981,6 +1018,9 @@ MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
             break;
         case MhdScriptVal::Type::PTR:
             operator_cast_apply(tp, new_lhs, new_lhs.m_val_ptr);
+            break;
+        case MhdScriptVal::Type::MAP:
+            operator_cast_apply(tp, new_lhs, *new_lhs.m_val_map.get());
             break;
         default:
             ORCHID_ASSERT(0); 
