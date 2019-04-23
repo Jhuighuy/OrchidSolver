@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <list>
 #include <map>
 
 struct MhdScriptVal;
@@ -38,6 +39,7 @@ struct MhdScriptVal final
         DBL, 
         STR,
         PTR,
+        LST,
         MAP,
         FUN,
     };	// enum class Type
@@ -49,8 +51,12 @@ public:
         std::valarray<bool  > m_val_lgc;
         std::valarray<int   > m_val_int;
         std::valarray<double> m_val_dbl;
-        std::shared_ptr<std::map<MhdScriptVal, MhdScriptVal>> m_val_map;
-        std::shared_ptr<std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>> m_val_fun;
+        std::shared_ptr<
+            std::list<MhdScriptVal>> m_val_lst;
+        std::shared_ptr<
+            std::map<MhdScriptVal, MhdScriptVal>> m_val_map;
+        std::shared_ptr<
+            std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>> m_val_fun;
     };
 public:
     MHD_INTERFACE
@@ -100,7 +106,6 @@ public:
     {
         return *this = MhdScriptVal(t);
     }
-#if 0
 public:
     MHD_INTERFACE
     MhdScriptVal& operator=(MhdScriptVal&& other) noexcept;
@@ -110,7 +115,6 @@ public:
     {
         *this = std::forward<MhdScriptVal>(other);
     }
-#endif
 public:
     MHD_INTERFACE
     MhdScriptVal& operator=(const MhdScriptVal& other);

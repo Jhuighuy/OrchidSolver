@@ -7,9 +7,6 @@
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-/** 
- * Scan a single token. 
- */
 MHD_INTERNAL 
 bool MhdTokenizer::scan(MhdScriptToken& token)
 {
@@ -142,6 +139,10 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
             advance();
             token.m_kind = MhdScriptToken::Kind::OP_SEMICOLON;
             return true;
+        case '?':
+            advance();
+            token.m_kind = MhdScriptToken::Kind::OP_QUESTION;
+            return true;
         case '=':
             advance();
             if (peek() == '=') {
@@ -153,23 +154,54 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
             return true;
         case '+':
             advance();
-            token.m_kind = MhdScriptToken::Kind::OP_ADD;
+            if (character = peek(),
+                character == '=') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_ADD_ASG;
+            } else if (character == '+') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_INC;
+            } else {
+                token.m_kind = MhdScriptToken::Kind::OP_ADD;
+            }
             return true;
         case '-':
             advance();
-            token.m_kind = MhdScriptToken::Kind::OP_SUB;
+            if (character = peek(),
+                character == '=') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_SUB_ASG;
+            } else if (character == '-') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_DEC;
+            } else {
+                token.m_kind = MhdScriptToken::Kind::OP_SUB;
+            }
             return true;
         case '*':
             advance();
-            token.m_kind = MhdScriptToken::Kind::OP_MUL;
+            if (peek() == '=') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_MUL_ASG;
+            } else {
+                token.m_kind = MhdScriptToken::Kind::OP_MUL;
+            }
             return true;
         case '/':
             advance();
-            token.m_kind = MhdScriptToken::Kind::OP_DIV;
+            if (peek() == '=') {
+                token.m_kind = MhdScriptToken::Kind::OP_DIV_ASG;
+            } else {
+                token.m_kind = MhdScriptToken::Kind::OP_DIV;
+            }
             return true;
         case '%':
             advance();
-            token.m_kind = MhdScriptToken::Kind::OP_MOD;
+            if (peek() == '=') {
+                token.m_kind = MhdScriptToken::Kind::OP_MOD_ASG;
+            } else {
+                token.m_kind = MhdScriptToken::Kind::OP_MOD;
+            }
             return true;
         case '!':
             advance();
@@ -182,7 +214,16 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
             return true;
         case '<':
             advance();
-            if (peek() == '=') {
+            if (character = peek(),
+                character == '<') {
+                advance();
+                if (peek() == '=') {
+                    advance();
+                    token.m_kind = MhdScriptToken::Kind::OP_LSHIFT_ASG;
+                } else {
+                    token.m_kind = MhdScriptToken::Kind::OP_LSHIFT;
+                }
+            } else if (character == '=') {
                 advance();
                 token.m_kind = MhdScriptToken::Kind::OP_LTE;
             } else {
@@ -191,7 +232,16 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
             return true;
         case '>':
             advance();
-            if (peek() == '=') {
+            if (character = peek(),
+                character == '>') {
+                advance();
+                if (peek() == '=') {
+                    advance();
+                    token.m_kind = MhdScriptToken::Kind::OP_RSHIFT_ASG;
+                } else {
+                    token.m_kind = MhdScriptToken::Kind::OP_RSHIFT;
+                }
+            } else if (character == '=') {
                 advance();
                 token.m_kind = MhdScriptToken::Kind::OP_GTE;
             } else {
@@ -200,27 +250,35 @@ bool MhdTokenizer::scan(MhdScriptToken& token)
             return true;
         case '&':
             advance();
-            if (peek() == '&') {
+            if (character = peek(),
+                character == '&') {
                 advance();
                 token.m_kind = MhdScriptToken::Kind::OP_AND;
+            } else if (character == '=') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_AND_BW_ASG;
             } else {
                 token.m_kind = MhdScriptToken::Kind::OP_AND_BW;
             }
             return true;
         case '|':
             advance();
-            if (peek() == '|') {
+            if (character = peek(),
+                character == '|') {
                 advance();
                 token.m_kind = MhdScriptToken::Kind::OP_OR;
+            } else if (character == '=') {
+                advance();
+                token.m_kind = MhdScriptToken::Kind::OP_OR_BW_ASG;
             } else {
                 token.m_kind = MhdScriptToken::Kind::OP_OR_BW;
             }
             return true;
         case '^':
             advance();
-            if (peek() == '^') {
+            if (peek() == '=') {
                 advance();
-                token.m_kind = MhdScriptToken::Kind::OP_XOR;
+                token.m_kind = MhdScriptToken::Kind::OP_XOR_BW_ASG;
             } else {
                 token.m_kind = MhdScriptToken::Kind::OP_XOR_BW;
             }
@@ -381,9 +439,6 @@ bool MhdTokenizer::scan_num(MhdScriptToken& token)
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-/**
- * Scan a single identifier token.
- */
 bool MhdTokenizer::scan_id(MhdScriptToken& token)
 {
     token.m_value_str.push_back(peek());

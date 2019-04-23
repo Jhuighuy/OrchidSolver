@@ -35,6 +35,7 @@ MhdScriptVal::~MhdScriptVal()
             operator_dtor(m_val_str);
             break;
         case MhdScriptVal::Type::PTR:
+            operator_dtor(m_val_ptr);
             break;
         case MhdScriptVal::Type::MAP:
             operator_dtor(m_val_map);
@@ -51,18 +52,51 @@ MhdScriptVal::~MhdScriptVal()
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-//MHD_INTERFACE
-//MhdScriptVal& 
-//MhdScriptVal::operator=(MhdScriptVal&& other) noexcept
-//{
-//    // Assign VALUE of a VALUE.
-//    if (this != &other) {
-//        this->~MhdScriptVal();
-//        std::swap(m_type, other.m_type);
-//        std::swap(m_val_ptr, other.m_val_ptr);
-//    }
-//    return *this;
-//}
+template<typename T>
+inline void
+operator_assignment_move_apply(T& lhs, T& rhs)
+{
+    // Apply MOVE-ASSIGNMENT operator for arbitrary objects.
+    new (&lhs) T(std::move(rhs));
+}
+//--------------------------------------------------------------------------------------------------------
+MHD_INTERFACE
+MhdScriptVal& 
+MhdScriptVal::operator=(MhdScriptVal&& other) noexcept
+{
+    // Assign VALUE of a VALUE.
+    if (this != &other) {
+        this->~MhdScriptVal();
+        std::swap(m_type, other.m_type);
+        switch (m_type) {
+            case MhdScriptVal::Type::LGC:
+                operator_assignment_move_apply(m_val_lgc, other.m_val_lgc);
+                break;
+            case MhdScriptVal::Type::INT:
+                operator_assignment_move_apply(m_val_int, other.m_val_int);
+                break;
+            case MhdScriptVal::Type::DBL:
+                operator_assignment_move_apply(m_val_dbl, other.m_val_dbl);
+                break;
+            case MhdScriptVal::Type::STR:
+                operator_assignment_move_apply(m_val_str, other.m_val_str);
+                break;
+            case MhdScriptVal::Type::PTR:
+                operator_assignment_move_apply(m_val_ptr, other.m_val_ptr);
+                break;
+            case MhdScriptVal::Type::MAP:
+                operator_assignment_move_apply(m_val_map, other.m_val_map);
+                break;
+            case MhdScriptVal::Type::FUN:
+                operator_assignment_move_apply(m_val_fun, other.m_val_fun);
+                break;
+            default:
+                ORCHID_ASSERT(0); 
+                break;
+        }
+    }
+    return *this;
+}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -294,9 +328,6 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
             break;
         case MhdScriptToken::Kind::OP_MOD: 
             lhs %= rhs;
-            break;
-        case MhdScriptToken::Kind::OP_POW: 
-            lhs = std::move(std::pow(lhs, rhs));
             break;
         default:
             throw MhdScriptInvalidOp(op);
@@ -826,6 +857,15 @@ operator_cast_apply(U& val,
     val = std::move(rhs_cast);
 }
 template<typename X, typename T, typename U>
+inline typename std::enable_if<std::is_convertible<T, X>::value>::type
+operator_cast_apply(U& val,
+                    const T& lhs)
+{
+    // Apply a CAST operator for convertible arbitrary objects. 
+    X rhs_cast{std::move(static_cast<X>(lhs))};
+    val = std::move(rhs_cast);
+}
+template<typename X, typename T, typename U>
 inline void
 operator_cast_apply(U& val,
                     const std::basic_string<T>& lhs)
@@ -835,20 +875,11 @@ operator_cast_apply(U& val,
     std::basic_istringstream<T>(lhs) >> rhs_cast;
     val = std::move(rhs_cast);
 }
-template<typename X, typename T, typename U>
-inline void
-operator_cast_apply(U& val,
-                    const T& lhs)
-{
-    // Apply a CAST operator for arbitrary objects. 
-    X rhs_cast{std::move(*reinterpret_cast<const X*>(&lhs))};
-    val = std::move(rhs_cast);
-}
 //--------------------------------------------------------------------------------------------------------
 template<typename X, typename T, typename U>
 inline void
-operator_cast_apply_string(U& val,
-                           const std::valarray<T>& lhs)
+operator_cast_apply_str(U& val,
+                        const std::valarray<T>& lhs)
 {
     // Cast to STRING operator for value arrays. 
     std::basic_ostringstream<X> rhs_cast;
@@ -865,8 +896,8 @@ operator_cast_apply_string(U& val,
 }
 template<typename X, typename T, typename U>
 inline void
-operator_cast_apply_string(U& val,
-                           const T& lhs)
+operator_cast_apply_str(U& val,
+                        const T& lhs)
 {
     // Cast to STRING operator for arbitrary objects. 
     std::basic_ostringstream<X> rhs_cast;
@@ -891,7 +922,24 @@ operator_cast_apply(MhdScriptVal::Type tp, U& val,
             operator_cast_apply<double>(val, lhs);
             break;
         case MhdScriptVal::Type::STR:
-            operator_cast_apply_string<char>(val, lhs);
+            operator_cast_apply_str<char>(val, lhs);
+            break;
+        default:
+            throw MhdScriptInvalidOp(lhs);
+    }
+}
+template<typename U>
+inline void
+operator_cast_apply(MhdScriptVal::Type tp, U& val,
+                    void* lhs)
+{
+    // Apply a CAST operator for arbitrary objects.
+    switch (tp) {
+        case MhdScriptVal::Type::LGC:
+            operator_cast_apply<bool>(val, lhs != nullptr);
+            break;
+        case MhdScriptVal::Type::STR:
+            operator_cast_apply_str<char>(val, lhs);
             break;
         default:
             throw MhdScriptInvalidOp(lhs);
