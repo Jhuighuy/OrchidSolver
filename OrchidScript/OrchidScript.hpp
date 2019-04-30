@@ -3,9 +3,13 @@
 
 #pragma once
 
-#define ORCHID_ASSERT(...) do { if(!(__VA_ARGS__)){ \
-    fprintf(stderr, "%s(%d): %s\n", __FILE__, __LINE__, #__VA_ARGS__); \
-    abort(); } } while (false)
+#define ORCHID_ASSERT(...) \
+    do { \
+        if(!(__VA_ARGS__)) { \
+            fprintf(stderr, "%s(%d): %s\n", __FILE__, __LINE__, #__VA_ARGS__); \
+            abort(); \
+        } \
+    } while (false)
 #define MHD_INTERNAL
 #define MHD_INTERFACE
 #define ORCHID_INTERFACE
@@ -15,6 +19,7 @@
 enum struct MhdScriptKind : char
 {
     NONE,
+    END,
     ERR,
     ID,
     CT_STR,
@@ -32,6 +37,7 @@ enum struct MhdScriptKind : char
     KW_WHILE,
     KW_DO,
     KW_FOR,
+    KW_FOREACH,
     KW_TRY,
     KW_CATCH,
     KW_BREAK,

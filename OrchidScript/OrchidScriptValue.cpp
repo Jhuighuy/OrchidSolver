@@ -267,6 +267,23 @@ operator_arithmetic_apply(MhdScriptKind op,
     }
 }
 //--------------------------------------------------------------------------------------------------------
+template<typename T, typename S, typename U>
+inline void
+operator_arithmetic_apply(MhdScriptKind op, U& val,
+                          std::map<T, S>& lhs)
+{
+    // Apply an UNARY ARITHMETIC operator for maps.
+    switch (op) {
+        case MhdScriptKind::OP_ADD:
+            val = lhs[T("operator{+}")]({val});
+            break;
+        case MhdScriptKind::OP_SUB:
+            val = lhs[T("operator{-}")]({val});
+            break;
+        default:
+            throw MhdScriptInvalidOp(op);
+    }
+}
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator_arithmetic(MhdScriptKind op,
@@ -281,6 +298,9 @@ MhdScriptVal::operator_arithmetic(MhdScriptKind op,
             break;
         case MhdScriptVal::Type::DBL:
             tp = MhdScriptVal::Type::DBL;
+            break;
+        case MhdScriptVal::Type::MAP:
+            tp = MhdScriptVal::Type::MAP;
             break;
         default:
             throw MhdScriptInvalidOp(op, lhs);
@@ -297,6 +317,9 @@ MhdScriptVal::operator_arithmetic(MhdScriptKind op,
             break;
         case MhdScriptVal::Type::DBL:
             operator_arithmetic_apply(op, new_lhs.m_val_dbl);
+            break;
+        case MhdScriptVal::Type::MAP:
+            operator_arithmetic_apply(op, new_lhs, *new_lhs.m_val_map);
             break;
         default:
             ORCHID_ASSERT(0); 
@@ -373,6 +396,32 @@ operator_arithmetic_apply(MhdScriptKind op,
             throw MhdScriptInvalidOp(op);
     }
 }
+template<typename U>
+inline void
+operator_arithmetic_apply(MhdScriptKind op, 
+                          U& lhs, const U& rhs)
+{
+    // Apply an BINARY ARITHMETIC operator for maps.
+    switch (op) {
+        case MhdScriptKind::OP_ADD:
+            lhs = std::move(lhs[U("operator+")]({ lhs, rhs }));
+            break;
+        case MhdScriptKind::OP_SUB:
+            lhs = std::move(lhs[U("operator-")]({ lhs, rhs }));
+            break;
+        case MhdScriptKind::OP_MUL:
+            lhs = std::move(lhs[U("operator*")]({ lhs, rhs }));
+            break;
+        case MhdScriptKind::OP_DIV:
+            lhs = std::move(lhs[U("operator/")]({ lhs, rhs }));
+            break;
+        case MhdScriptKind::OP_MOD:
+            lhs = std::move(lhs[U("operator%")]({ lhs, rhs }));
+            break;
+        default:
+            throw MhdScriptInvalidOp(op);
+    }
+}
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
@@ -395,6 +444,9 @@ MhdScriptVal::operator_arithmetic(MhdScriptKind op,
                 throw MhdScriptInvalidOp(rhs);
             }
             break;
+        case MhdScriptVal::Type::MAP:
+            tp = MhdScriptVal::Type::MAP;
+            break;
         default:
             throw MhdScriptInvalidOp(lhs);
     }
@@ -405,6 +457,7 @@ MhdScriptVal::operator_arithmetic(MhdScriptKind op,
             tp = std::max(tp, rhs.m_type);
             break;
         case MhdScriptVal::Type::STR:
+        case MhdScriptVal::Type::MAP:
             break;
         default:
             throw MhdScriptInvalidOp(rhs);
@@ -416,7 +469,7 @@ MhdScriptVal::operator_arithmetic(MhdScriptKind op,
     } else {
         new_lhs = lhs;
     }
-    if (rhs.m_type != tp) {
+    if (rhs.m_type != tp && tp != MhdScriptVal::Type::MAP) {
         new_rhs = MhdScriptVal::operator_cast(tp, rhs);
     } else {
         new_rhs = rhs;
@@ -430,6 +483,9 @@ MhdScriptVal::operator_arithmetic(MhdScriptKind op,
             break;
         case MhdScriptVal::Type::STR:
             operator_arithmetic_apply(op, new_lhs.m_val_str, new_rhs.m_val_str);
+            break;
+        case MhdScriptVal::Type::MAP:
+            operator_arithmetic_apply(op, new_lhs, new_rhs);
             break;
         default:
             ORCHID_ASSERT(0); 
@@ -447,7 +503,7 @@ operator_logical_apply(MhdScriptKind op,
 {
     // Apply an UNARY LOGICAL operator for arithmetic value array. 
     switch (op) {
-        case MhdScriptKind::OP_EQ: 
+        case MhdScriptKind::OP_NOT:
             val = std::move(!lhs);
             break;
         default:

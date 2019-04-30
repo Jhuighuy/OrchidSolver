@@ -1,9 +1,8 @@
 // Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
-#include "OrchidScript.hpp"
-#include "OrchidScriptVar.hpp"
 #include "OrchidScriptSyntax.hpp"
+#include "OrchidScriptVar.hpp"
 
 #include <algorithm>
 #include <set>
@@ -57,7 +56,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprConst::eval() const
 {
-	/// Evaluate CONSTANT expression.
+    /// Evaluate CONSTANT expression.
     return m_value;
 }
 //--------------------------------------------------------------------------------------------------------
@@ -65,18 +64,17 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprConstFunc::eval() const
 {
-	/// Evaluate FUNCTION CONSTANT expression.
-    const std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)> func =
-        [args_name=m_args, body=m_body](const std::vector<MhdScriptVal>& args) {
-            MhdScriptVarScope scope{true};
-            if (args.size() != args_name.size()) {
-                throw MhdScriptInvalidOp(); 
-            }
-            for (std::size_t i = 0; i < args.size(); ++i) {
-                MhdScriptVarScope::var(args_name[i]) = args[i];
-            }
-            return body->eval();
-        };
+    /// Evaluate FUNCTION CONSTANT expression.
+    const auto func = [args_name=m_args, body=m_body](const std::vector<MhdScriptVal>& args) {
+        MhdScriptVarScope scope{};
+        if (args.size() != args_name.size()) {
+            throw MhdScriptInvalidOp(); 
+        }
+        for (std::size_t i = 0; i < args.size(); ++i) {
+            MhdScriptVarScope::var(args_name[i]) = args[i];
+        }
+        return body->eval();
+    };
     return MhdScriptVal(func);
 }
 //--------------------------------------------------------------------------------------------------------
@@ -84,7 +82,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprConstArray::eval() const
 {
-	/// Evaluate LIST CONSTANT expression.
+    /// Evaluate LIST CONSTANT expression.
     std::vector<MhdScriptVal> array;
     for (MhdScriptExpr::Ptr value : m_array) {
         array.push_back(value->eval());
@@ -96,7 +94,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprIdent::eval() const
 {
-	/// Evaluate IDENTIFIER expression.
+    /// Evaluate IDENTIFIER expression.
     if (m_let) {
         return MhdScriptVarScope::let(m_id);
     } else {
@@ -107,7 +105,7 @@ MHD_INTERFACE
 MhdScriptRef
 MhdScriptExprIdent::eval_ref() const
 {
-	/// Evaluate IDENTIFIER expression.
+    /// Evaluate IDENTIFIER expression.
     if (m_let) {
         return MhdScriptRef(&MhdScriptVarScope::let(m_id));
     } else {
@@ -121,7 +119,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprCall::eval() const
 {
-	/// Evaluate CALL expression.
+    /// Evaluate CALL expression.
     const MhdScriptVal func = m_func->eval();
     std::vector<MhdScriptVal> args;
     for (MhdScriptExpr::Ptr arg : m_args) {
@@ -138,24 +136,25 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprIndex::eval() const
 {
-	/// Evaluate INDEX expression.
-    const MhdScriptVal array = m_array->eval();
+    /// Evaluate INDEX expression.
     std::vector<MhdScriptVal> index;
     for (MhdScriptExpr::Ptr arg : m_index) {
         index.push_back(arg->eval());
     }
+    const MhdScriptVal array = m_array->eval();
     return array[index];
 }
 MHD_INTERFACE
 MhdScriptRef
 MhdScriptExprIndex::eval_ref() const
 {
-	/// Evaluate INDEX expression.
+    /// Evaluate INDEX expression.
     std::vector<MhdScriptVal> index;
     for (MhdScriptExpr::Ptr arg : m_index) {
         index.push_back(arg->eval());
     }
-    return m_array->eval_ref()[index];
+    MhdScriptRef array = m_array->eval_ref();
+    return array[index];
 }
 //########################################################################################################
 //########################################################################################################
@@ -164,7 +163,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprNot::eval() const
 {
-	/// Evaluate NOT expression.
+    /// Evaluate NOT expression.
     const MhdScriptVal expr = m_expr->eval();
     switch (m_op) {
         case MhdScriptKind::OP_NOT:    
@@ -181,7 +180,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprNegate::eval() const
 {
-	/// Evaluate NEGATE expression.
+    /// Evaluate NEGATE expression.
     const MhdScriptVal expr = m_expr->eval();
     switch (m_op) {
         case MhdScriptKind::OP_ADD: 
@@ -200,7 +199,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprAssignment::eval() const
 {
-	/// Evaluate ASSIGNMENT expression.
+    /// Evaluate ASSIGNMENT expression.
     MhdScriptRef lhs = eval_ref();
     return lhs;
 }
@@ -209,7 +208,7 @@ MHD_INTERFACE
 MhdScriptRef
 MhdScriptExprAssignment::eval_ref() const
 {
-	/// Evaluate ASSIGNMENT expression.
+    /// Evaluate ASSIGNMENT expression.
     MhdScriptRef lhs = m_lhs->eval_ref();
     const MhdScriptVal rhs = m_rhs->eval();
     switch (m_op) {
@@ -247,7 +246,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprLogical::eval() const
 {
-	/// Evaluate LOGICAL expression.
+    /// Evaluate LOGICAL expression.
     if (m_op == MhdScriptKind::OP_AND) {
         if (m_lhs->eval()) {
             return m_rhs->eval();
@@ -287,7 +286,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprBitwise::eval() const
 {
-	/// Evaluate BITWISE expression.
+    /// Evaluate BITWISE expression.
     const MhdScriptVal lhs = m_lhs->eval();
     const MhdScriptVal rhs = m_rhs->eval();
     switch (m_op) {
@@ -311,7 +310,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprArithmetic::eval() const
 {
-	/// Evaluate ARITHMETIC expression.
+    /// Evaluate ARITHMETIC expression.
     const MhdScriptVal lhs = m_lhs->eval();
     const MhdScriptVal rhs = m_rhs->eval();
     switch (m_op) {
@@ -337,7 +336,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprCompound::eval() const
 {
-	/// Evaluate COMPOUND expression.
+    /// Evaluate COMPOUND expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     for (const MhdScriptExpr::Ptr& comp_expr : m_exprs) {
@@ -350,9 +349,9 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprNamespace::eval() const
 {
-	/// Evaluate NAMESPACE expression.
+    /// Evaluate NAMESPACE expression.
     MhdScriptVal& expr = MhdScriptVarScope::let(m_id);
-	const MhdScriptVal& prev = MhdScriptVarScope::let(m_id);
+    const MhdScriptVal& prev = MhdScriptVarScope::let(m_id);
     MhdScriptVarScope scope{};
     if (prev.m_type == MhdScriptVal::Type::MAP) {
         MhdScriptVarScope::load(*prev.m_val_map.get());
@@ -369,7 +368,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprIf::eval() const
 {
-	/// Evaluate IF expression.
+    /// Evaluate IF expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     const MhdScriptVal cond = m_cond->eval();
@@ -387,20 +386,20 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprSwitch::eval() const
 {
-	/// Evaluate SWITCH expression.
+    /// Evaluate SWITCH expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     const MhdScriptVal cond = m_cond->eval();
+    const auto iter = std::find_if(m_cases.begin(), m_cases.end(), 
+        [&](const std::pair<MhdScriptExpr::Ptr, 
+                            MhdScriptExpr::Ptr>& case_expr) {
+            const MhdScriptExpr::Ptr& case_value_expr = case_expr.first;
+            return case_value_expr->eval() == cond;
+        });
     try {
-        const auto iter = std::find_if(m_cases.begin(), m_cases.end(), 
-            [&](const std::pair<MhdScriptExpr::Ptr, 
-            					MhdScriptExpr::Ptr>& case_expr) {
-                const MhdScriptExpr::Ptr& case_value = case_expr.first;
-                return case_value->eval() == cond;
-            });
         if (iter != m_cases.end()) {
-            const MhdScriptExpr::Ptr& case_branch = iter->second;
-            expr = case_branch->eval();
+            const MhdScriptExpr::Ptr& case_branch_expr = iter->second;
+            expr = case_branch_expr->eval();
         } else {
             if (m_case_default != nullptr) {
                 expr = m_case_default->eval();
@@ -418,33 +417,34 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprWhile::eval() const
 {
-	/// Evaluate WHILE expression.
+    /// Evaluate WHILE expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     try {
         while (m_cond->eval()) {
             try {
                 expr = m_body->eval();
-            } catch (const MhdJumpContinue&) {}
+            } catch (const MhdJumpContinue&) {
+            }
         }
     } catch (const MhdJumpBreak& break_jump) {
         expr = break_jump.m_val;
     }
     return expr;
 }
-//--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprDoWhile::eval() const
 {
-	/// Evaluate DO WHILE expression.
+    /// Evaluate DO WHILE expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     try {
         do {
             try {
                 expr = m_body->eval();
-            } catch (const MhdJumpContinue&) {}
+            } catch (const MhdJumpContinue&) {
+            }
         } while (m_cond->eval());
     } catch (const MhdJumpBreak& break_jump) {
         expr = break_jump.m_val;
@@ -456,7 +456,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprFor::eval() const
 {
-	/// Evaluate FOR LOOP expression.
+    /// Evaluate FOR LOOP expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     try {
@@ -465,11 +465,37 @@ MhdScriptExprFor::eval() const
              m_iter == nullptr || m_iter->eval()) {
             try {
                 expr = m_body->eval();
-            } catch (const MhdJumpContinue&) {}
+            } catch (const MhdJumpContinue&) {
+            }
         }
     } catch (const MhdJumpBreak& break_jump) {
         expr = break_jump.m_val;
     }
+    return expr;
+}
+MHD_INTERFACE
+MhdScriptVal
+MhdScriptExprForEach::eval() const
+{
+    /// Evaluate FOR-EACH LOOP expression.
+    MhdScriptVal expr;
+    MhdScriptVarScope scope{};
+    try {
+        const MhdScriptVal cont = m_cont->eval();
+#if 0   /** @todo Implement iterators for MhdScriptVal. */
+        for (MhdScriptVal val : cont) {
+            try {
+                MhdScriptVarScope::let(m_id) = val;
+                expr = m_body->eval();
+            } catch (const MhdJumpContinue&) {
+            }
+        }
+#endif
+        ORCHID_ASSERT(0);
+    } catch (const MhdJumpBreak& break_jump) {
+        expr = break_jump.m_val;
+    }
+    ORCHID_ASSERT(0);
     return expr;
 }
 //########################################################################################################
@@ -479,14 +505,17 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprTryCatch::eval() const
 {
-	/// Evaluate TRY-CATCH expression.
+    /// Evaluate TRY-CATCH expression.
     MhdScriptVal expr;
     MhdScriptVarScope scope{};
     try {
         expr = m_try_block->eval();
     } catch (const MhdJumpThrow& throw_jump) {
-        MhdScriptVarScope::var(m_catch_arg) = throw_jump.m_val;
-        expr = m_catch_block->eval();
+        MhdScriptVarScope scope{};
+        if (m_catch_block != nullptr) {
+            MhdScriptVarScope::let(m_catch_arg) = throw_jump.m_val;
+            expr = m_catch_block->eval();
+        }
     }
     return expr;
 }
@@ -497,7 +526,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprBreak::eval() const
 {
-	/// Evaluate BREAK expression.
+    /// Evaluate BREAK expression.
     if (m_expr != nullptr) {
         throw MhdJumpBreak(m_expr->eval());
     } else {
@@ -509,7 +538,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprContinue::eval() const
 {
-	/// Evaluate CONTINUE expression.
+    /// Evaluate CONTINUE expression.
     throw MhdJumpContinue();
 }
 //--------------------------------------------------------------------------------------------------------
@@ -517,7 +546,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprReturn::eval() const
 {
-	/// Evaluate RETURN expression.
+    /// Evaluate RETURN expression.
     if (m_expr != nullptr) {
         throw MhdJumpReturn(m_expr->eval());
     } else {
@@ -529,7 +558,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptExprThrow::eval() const
 {
-	/// Evaluate THROW expression.
+    /// Evaluate THROW expression.
     if (m_expr != nullptr) {
         throw MhdJumpThrow(m_expr->eval());
     } else {

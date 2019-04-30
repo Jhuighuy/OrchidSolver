@@ -1,0 +1,51 @@
+{
+    /* Check basic functions, 
+     * like assert and typeof. */
+    assert(true);
+    assert(typeof(true)   == 'bool');
+    assert(typeof(false)  == 'bool');
+    assert(typeof(1)      == 'int');
+    assert(typeof(1.0)    == 'double');
+    assert(typeof([](){}) == 'function');
+    /* Check type casts. */
+    assert(typeof(+true) == 'int' );
+    assert(typeof(~true) == 'int' );
+    assert(typeof(!true) == 'bool');    
+    assert(typeof(true + true) == 'int' );
+    assert(typeof(1 + true) == 'int' );
+    assert(typeof(true + 1) == 'int' );
+    /* Test arrays. */
+    let a = 1;
+    let b = 1;
+    print(a);
+    b[1] = a;
+    a[1] = a;
+    print(a);
+    print(b);
+    /* Test conditional statements. */
+    if (1) {} else {assert(false);}
+    if (0) {assert(false);} else {}
+    /* Check try-catch. */
+    try {
+        throw 'a bone';
+    } catch (what) {
+        print('caught');
+        assert(what == 'a bone');
+    }
+    /* Test operators overloading. */
+    {
+        a = make_map();
+        a.destruct = [](this) {
+            print("dtor");
+        };
+        a.operator{+} = [](this) {
+            print("overloaded operator{+}");
+        };
+        a.operator/ = [](this, other) {
+            print("overloaded operator/");
+            123;
+        };
+        +a;
+    }
+    print(a / a);
+}

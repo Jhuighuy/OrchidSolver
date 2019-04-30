@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "OrchidScript.hpp"
 #include "OrchidScriptValue.hpp"
 
 #include <utility>
@@ -14,7 +15,7 @@ struct MhdRuntimeException {};
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-struct MhdScriptExpr : std::enable_shared_from_this<MhdScriptExpr>
+struct MhdScriptExpr : public std::enable_shared_from_this<MhdScriptExpr>
 {
 public:
     typedef std::shared_ptr<MhdScriptExpr> Ptr;
@@ -231,12 +232,11 @@ struct MhdScriptExprCompound final : public MhdScriptExpr
 public:
     MhdScriptExpr::Vec m_exprs;
 public:
-    MhdScriptExprCompound(MhdScriptExpr::Ptr expr1) noexcept
-        : m_exprs({ expr1 }) {}
-    MhdScriptExprCompound(MhdScriptExpr::Ptr expr1, MhdScriptExpr::Ptr expr2) noexcept
-        : m_exprs({ expr1, expr2 }) {}
     MhdScriptExprCompound(const MhdScriptExpr::Vec& exprs) noexcept
         : m_exprs(exprs) {}
+    template<typename... T>
+    MhdScriptExprCompound(T... exprs) noexcept
+        : m_exprs({ exprs... }) {}
 public:
     MHD_INTERFACE
     MhdScriptVal eval() const override final;
@@ -319,7 +319,6 @@ public:
     MHD_INTERFACE
     MhdScriptVal eval() const override;
 };  // struct MhdScriptExprWhile
-//--------------------------------------------------------------------------------------------------------
 struct MhdScriptExprDoWhile final : public MhdScriptExprLoop
 {
 public:
@@ -350,6 +349,21 @@ public:
     MHD_INTERFACE
     MhdScriptVal eval() const override final;
 };  // struct MhdScriptExprFor
+struct MhdScriptExprForEach final : public MhdScriptExprLoop
+{
+public:
+    std::string m_id;
+    MhdScriptExpr::Ptr m_cont;
+    MhdScriptExpr::Ptr m_body;
+public:
+    MhdScriptExprForEach(const std::string& id, MhdScriptExpr::Ptr cont, 
+                         MhdScriptExpr::Ptr body) 
+        : m_id(id), m_cont(cont)
+        , m_body(body) {}
+public:
+    MHD_INTERFACE
+    MhdScriptVal eval() const override final;
+};  // struct MhdScriptExprForEach
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################

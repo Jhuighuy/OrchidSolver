@@ -3,10 +3,10 @@
 
 #pragma once
 
+#include "OrchidScript.hpp"
 #include "OrchidScriptScanner.hpp"
 #include "OrchidScriptSyntax.hpp"
 
-#include <exception>
 #include <stdexcept>
 #include <string>
 
@@ -27,49 +27,29 @@ public:
         : std::runtime_error("hui") {}
     MhdParseError(const std::string& what = "<unimplemented>") 
         : std::runtime_error(what) {}
+    MhdParseError(const MhdScriptToken& token, const std::string& what)
+        : std::runtime_error(make_parse_error(token, what)) {}
 public:
-    static std::string make_parse_error(const MhdScriptToken& token)
-    {
-        (void)token;
-        return "PARSE ERROR AT <file>:<line>,<column>: ";
-    }
+    static std::string make_parse_error(const MhdScriptToken& token, 
+                                        const std::string& what = "");
 };  // struct MhdParseError
-//--------------------------------------------------------------------------------------------------------
-struct MhdParseUnexpTokenError : public MhdParseError
-{
-public:
-    template<typename... T>
-    MhdParseUnexpTokenError(const MhdScriptToken& token, const T&... expected)
-        : MhdParseError(make_error_unexp_token(token, expected...)) {}
-private:
-    template<typename... T>
-    static std::string make_error_unexp_token(const MhdScriptToken& token, const T&... /*expected*/)
-    {
-        return MhdParseError::make_parse_error(token);
-    }
-};  // struct MhdParseUnexpTokenError
-//--------------------------------------------------------------------------------------------------------
-struct MhdParseUnexpDefaultError : public MhdParseError
-{
-public:
-    MhdParseUnexpDefaultError(struct MhdScriptParser*)
-        : MhdParseError(std::string("what")) {}
-};  // struct MhdParseUnexpDefaultError
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
 struct MhdScriptParser
 {
 public:
-    MhdTokenizer m_tokenizer;
+    MhdScriptTokenizer m_tokenizer;
     MhdScriptToken m_token;
 public:
     MhdScriptParser(const char* text)
-        : m_tokenizer(text) { peek(); }
+        : m_tokenizer(text) {}
 public:
+    MHD_INTERFACE
+    MhdScriptExpr::Ptr parse();
+    MHD_INTERFACE
     MhdScriptExpr::Ptr parse_wrap();
 private:
-    MhdScriptExpr::Ptr parse();
     MhdScriptExpr::Ptr parse_expression();
 private:
     MhdScriptExpr::Ptr parse_expression_compound();
@@ -81,6 +61,7 @@ private:
     MhdScriptExpr::Ptr parse_expression_loop_while();
     MhdScriptExpr::Ptr parse_expression_loop_do();
     MhdScriptExpr::Ptr parse_expression_loop_for();
+    MhdScriptExpr::Ptr parse_expression_loop_foreach();
 private:
     MhdScriptExpr::Ptr parse_expression_try_catch();
 private:
@@ -116,7 +97,13 @@ private:
     MhdScriptExpr::Ptr parse_expression_unary_factor_index(MhdScriptExpr::Ptr);
     MhdScriptExpr::Ptr parse_expression_unary_factor_subscript(MhdScriptExpr::Ptr);
 private:
-    void peek() { m_tokenizer.scan(m_token); }
+    void peek() 
+    { 
+        /// Peek a next token.
+        if (!m_tokenizer.scan(m_token)) {
+            throw MhdParseError(m_token, m_token.m_value_str);
+        }
+    }
 };	// struct MhdScriptParser
 //########################################################################################################
 //########################################################################################################

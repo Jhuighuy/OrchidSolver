@@ -11,58 +11,68 @@ MhdScriptVal make_map(const std::vector<MhdScriptVal>&)
 {
     return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>());
 }
-
-extern "C" void orchid_solver_scanner_test()
+MhdScriptVal print(const std::vector<MhdScriptVal>& args)
 {
-    MhdScriptVarScope::var("make_map") = MhdScriptVal(
-        std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(make_map));
-    MhdScriptParser p(R"({
-namespace std {}
-a = make_map();
-a.operator+ = 3/*[](this, other) {
-    return a;
-}*/;
-a;
-//a.b + a.c;
-    })");
-
-    auto e = p.parse_wrap();
-    auto g = e.get();
-    auto a = g->eval();
-    printf("%s\n", a.operator std::string().c_str());
+    puts(args[0].operator std::string().c_str());
+    return MhdScriptVal();
 }
-
-#if 0
-void ffftest1(int* a) 
+MhdScriptVal type(const std::vector<MhdScriptVal>& args)
 {
-    printf("%lld\n", *a);
+    const MhdScriptVal& val = args[0];
+    switch (val.m_type)
+    {
+        case MhdScriptVal::Type::LGC:
+            return MhdScriptVal("bool");
+        case MhdScriptVal::Type::INT:
+            return MhdScriptVal("int");
+        case MhdScriptVal::Type::DBL:
+            return MhdScriptVal("double");
+        case MhdScriptVal::Type::STR:
+            return MhdScriptVal("string");
+        case MhdScriptVal::Type::PTR:
+            return MhdScriptVal("void*");
+        case MhdScriptVal::Type::MAP:
+            return MhdScriptVal("map");
+        case MhdScriptVal::Type::FUN:
+            return MhdScriptVal("function");
+        default:
+            ORCHID_ASSERT(0);
+            break;
+    }
 }
-
-extern "C" void ffftest();
-#endif
-
-#if 0
-#include <ffi/ffi.h>
-#include <dlfcn.h>
-#endif
-int main() 
+MhdScriptVal assert_(const std::vector<MhdScriptVal>& args)
 {
-#if 0
-    auto self = dlopen(nullptr, RTLD_LAZY);
-    auto self_sin = (double(*)(double))dlsym(self, "sin");
-    printf("%lf\n", self_sin(3));
-
-    ffi_type* arg_types[] = {&ffi_type_pointer};
-    ffi_cif cif;
-    ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_void, arg_types);
-    int a = 1488;
-    void* pa = &a;
-    void* ppa = &pa;
-    int b;
-    //printf("%lld\n", ffftest);
-    ffi_arg rc;
-    ffi_call(&cif, FFI_FN(ffftest), &rc, &ppa);
+    const MhdScriptVal& val = args[0];
+    ORCHID_ASSERT(val);
+    if (!val) {
+        puts("Assert failed!");
+        exit(-1);
+    }
+    return val;
+}
+extern "C"
+void orchid_solver_scanner_test() {}
+int main(int argc, char** argv) 
+{
+#if _MSC_VER
+    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test_basic.mhd");
+#else
+    std::ifstream file(argv[1]);
 #endif
-    orchid_solver_scanner_test();
+    std::string file_text;
+    file.seekg(0, std::ios::end);
+    file_text.resize(file.tellg());
+    file.seekg(0, std::ios::beg);
+    file.read(&file_text[0], file_text.size());
+    file.close();
+    MhdScriptVarScope::var("make_map") = MhdScriptVal(make_map);
+    MhdScriptVarScope::var("print") = MhdScriptVal(print);
+    MhdScriptVarScope::var("typeof") = MhdScriptVal(type);
+    MhdScriptVarScope::var("assert") = MhdScriptVal(assert_);
+    MhdScriptParser parser(file_text.c_str());
+    auto expr = parser.parse_wrap();
+    if (expr != nullptr) {
+        print({ expr->eval() });
+    }
     return 0;
 }
