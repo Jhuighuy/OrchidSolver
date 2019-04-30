@@ -11,16 +11,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="OrchidScript.hpp" />
     <ClInclude Include="OrchidScriptSyntax.hpp" />
     <ClInclude Include="OrchidScriptParser.hpp" />
     <ClInclude Include="OrchidScriptScanner.hpp" />
     <ClInclude Include="OrchidScriptValue.hpp" />
+    <ClInclude Include="OrchidScriptValueC.hxx" />
+    <ClInclude Include="OrchidScriptVar.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="OrchidScript.cpp" />
     <ClCompile Include="OrchidScriptSyntax.cpp" />
     <ClCompile Include="OrchidScriptParser.cpp" />
     <ClCompile Include="OrchidScriptScanner.cpp" />
     <ClCompile Include="OrchidScriptValue.cpp" />
+    <ClCompile Include="OrchidScriptValueC.cpp" />
+    <ClCompile Include="OrchidScriptVar.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -64,11 +70,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -77,13 +84,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

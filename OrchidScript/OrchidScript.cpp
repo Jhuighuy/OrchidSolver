@@ -2,11 +2,12 @@
 // Copyright(C) Butakov Oleg 2019.
 
 #include "OrchidScriptParser.hpp"
+#include "OrchidScriptVar.hpp"
 
 #include <fstream>
 #include <cstdio>
 
-MhdScriptVal make_map(const std::vector<MhdScriptVal>& args)
+MhdScriptVal make_map(const std::vector<MhdScriptVal>&)
 {
     return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>());
 }
@@ -16,13 +17,11 @@ extern "C" void orchid_solver_scanner_test()
     MhdScriptVarScope::var("make_map") = MhdScriptVal(
         std::function<MhdScriptVal(const std::vector<MhdScriptVal>&)>(make_map));
     MhdScriptParser p(R"({
-namespace a {
-    b = 1;
-}
-a.d = 3;
-namespace a {
-    c = 2;
-}
+namespace std {}
+a = make_map();
+a.operator+ = 3/*[](this, other) {
+    return a;
+}*/;
 a;
 //a.b + a.c;
     })");
@@ -33,17 +32,22 @@ a;
     printf("%s\n", a.operator std::string().c_str());
 }
 
+#if 0
 void ffftest1(int* a) 
 {
     printf("%lld\n", *a);
 }
 
 extern "C" void ffftest();
+#endif
 
+#if 0
 #include <ffi/ffi.h>
 #include <dlfcn.h>
+#endif
 int main() 
 {
+#if 0
     auto self = dlopen(nullptr, RTLD_LAZY);
     auto self_sin = (double(*)(double))dlsym(self, "sin");
     printf("%lf\n", self_sin(3));
@@ -58,7 +62,7 @@ int main()
     //printf("%lld\n", ffftest);
     ffi_arg rc;
     ffi_call(&cif, FFI_FN(ffftest), &rc, &ppa);
-    
+#endif
     orchid_solver_scanner_test();
     return 0;
 }

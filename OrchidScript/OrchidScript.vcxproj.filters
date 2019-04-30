@@ -7,7 +7,7 @@
     <Filter Include="Source\Parser">
       <UniqueIdentifier>{42b2da6c-39ca-49b5-9a8a-104cf8701442}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Scanner">
+    <Filter Include="Source\Runtime">
       <UniqueIdentifier>{59a68068-4085-49e6-bf4a-dc7cb5f4f72d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -18,11 +18,20 @@
     <ClCompile Include="OrchidScriptParser.cpp">
       <Filter>Source\Parser</Filter>
     </ClCompile>
+    <ClCompile Include="OrchidScript.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="OrchidScriptScanner.cpp">
-      <Filter>Source\Scanner</Filter>
+      <Filter>Source\Parser</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScriptValue.cpp">
-      <Filter>Source</Filter>
+      <Filter>Source\Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="OrchidScriptValueC.cpp">
+      <Filter>Source\Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="OrchidScriptVar.cpp">
+      <Filter>Source\Runtime</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -33,9 +42,18 @@
       <Filter>Source\Parser</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptScanner.hpp">
-      <Filter>Source\Scanner</Filter>
+      <Filter>Source\Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScriptValueC.hxx">
+      <Filter>Source\Runtime</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptValue.hpp">
+      <Filter>Source\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScriptVar.hpp">
+      <Filter>Source\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScript.hpp">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

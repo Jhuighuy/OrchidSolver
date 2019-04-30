@@ -251,15 +251,15 @@ MhdScriptRef::operator=(const MhdScriptVal& other)
 //########################################################################################################
 template<typename T>
 inline typename std::enable_if<std::is_arithmetic<T>::value>::type
-operator_arithmetic_apply(MhdScriptToken::Kind op,
+operator_arithmetic_apply(MhdScriptKind op,
                           std::valarray<T>& lhs)
 {
     // Apply an UNARY ARITHMETIC operator for arithmetic value arrays. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_ADD: 
+        case MhdScriptKind::OP_ADD: 
             lhs = std::move(+lhs);
             break;
-        case MhdScriptToken::Kind::OP_SUB:
+        case MhdScriptKind::OP_SUB:
             lhs = std::move(-lhs);
             break;
         default:
@@ -269,7 +269,7 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
-MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
+MhdScriptVal::operator_arithmetic(MhdScriptKind op,
                                   const MhdScriptVal& lhs)
 {
     // Apply an UNARY ARITHMETIC operator.
@@ -309,24 +309,24 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
 //########################################################################################################
 template<typename T>
 inline typename std::enable_if<std::is_integral<T>::value>::type
-operator_arithmetic_apply(MhdScriptToken::Kind op,
+operator_arithmetic_apply(MhdScriptKind op,
                           std::valarray<T>& lhs, const std::valarray<T>& rhs)
 {
     // Apply a BINARY ARITHMETIC operator for integer value arrays. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_ADD: 
+        case MhdScriptKind::OP_ADD: 
             lhs += rhs;
             break;
-        case MhdScriptToken::Kind::OP_SUB:
+        case MhdScriptKind::OP_SUB:
             lhs -= rhs;
             break;
-        case MhdScriptToken::Kind::OP_MUL: 
+        case MhdScriptKind::OP_MUL: 
             lhs *= rhs;
             break;
-        case MhdScriptToken::Kind::OP_DIV: 
+        case MhdScriptKind::OP_DIV: 
             lhs /= rhs;
             break;
-        case MhdScriptToken::Kind::OP_MOD: 
+        case MhdScriptKind::OP_MOD: 
             lhs %= rhs;
             break;
         default:
@@ -335,24 +335,24 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
 }
 template<typename T>
 inline typename std::enable_if<std::is_floating_point<T>::value>::type
-operator_arithmetic_apply(MhdScriptToken::Kind op,
+operator_arithmetic_apply(MhdScriptKind op,
                           std::valarray<T>& lhs, const std::valarray<T>& rhs)
 {
     // Apply a BINARY ARITHMETIC operator for floating value arrays. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_ADD: 
+        case MhdScriptKind::OP_ADD: 
             lhs += rhs;
             break;
-        case MhdScriptToken::Kind::OP_SUB:
+        case MhdScriptKind::OP_SUB:
             lhs -= rhs;
             break;
-        case MhdScriptToken::Kind::OP_MUL: 
+        case MhdScriptKind::OP_MUL: 
             lhs *= rhs;
             break;
-        case MhdScriptToken::Kind::OP_DIV: 
+        case MhdScriptKind::OP_DIV: 
             lhs /= rhs;
             break;
-        case MhdScriptToken::Kind::OP_POW: 
+        case MhdScriptKind::OP_POW: 
             lhs = std::move(std::pow(lhs, rhs));
             break;
         default:
@@ -361,12 +361,12 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
 }
 template<typename T>
 inline void
-operator_arithmetic_apply(MhdScriptToken::Kind op,
+operator_arithmetic_apply(MhdScriptKind op,
                           std::basic_string<T>& lhs, const std::basic_string<T>& rhs)
 {
     // Apply a BINARY ARITHMETIC operator for strings. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_ADD: 
+        case MhdScriptKind::OP_ADD: 
             lhs += rhs;
             break;
         default:
@@ -376,7 +376,7 @@ operator_arithmetic_apply(MhdScriptToken::Kind op,
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
-MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
+MhdScriptVal::operator_arithmetic(MhdScriptKind op,
                                   const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
     // Apply a BINARY ARITHMETIC operator.
@@ -442,12 +442,12 @@ MhdScriptVal::operator_arithmetic(MhdScriptToken::Kind op,
 //########################################################################################################
 template<typename T, typename U>
 inline typename std::enable_if<std::is_arithmetic<T>::value>::type
-operator_logical_apply(MhdScriptToken::Kind op,
+operator_logical_apply(MhdScriptKind op,
                        U& val, const std::valarray<T>& lhs)
 {
     // Apply an UNARY LOGICAL operator for arithmetic value array. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_EQ: 
+        case MhdScriptKind::OP_EQ: 
             val = std::move(!lhs);
             break;
         default:
@@ -456,12 +456,12 @@ operator_logical_apply(MhdScriptToken::Kind op,
 }
 template<typename T, typename U>
 inline void
-operator_logical_apply(MhdScriptToken::Kind op,
+operator_logical_apply(MhdScriptKind op,
                        U& val, const T& lhs)
 {
     // Apply an UNARY LOGICAL operator for arbitrary objects. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_NOT: 
+        case MhdScriptKind::OP_NOT: 
             val = std::move(!lhs);
             break;
         default:
@@ -471,7 +471,7 @@ operator_logical_apply(MhdScriptToken::Kind op,
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
-MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
+MhdScriptVal::operator_logical(MhdScriptKind op,
                                const MhdScriptVal& lhs)
 {
     // Apply an UNARY LOGICAL operator.
@@ -509,33 +509,33 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
 //########################################################################################################
 template<typename T, typename U>
 inline typename std::enable_if<std::is_arithmetic<T>::value>::type
-operator_logical_apply(MhdScriptToken::Kind op, U& val, 
+operator_logical_apply(MhdScriptKind op, U& val, 
                        const std::valarray<T>& lhs, const std::valarray<T>& rhs)
 { 
     // Apply a BINARY LOGICAL operator for arithmetic value arrays. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_EQ: 
+        case MhdScriptKind::OP_EQ: 
             val = std::move(lhs == rhs);
             break;
-        case MhdScriptToken::Kind::OP_NEQ: 
+        case MhdScriptKind::OP_NEQ: 
             val = std::move(lhs != rhs);
             break;
-        case MhdScriptToken::Kind::OP_LT: 
+        case MhdScriptKind::OP_LT: 
             val = std::move(lhs <  rhs);
             break;
-        case MhdScriptToken::Kind::OP_LTE: 
+        case MhdScriptKind::OP_LTE: 
             val = std::move(lhs <= rhs);
             break;
-        case MhdScriptToken::Kind::OP_GT: 
+        case MhdScriptKind::OP_GT: 
             val = std::move(lhs >  rhs);
             break;
-        case MhdScriptToken::Kind::OP_GTE: 
+        case MhdScriptKind::OP_GTE: 
             val = std::move(lhs >= rhs);
             break;
-        case MhdScriptToken::Kind::OP_AND: 
+        case MhdScriptKind::OP_AND: 
             val = std::move(lhs && rhs);
             break;
-        case MhdScriptToken::Kind::OP_OR: 
+        case MhdScriptKind::OP_OR: 
             val = std::move(lhs || rhs);
             break;
         default:
@@ -544,27 +544,27 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
 }
 template<typename T, typename U>
 inline void
-operator_logical_apply(MhdScriptToken::Kind op, U& val, 
+operator_logical_apply(MhdScriptKind op, U& val, 
                        const std::basic_string<T>& lhs, const std::basic_string<T>& rhs)
 {
     // Apply a BINARY LOGICAL operator for strings. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_EQ: 
+        case MhdScriptKind::OP_EQ: 
             val = std::move(lhs == rhs);
             break;
-        case MhdScriptToken::Kind::OP_NEQ: 
+        case MhdScriptKind::OP_NEQ: 
             val = std::move(lhs != rhs);
             break;
-        case MhdScriptToken::Kind::OP_LT: 
+        case MhdScriptKind::OP_LT: 
             val = std::move(lhs <  rhs);
             break;
-        case MhdScriptToken::Kind::OP_LTE: 
+        case MhdScriptKind::OP_LTE: 
             val = std::move(lhs <= rhs);
             break;
-        case MhdScriptToken::Kind::OP_GT: 
+        case MhdScriptKind::OP_GT: 
             val = std::move(lhs >  rhs);
             break;
-        case MhdScriptToken::Kind::OP_GTE: 
+        case MhdScriptKind::OP_GTE: 
             val = std::move(lhs >= rhs);
             break;
         default:
@@ -573,15 +573,15 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
 }
 template<typename T, typename U>
 inline void
-operator_logical_apply(MhdScriptToken::Kind op, U& val, 
+operator_logical_apply(MhdScriptKind op, U& val, 
                        const T& lhs, const T& rhs)
 {
     // Apply a BINARY LOGICAL operator for arbitrary objects. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_EQ: 
+        case MhdScriptKind::OP_EQ: 
             val = std::move(lhs == rhs);
             break;
-        case MhdScriptToken::Kind::OP_NEQ: 
+        case MhdScriptKind::OP_NEQ: 
             val = std::move(lhs != rhs);
             break;
         default:
@@ -591,7 +591,7 @@ operator_logical_apply(MhdScriptToken::Kind op, U& val,
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
-MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
+MhdScriptVal::operator_logical(MhdScriptKind op,
                                const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
     // Apply a BINARY LOGICAL operator.
@@ -663,12 +663,12 @@ MhdScriptVal::operator_logical(MhdScriptToken::Kind op,
 //########################################################################################################
 template<typename T>
 inline typename std::enable_if<std::is_integral<T>::value>::type
-operator_bitwise_apply(MhdScriptToken::Kind op,
+operator_bitwise_apply(MhdScriptKind op,
                        std::valarray<T>& lhs)
 {
     // Apply an UNARY BITWISE operator for integer value array. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_NOT_BW: 
+        case MhdScriptKind::OP_NOT_BW: 
             lhs = std::move(~lhs);
             break;
         default:
@@ -678,7 +678,7 @@ operator_bitwise_apply(MhdScriptToken::Kind op,
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
-MhdScriptVal::operator_bitwise(MhdScriptToken::Kind op,
+MhdScriptVal::operator_bitwise(MhdScriptKind op,
                                const MhdScriptVal& lhs)
 {
     // Apply an UNARY BITWISE operator.
@@ -703,24 +703,24 @@ MhdScriptVal::operator_bitwise(MhdScriptToken::Kind op,
 //########################################################################################################
 template<typename T>
 inline typename std::enable_if<std::is_integral<T>::value>::type
-operator_bitwise_apply(MhdScriptToken::Kind op,
+operator_bitwise_apply(MhdScriptKind op,
                        std::valarray<T>& lhs, const std::valarray<T>& rhs)
 {
     // Apply a BINARY LOGICAL operator for integer value arrays. 
     switch (op) {
-        case MhdScriptToken::Kind::OP_AND_BW: 
+        case MhdScriptKind::OP_AND_BW: 
             lhs &= rhs;
             break;
-        case MhdScriptToken::Kind::OP_OR_BW: 
+        case MhdScriptKind::OP_OR_BW: 
             lhs |= rhs;
             break;
-        case MhdScriptToken::Kind::OP_XOR_BW: 
+        case MhdScriptKind::OP_XOR_BW: 
             lhs ^= rhs;
             break;
-        case MhdScriptToken::Kind::OP_LSHIFT: 
+        case MhdScriptKind::OP_LSHIFT: 
             lhs <<= rhs;
             break;
-        case MhdScriptToken::Kind::OP_RSHIFT: 
+        case MhdScriptKind::OP_RSHIFT: 
             lhs >>= rhs;
             break;
         default:
@@ -730,7 +730,7 @@ operator_bitwise_apply(MhdScriptToken::Kind op,
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
-MhdScriptVal::operator_bitwise(MhdScriptToken::Kind op,
+MhdScriptVal::operator_bitwise(MhdScriptKind op,
                                const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
     // Apply a BINARY BITWISE operator.

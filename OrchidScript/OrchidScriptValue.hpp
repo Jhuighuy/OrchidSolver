@@ -146,115 +146,115 @@ public:
     }
 public:
     MHD_INTERFACE
-    static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
+    static MhdScriptVal operator_arithmetic(MhdScriptKind op,
                                             const MhdScriptVal& lhs);
     MhdScriptVal operator+() const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this);
+        return operator_arithmetic(MhdScriptKind::OP_ADD, *this);
     }
     MhdScriptVal operator-() const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this);
+        return operator_arithmetic(MhdScriptKind::OP_SUB, *this);
     }
 public:
     MHD_INTERFACE
-    static MhdScriptVal operator_arithmetic(MhdScriptToken::Kind op,
+    static MhdScriptVal operator_arithmetic(MhdScriptKind op,
                                             const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator+(const MhdScriptVal& other) const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_ADD, *this, other);
+        return operator_arithmetic(MhdScriptKind::OP_ADD, *this, other);
     }
     MhdScriptVal operator-(const MhdScriptVal& other) const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_SUB, *this, other);
+        return operator_arithmetic(MhdScriptKind::OP_SUB, *this, other);
     }
     MhdScriptVal operator*(const MhdScriptVal& other) const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_MUL, *this, other);
+        return operator_arithmetic(MhdScriptKind::OP_MUL, *this, other);
     }
     MhdScriptVal operator/(const MhdScriptVal& other) const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_DIV, *this, other);
+        return operator_arithmetic(MhdScriptKind::OP_DIV, *this, other);
     }
     MhdScriptVal operator%(const MhdScriptVal& other) const
     {
-        return operator_arithmetic(MhdScriptToken::Kind::OP_MOD, *this, other);
+        return operator_arithmetic(MhdScriptKind::OP_MOD, *this, other);
     }
 public:
     MHD_INTERFACE
-    static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
+    static MhdScriptVal operator_logical(MhdScriptKind op,
                                          const MhdScriptVal& lhs);
     MhdScriptVal operator!() const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_NOT, *this);
+        return operator_logical(MhdScriptKind::OP_NOT, *this);
     }
 public:
     MHD_INTERFACE
-    static MhdScriptVal operator_logical(MhdScriptToken::Kind op,
+    static MhdScriptVal operator_logical(MhdScriptKind op,
                                          const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator==(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_EQ, *this, other);
+        return operator_logical(MhdScriptKind::OP_EQ, *this, other);
     }
     MhdScriptVal operator!=(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_NEQ, *this, other);
+        return operator_logical(MhdScriptKind::OP_NEQ, *this, other);
     }
     MhdScriptVal operator<(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_LT, *this, other);
+        return operator_logical(MhdScriptKind::OP_LT, *this, other);
     }
     MhdScriptVal operator<=(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_LTE, *this, other);
+        return operator_logical(MhdScriptKind::OP_LTE, *this, other);
     }
     MhdScriptVal operator>(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_GT, *this, other);
+        return operator_logical(MhdScriptKind::OP_GT, *this, other);
     }
     MhdScriptVal operator>=(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_GTE, *this, other);
+        return operator_logical(MhdScriptKind::OP_GTE, *this, other);
     }
     MhdScriptVal operator&&(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_AND, *this, other);
+        return operator_logical(MhdScriptKind::OP_AND, *this, other);
     }
     MhdScriptVal operator||(const MhdScriptVal& other) const
     {
-        return operator_logical(MhdScriptToken::Kind::OP_OR, *this, other);
+        return operator_logical(MhdScriptKind::OP_OR, *this, other);
     }
 public:
     MHD_INTERFACE
-    static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
+    static MhdScriptVal operator_bitwise(MhdScriptKind op,
                                          const MhdScriptVal& lhs);
     MhdScriptVal operator~() const
     {
-        return operator_bitwise(MhdScriptToken::Kind::OP_NOT_BW, *this);
+        return operator_bitwise(MhdScriptKind::OP_NOT_BW, *this);
     }
 public:
     MHD_INTERFACE
-    static MhdScriptVal operator_bitwise(MhdScriptToken::Kind op,
+    static MhdScriptVal operator_bitwise(MhdScriptKind op,
                                          const MhdScriptVal& lhs, const MhdScriptVal& rhs);
     MhdScriptVal operator&(const MhdScriptVal& other) const
     {
-        return operator_bitwise(MhdScriptToken::Kind::OP_AND_BW, *this, other);
+        return operator_bitwise(MhdScriptKind::OP_AND_BW, *this, other);
     }
     MhdScriptVal operator|(const MhdScriptVal& other) const
     {
-        return operator_bitwise(MhdScriptToken::Kind::OP_OR_BW, *this, other);
+        return operator_bitwise(MhdScriptKind::OP_OR_BW, *this, other);
     }
     MhdScriptVal operator^(const MhdScriptVal& other) const
     {
-        return operator_bitwise(MhdScriptToken::Kind::OP_XOR_BW, *this, other);
+        return operator_bitwise(MhdScriptKind::OP_XOR_BW, *this, other);
     }
     MhdScriptVal operator<<(const MhdScriptVal& other) const
     {
-        return operator_bitwise(MhdScriptToken::Kind::OP_LSHIFT, *this, other);
+        return operator_bitwise(MhdScriptKind::OP_LSHIFT, *this, other);
     }
     MhdScriptVal operator>>(const MhdScriptVal& other) const
     {
-        return operator_bitwise(MhdScriptToken::Kind::OP_RSHIFT, *this, other);
+        return operator_bitwise(MhdScriptKind::OP_RSHIFT, *this, other);
     }
 public:
     MHD_INTERFACE

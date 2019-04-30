@@ -6,6 +6,10 @@
 #include "OrchidScriptScanner.hpp"
 #include "OrchidScriptSyntax.hpp"
 
+#include <exception>
+#include <stdexcept>
+#include <string>
+
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
@@ -15,6 +19,45 @@ enum class MhdScriptError
     ERR_UNEXP_DEFAULT,
     ERR_FUNC_ARG_REDECL,
 };
+//--------------------------------------------------------------------------------------------------------
+struct MhdParseError : public std::runtime_error
+{
+public:
+    MhdParseError(...)
+        : std::runtime_error("hui") {}
+    MhdParseError(const std::string& what = "<unimplemented>") 
+        : std::runtime_error(what) {}
+public:
+    static std::string make_parse_error(const MhdScriptToken& token)
+    {
+        (void)token;
+        return "PARSE ERROR AT <file>:<line>,<column>: ";
+    }
+};  // struct MhdParseError
+//--------------------------------------------------------------------------------------------------------
+struct MhdParseUnexpTokenError : public MhdParseError
+{
+public:
+    template<typename... T>
+    MhdParseUnexpTokenError(const MhdScriptToken& token, const T&... expected)
+        : MhdParseError(make_error_unexp_token(token, expected...)) {}
+private:
+    template<typename... T>
+    static std::string make_error_unexp_token(const MhdScriptToken& token, const T&... /*expected*/)
+    {
+        return MhdParseError::make_parse_error(token);
+    }
+};  // struct MhdParseUnexpTokenError
+//--------------------------------------------------------------------------------------------------------
+struct MhdParseUnexpDefaultError : public MhdParseError
+{
+public:
+    MhdParseUnexpDefaultError(struct MhdScriptParser*)
+        : MhdParseError(std::string("what")) {}
+};  // struct MhdParseUnexpDefaultError
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 struct MhdScriptParser
 {
 public:
@@ -66,7 +109,7 @@ private:
 private:
     MhdScriptExpr::Ptr parse_expression_unary_operand();
     MhdScriptExpr::Ptr parse_expression_unary_operand_func();
-    MhdScriptExpr::Ptr parse_expression_unary_operand_array();
+    MhdScriptExpr::Ptr parse_expression_unary_operand_list();
 private:
     MhdScriptExpr::Ptr parse_expression_unary_factor();
     MhdScriptExpr::Ptr parse_expression_unary_factor_call(MhdScriptExpr::Ptr);

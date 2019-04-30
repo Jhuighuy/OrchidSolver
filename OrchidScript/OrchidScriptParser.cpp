@@ -2,112 +2,110 @@
 // Copyright(C) Butakov Oleg 2019.
 
 #include "OrchidScriptParser.hpp"
+#include "OrchidScriptSyntax.hpp"
 
-#include <stdexcept>
-#include <exception>
-
-struct MhdParseException : std::runtime_error
-{
-public:
-    MhdParseException(...) : std::runtime_error("Hui!") {}
-};  // struct MhdParseException
+#include <vector>
+#include <string>
+#include <set>
 
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-ORCHID_INTERFACE
-MhdScriptExpr::Ptr MhdScriptParser::parse_wrap()
+MHD_INTERFACE
+MhdScriptExpr::Ptr 
+MhdScriptParser::parse_wrap()
 {
     MhdScriptExpr::Ptr expr;
     try {
         expr = parse();
-    } catch (const MhdParseException& parse_exc) {
+    } catch (const MhdParseError& parse_exc) {
         printf("Error: %s\n%s\n", m_tokenizer.m_text, parse_exc.what());
     }
     return expr;
 }
-//########################################################################################################
-//########################################################################################################
-//########################################################################################################
+//--------------------------------------------------------------------------------------------------------
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse()
 {
-    // Parse statements.
+    /// Parse statement.
     MhdScriptExpr::Ptr expr;
     switch (m_token.m_kind) {
-        // Empty statement.
-        case MhdScriptToken::Kind::OP_SEMICOLON:
+        /* Empty statement. */
+        case MhdScriptKind::OP_SEMICOLON:
             peek();
             expr = std::make_shared<MhdScriptExprEmpty>();
             return expr;
-        // Compound statement.
-        case MhdScriptToken::Kind::OP_BRACE_OPEN:
+        /* Compound statement. */
+        case MhdScriptKind::OP_BRACE_OPEN:
             peek();
             expr = parse_expression_compound();
             return expr;
-        case MhdScriptToken::Kind::KW_NAMESPACE:
+        /* Namespace statement. */
+        case MhdScriptKind::KW_NAMESPACE:
             peek();
             expr = parse_expression_namespace();
             return expr;
-        // Selection statement.
-        case MhdScriptToken::Kind::KW_IF:
+        /* Selection statement. */
+        case MhdScriptKind::KW_IF:
             peek();
             expr = parse_expression_cond_if();
             return expr;
-        case MhdScriptToken::Kind::KW_SWITCH:
+        case MhdScriptKind::KW_SWITCH:
             peek();
             expr = parse_expression_cond_switch();
             return expr;
-        // Loop statement.
-        case MhdScriptToken::Kind::KW_WHILE:
+        /* Loop statement. */
+        case MhdScriptKind::KW_WHILE:
             peek();
             expr = parse_expression_loop_while();
             return expr;
-        case MhdScriptToken::Kind::KW_DO:
+        case MhdScriptKind::KW_DO:
             peek();
             expr = parse_expression_loop_do();
             return expr;
-        case MhdScriptToken::Kind::KW_FOR:
+        case MhdScriptKind::KW_FOR:
             peek();
             expr = parse_expression_loop_for();
             return expr;
-        // Jump statement.
-        case MhdScriptToken::Kind::KW_BREAK:
+        /* Jump statement. */
+        case MhdScriptKind::KW_BREAK:
             peek();
             expr = parse_expression_jump_break();
             return expr;
-        case MhdScriptToken::Kind::KW_CONTINUE:
+        case MhdScriptKind::KW_CONTINUE:
             peek();
             expr = parse_expression_jump_continue();
             return expr;
-        case MhdScriptToken::Kind::KW_RETURN:
+        case MhdScriptKind::KW_RETURN:
             peek();
             expr = parse_expression_jump_return();
             return expr;
-        case MhdScriptToken::Kind::KW_THROW:
+        case MhdScriptKind::KW_THROW:
             peek();
             expr = parse_expression_jump_throw();
             return expr;
-        // Declaration or expression statements.
+        /* Declaration or expression statements. */
         default:
             expr = parse_expression();
-            if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+            if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
                 peek();
             } else {
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
             }
             return expr;
     }
 }
-//--------------------------------------------------------------------------------------------------------
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_compound()
 {
-    // Parse COMPOUND expression.
+    /// Parse COMPOUND expression.
     MhdScriptExpr::Vec exprs;
-    while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE) {
+    while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE) {
         exprs.push_back(parse());
     }
     peek();
@@ -120,33 +118,33 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_namespace()
 {
-    // Parse NAMESPACE expression.
+    /// Parse NAMESPACE expression.
     std::string id;
-    //MhdScriptToken::Kind op;
+    //MhdScriptKind op;
     MhdScriptExpr::Vec exprs;
     switch (m_token.m_kind) {
-        case MhdScriptToken::Kind::OP_ADD:
-        case MhdScriptToken::Kind::OP_AND_BW:
+        case MhdScriptKind::OP_ADD:
+        case MhdScriptKind::OP_AND_BW:
             //op = m_token.m_kind;
             peek();
             ORCHID_ASSERT(0);
             break;
         default:
-            //op = MhdScriptToken::Kind::NONE;
+            //op = MhdScriptKind::NONE;
             break;
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::ID) {
+    if (m_token.m_kind == MhdScriptKind::ID) {
         id = m_token.m_value_str;
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACE_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_BRACE_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACE_OPEN);
     }
-    while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE) {
+    while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE) {
         exprs.push_back(parse());
     }
     peek();
@@ -161,23 +159,23 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_cond_if()
 {
-    // Parse IF conditional expression.
+    /// Parse IF conditional expression.
     MhdScriptExpr::Ptr cond;
     MhdScriptExpr::Ptr then_branch;
     MhdScriptExpr::Ptr else_branch;
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
     }
     cond = parse_expression();
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
     }
     then_branch = parse();
-    if (m_token.m_kind == MhdScriptToken::Kind::KW_ELSE) {
+    if (m_token.m_kind == MhdScriptKind::KW_ELSE) {
         peek();
         else_branch = parse();
     }
@@ -190,52 +188,60 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_cond_switch()
 {
-    // Parse SWITCH conditional expression.
+    /// Parse SWITCH conditional expression.
     MhdScriptExpr::Ptr cond;
     MhdScriptExpr::Map cases;
     MhdScriptExpr::Ptr case_default;
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
     }
     cond = parse_expression();
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACE_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_BRACE_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACE_OPEN);
     }
-    while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE) {
+    while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE) {
+        /* Parse case label. */
         MhdScriptExpr::Ptr* pcase_branch = nullptr;
-        if (m_token.m_kind == MhdScriptToken::Kind::KW_CASE) {
-            peek();
-            cases.push_back({});
-            cases.back().first = parse_expression();
-            pcase_branch = &cases.back().second;
-        } else if (m_token.m_kind == MhdScriptToken::Kind::KW_DEFAULT) {
-            peek();
-            if (case_default == nullptr) {
+        switch (m_token.m_kind) {
+            case MhdScriptKind::KW_CASE:
+                /* Ordinary case. */
+                peek();
+                cases.emplace_back();
+                cases.back().first = parse_expression();
+                pcase_branch = &cases.back().second;
+                break;
+            case MhdScriptKind::KW_DEFAULT:
+                /* Default case. */
+                peek();
+                if (case_default != nullptr) {
+                    throw MhdParseUnexpDefaultError(this);
+                }
                 pcase_branch = &case_default;
-            } else {
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_DEFAULT);
-            }
-        } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                break;
+            default:
+                /* Error case. */
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::KW_CASE,
+                                                       MhdScriptKind::KW_DEFAULT);
         }
-        if (m_token.m_kind == MhdScriptToken::Kind::OP_COLON) {
+        if (m_token.m_kind == MhdScriptKind::OP_COLON) {
             peek();
         } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_COLON);
         }
+        /* Parse case body. */
         MhdScriptExpr::Vec case_branch_exprs;
-        while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACE_CLOSE &&
-               m_token.m_kind != MhdScriptToken::Kind::KW_CASE &&
-               m_token.m_kind != MhdScriptToken::Kind::KW_DEFAULT) {
+        while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE &&
+               m_token.m_kind != MhdScriptKind::KW_CASE &&
+               m_token.m_kind != MhdScriptKind::KW_DEFAULT) {
             case_branch_exprs.push_back(parse());
         }
         *pcase_branch = std::make_shared<MhdScriptExprCompound>(case_branch_exprs); 
@@ -252,19 +258,19 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_loop_while()
 {
-    // Parse WHILE loop expression.
+    /// Parse WHILE loop expression.
     MhdScriptExpr::Ptr cond;
     MhdScriptExpr::Ptr body;
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
     }
     cond = parse_expression();
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
     }
     body = parse();
     MhdScriptExpr::Ptr expr;
@@ -276,25 +282,30 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_loop_do()
 {
-    // Parse DO-WHILE loop expression.
+    /// Parse DO-WHILE loop expression:
     MhdScriptExpr::Ptr cond;
     MhdScriptExpr::Ptr body;
     body = parse();
-    if (m_token.m_kind == MhdScriptToken::Kind::KW_WHILE) {
+    if (m_token.m_kind == MhdScriptKind::KW_WHILE) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::KW_WHILE);
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
     }
     cond = parse_expression();
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
+    }
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
+        peek();
+    } else {
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
     MhdScriptExpr::Ptr expr;
     expr = std::make_shared<MhdScriptExprDoWhile>(cond, body);
@@ -305,39 +316,39 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_loop_for()
 {
-    // Parse FOR loop expression.
+    /// Parse FOR loop expression.
     MhdScriptExpr::Ptr init;
     MhdScriptExpr::Ptr cond;
     MhdScriptExpr::Ptr iter;
     MhdScriptExpr::Ptr body;
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
     }
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind != MhdScriptKind::OP_SEMICOLON) {
         init = parse_expression();
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind != MhdScriptKind::OP_SEMICOLON) {
         cond = parse_expression();
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind != MhdScriptKind::OP_PAREN_CLOSE) {
         iter = parse_expression();
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
     }
     body = parse();
     MhdScriptExpr::Ptr expr;
@@ -351,28 +362,28 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_try_catch()
 {
-    // Parse TRY-CATCH expression.
+    /// Parse TRY-CATCH expression.
     MhdScriptExpr::Ptr try_block;
     MhdScriptExpr::Ptr catch_block;
     std::string catch_arg;
     try_block = parse();
-    if (m_token.m_kind == MhdScriptToken::Kind::KW_CATCH) {
+    if (m_token.m_kind == MhdScriptKind::KW_CATCH) {
         peek();
-        if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+        if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
             peek();
         } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
         }
-        if (m_token.m_kind == MhdScriptToken::Kind::ID) {
+        if (m_token.m_kind == MhdScriptKind::ID) {
             catch_arg = m_token.m_value_str;
             peek();
         } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
         }
-        if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+        if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
             peek();
         } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
         }
     }
     MhdScriptExpr::Ptr expr;
@@ -386,15 +397,15 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_jump_break()
 {
-    // Parse BREAK jump expression.
+    /// Parse BREAK jump expression.
     MhdScriptExpr::Ptr expr;
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind != MhdScriptKind::OP_SEMICOLON) {
         expr = parse_expression();
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
     expr = std::make_shared<MhdScriptExprBreak>(expr);
     return expr; 
@@ -404,12 +415,12 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_jump_continue()
 {
-    // Parse CONTINUE jump expression.
+    /// Parse CONTINUE jump expression.
     MhdScriptExpr::Ptr expr;
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
     expr = std::make_shared<MhdScriptExprContinue>();
     return expr; 
@@ -419,15 +430,15 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_jump_return()
 {
-    // Parse RETURN jump expression.
+    /// Parse RETURN jump expression.
     MhdScriptExpr::Ptr expr;
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind != MhdScriptKind::OP_SEMICOLON) {
         expr = parse_expression();
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
     expr = std::make_shared<MhdScriptExprReturn>(expr);
     return expr; 
@@ -437,15 +448,15 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_jump_throw()
 {
-    // Parse THROW jump expression.
+    /// Parse THROW jump expression.
     MhdScriptExpr::Ptr expr;
-    if (m_token.m_kind != MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind != MhdScriptKind::OP_SEMICOLON) {
         expr = parse_expression();
     }
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_SEMICOLON) {
+    if (m_token.m_kind == MhdScriptKind::OP_SEMICOLON) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_SEMICOLON);
     }
     expr = std::make_shared<MhdScriptExprThrow>(expr);
     return expr; 
@@ -457,7 +468,7 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression()
 {
-    // Parse expressions.
+    /// Parse expressions.
     return parse_expression_binary_asg();
 }
 //--------------------------------------------------------------------------------------------------------
@@ -465,11 +476,11 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_comma()
 {
-    // Parse COMMA expressions.
-    MhdScriptToken::Kind op;
+    /// Parse COMMA expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_asg();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_COMMA) {
+           op == MhdScriptKind::OP_COMMA) {
         peek();
         expr = std::make_shared<MhdScriptExprCompound>(expr, parse_expression_binary_asg());
     }
@@ -480,21 +491,21 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_asg()
 {
-    // Parse ASSIGNMENT expressions.
-    MhdScriptToken::Kind op;
+    /// Parse ASSIGNMENT expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_ternary();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_ASG ||
-           op == MhdScriptToken::Kind::OP_OR_BW_ASG ||
-           op == MhdScriptToken::Kind::OP_XOR_BW_ASG ||
-           op == MhdScriptToken::Kind::OP_AND_BW_ASG ||
-           op == MhdScriptToken::Kind::OP_LSHIFT_ASG ||
-           op == MhdScriptToken::Kind::OP_RSHIFT_ASG ||
-           op == MhdScriptToken::Kind::OP_ADD_ASG ||
-           op == MhdScriptToken::Kind::OP_SUB_ASG ||
-           op == MhdScriptToken::Kind::OP_MUL_ASG ||
-           op == MhdScriptToken::Kind::OP_DIV_ASG ||
-           op == MhdScriptToken::Kind::OP_MOD_ASG) {
+           op == MhdScriptKind::OP_ASG ||
+           op == MhdScriptKind::OP_ADD_ASG ||
+           op == MhdScriptKind::OP_SUB_ASG ||
+           op == MhdScriptKind::OP_MUL_ASG ||
+           op == MhdScriptKind::OP_DIV_ASG ||
+           op == MhdScriptKind::OP_MOD_ASG ||
+           op == MhdScriptKind::OP_OR_BW_ASG ||
+           op == MhdScriptKind::OP_XOR_BW_ASG ||
+           op == MhdScriptKind::OP_AND_BW_ASG ||
+           op == MhdScriptKind::OP_LSHIFT_ASG ||
+           op == MhdScriptKind::OP_RSHIFT_ASG) {
         peek();
         expr = std::make_shared<MhdScriptExprAssignment>(op, expr, parse_expression_ternary());
     }
@@ -505,17 +516,19 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_ternary()
 {
-    // Parse TERNARY expressions.
+    /// Parse TERNARY expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_or();
-    while (m_token.m_kind == MhdScriptToken::Kind::OP_QUESTION) {
+    while (op = m_token.m_kind,
+           op == MhdScriptKind::OP_QUESTION) {
         peek();
         MhdScriptExpr::Ptr then_branch;
         MhdScriptExpr::Ptr else_branch;
         then_branch = parse_expression();
-        if (m_token.m_kind == MhdScriptToken::Kind::OP_COLON) {
+        if (m_token.m_kind == MhdScriptKind::OP_COLON) {
             peek();
         } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_COLON);
         }
         else_branch = parse_expression();
         expr = std::make_shared<MhdScriptExprIf>(expr, then_branch, else_branch);
@@ -527,11 +540,11 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_or()
 {
-    // Parse BINARY LOGICAL OR expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY LOGICAL OR expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_and();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_OR) {
+           op == MhdScriptKind::OP_OR) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_and());
     }
@@ -541,11 +554,11 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_and()
 {
-    // Parse BINARY LOGICAL AND expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY LOGICAL AND expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_or_bw();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_AND) {
+           op == MhdScriptKind::OP_AND) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_or_bw());
     }
@@ -556,11 +569,11 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_or_bw()
 {
-    // Parse BINARY BITWISE OR expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY BITWISE OR expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_xor_bw();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_OR_BW) {
+           op == MhdScriptKind::OP_OR_BW) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_xor_bw());
     }
@@ -570,11 +583,11 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_xor_bw()
 {
-    // Parse BINARY BITWISE XOR expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY BITWISE XOR expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_and_bw();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_XOR_BW) {
+           op == MhdScriptKind::OP_XOR_BW) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_and_bw());
     }
@@ -584,11 +597,11 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_and_bw()
 {
-    // Parse BINARY BITWISE AND expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY BITWISE AND expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_eq_neq();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_XOR_BW) {
+           op == MhdScriptKind::OP_AND_BW) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_eq_neq());
     }
@@ -599,12 +612,12 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_eq_neq()
 {
-    // Parse BINARY EQUALS or NOT EQUALS expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY EQUALS or NOT EQUALS expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_lt_lte_gt_gte();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_EQ ||
-           op == MhdScriptToken::Kind::OP_NEQ) {
+           op == MhdScriptKind::OP_EQ ||
+           op == MhdScriptKind::OP_NEQ) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_lt_lte_gt_gte());
     }
@@ -614,14 +627,14 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_lt_lte_gt_gte()
 {
-    // Parse BINARY LESS(-EQUALS) or GREATER(-EQUALS) expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY LESS(-EQUALS) or GREATER(-EQUALS) expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_shift();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_LT  || 
-           op == MhdScriptToken::Kind::OP_LTE ||
-           op == MhdScriptToken::Kind::OP_GT  || 
-           op == MhdScriptToken::Kind::OP_GTE) {
+           op == MhdScriptKind::OP_LT  || 
+           op == MhdScriptKind::OP_LTE ||
+           op == MhdScriptKind::OP_GT  || 
+           op == MhdScriptKind::OP_GTE) {
         peek();
         expr = std::make_shared<MhdScriptExprLogical>(op, expr, parse_expression_binary_shift());
     }
@@ -632,12 +645,12 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_shift()
 {
-    // Parse BINARY BITWISE SHIFT expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY BITWISE SHIFT expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_add_sub();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_LSHIFT ||
-           op == MhdScriptToken::Kind::OP_RSHIFT) {
+           op == MhdScriptKind::OP_LSHIFT ||
+           op == MhdScriptKind::OP_RSHIFT) {
         peek();
         expr = std::make_shared<MhdScriptExprBitwise>(op, expr, parse_expression_binary_add_sub());
     }
@@ -648,12 +661,12 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_add_sub()
 {
-    // Parse BINARY ADD or SUBTRACT expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY ADD or SUBTRACT expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_binary_mul_div_mod();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_ADD ||
-           op == MhdScriptToken::Kind::OP_SUB) {
+           op == MhdScriptKind::OP_ADD ||
+           op == MhdScriptKind::OP_SUB) {
         peek();
         expr = std::make_shared<MhdScriptExprArithmetic>(op, expr, parse_expression_binary_mul_div_mod());
     }
@@ -663,13 +676,13 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_binary_mul_div_mod()
 {
-    // Parse BINARY MULTIPLY or DIVIDE expressions.
-    MhdScriptToken::Kind op;
+    /// Parse BINARY MULTIPLY or DIVIDE expressions.
+    MhdScriptKind op;
     MhdScriptExpr::Ptr expr = parse_expression_unary();
     while (op = m_token.m_kind,
-           op == MhdScriptToken::Kind::OP_MUL ||
-           op == MhdScriptToken::Kind::OP_DIV ||
-           op == MhdScriptToken::Kind::OP_MOD) {
+           op == MhdScriptKind::OP_MUL ||
+           op == MhdScriptKind::OP_DIV ||
+           op == MhdScriptKind::OP_MOD) {
         peek();
         expr = std::make_shared<MhdScriptExprArithmetic>(op, expr, parse_expression_unary());
     }
@@ -682,39 +695,39 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary()
 {
-    // Parse UNARY expression.
+    /// Parse UNARY expression.
     MhdScriptExpr::Ptr expr;
     switch (m_token.m_kind) {
-        // Logic/Bitwise unary operations.
-        case MhdScriptToken::Kind::OP_NOT:
-        case MhdScriptToken::Kind::OP_NOT_BW:
+        /* Logic/Bitwise unary expression. */
+        case MhdScriptKind::OP_NOT:
+        case MhdScriptKind::OP_NOT_BW:
             expr = parse_expression_unary_not();
             return expr;
-        // Arithmetic unary operations.
-        case MhdScriptToken::Kind::OP_ADD:
-        case MhdScriptToken::Kind::OP_SUB:
+        /* Arithmetic unary expression. */
+        case MhdScriptKind::OP_ADD:
+        case MhdScriptKind::OP_SUB:
             expr = parse_expression_unary_negate();
             return expr;
-        // Arithmetic unary increment/decrement.
-        case MhdScriptToken::Kind::OP_INC:
-        case MhdScriptToken::Kind::OP_DEC:
+        /* Arithmetic unary increment/decrement expression. */
+        case MhdScriptKind::OP_INC:
+        case MhdScriptKind::OP_DEC:
             ORCHID_ASSERT(0);
             return expr;
-        // Parentheses/Brace expression.
-        case MhdScriptToken::Kind::OP_BRACE_OPEN:
+        /* Parentheses/Brace expression. */
+        case MhdScriptKind::OP_BRACE_OPEN:
             peek();
             expr = parse_expression_compound();
             return expr;
-        case MhdScriptToken::Kind::OP_PAREN_OPEN:
+        case MhdScriptKind::OP_PAREN_OPEN:
             peek();
             expr = parse_expression();
-            if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+            if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
                 peek();
             } else {
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
             }
             return expr;
-        // Expression operand.
+        /* Operand expression. */
         default:
             expr = parse_expression_unary_factor();
             return expr;
@@ -725,9 +738,9 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_not()
 {
-    // Parse UNARY NOT expression.
+    /// Parse UNARY NOT expression.
     MhdScriptExpr::Ptr expr;
-    MhdScriptToken::Kind op = m_token.m_kind;
+    MhdScriptKind op = m_token.m_kind;
     peek();
     expr = std::make_shared<MhdScriptExprNot>(op, parse_expression_unary());
     return expr;
@@ -736,9 +749,9 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_negate()
 {
-    // Parse UNARY NEGATE expression.
+    /// Parse UNARY NEGATE expression.
     MhdScriptExpr::Ptr expr;
-    MhdScriptToken::Kind op = m_token.m_kind;
+    MhdScriptKind op = m_token.m_kind;
     peek();
     expr = std::make_shared<MhdScriptExprNegate>(op, parse_expression_unary());
     return expr;
@@ -748,89 +761,102 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_operand()
 {
-    // Parse OPERAND expression.
+    /// Parse OPERAND expression.
     MhdScriptExpr::Ptr expr;
     switch (m_token.m_kind) {
-        // Constant expression operand.
-        case MhdScriptToken::Kind::CT_NIL:
+        /* Constant operand expression. */
+        case MhdScriptKind::CT_NIL:
             expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal());
             peek();
             return expr;
-        case MhdScriptToken::Kind::CT_LGC:
+        case MhdScriptKind::CT_LGC:
             expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_int != 0));
             peek();
             return expr;
-        case MhdScriptToken::Kind::CT_INT:
+        case MhdScriptKind::CT_INT:
             expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_int));
             peek();
             return expr;
-        case MhdScriptToken::Kind::CT_DBL:
+        case MhdScriptKind::CT_DBL:
             expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_dbl));
             peek();
             return expr;
-        case MhdScriptToken::Kind::CT_STR:
+        case MhdScriptKind::CT_STR:
             expr = std::make_shared<MhdScriptExprConst>(MhdScriptVal(m_token.m_value_str));
             peek();
             return expr;
-        // Identifier expression operand.
-        case MhdScriptToken::Kind::ID:
-            expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str);
+        /* Function operand expression. */
+        case MhdScriptKind::OP_BRACKET_OPEN:
             peek();
-            return expr;
-        case MhdScriptToken::Kind::KW_LET:
-            peek();
-            if (m_token.m_kind == MhdScriptToken::Kind::ID) {
-                expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str, true);
-                peek();
-            } else {
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
-            }
-            return expr;
-        // Function expression operand.
-        case MhdScriptToken::Kind::OP_BRACKET_OPEN:
-            peek();
-            if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACKET_CLOSE) {
+            if (m_token.m_kind == MhdScriptKind::OP_BRACKET_CLOSE) {
                 peek();
                 expr = parse_expression_unary_operand_func();
             } else {
-                expr = parse_expression_unary_operand_array();
+                expr = parse_expression_unary_operand_list();
             }
             return expr;
-        // Error case.
+        /* Identifier operand expression. */
+        case MhdScriptKind::ID:
+            expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str);
+            peek();
+            return expr;
+        case MhdScriptKind::KW_LET:
+            peek();
+            if (m_token.m_kind == MhdScriptKind::ID) {
+                expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str, true);
+                peek();
+            } else {
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
+            }
+            return expr;
+        /* Error case. */
         default:
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::CT_NIL,
+                                                   MhdScriptKind::CT_LGC,
+                                                   MhdScriptKind::CT_INT,
+                                                   MhdScriptKind::CT_DBL,
+                                                   MhdScriptKind::CT_STR,
+                                                   MhdScriptKind::OP_BRACKET_OPEN,
+                                                   MhdScriptKind::ID,
+                                                   MhdScriptKind::KW_LET);
     }
 }
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_operand_func()
 {
-    // Parse FUNCTION OPERAND expression.
-    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN) {
+    /// Parse FUNCTION OPERAND expression.
+    /** @todo Implement capture list. */
+    if (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN) {
         peek();
     } else {
-        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_OPEN);
     }
     std::set<std::string> args_set;
-    while (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_CLOSE) {
-        if (m_token.m_kind == MhdScriptToken::Kind::ID) {
+    while (m_token.m_kind != MhdScriptKind::OP_PAREN_CLOSE) {
+        /* Parse argument name. */
+        if (m_token.m_kind == MhdScriptKind::ID) {
             if (args_set.count(m_token.m_value_str) == 0) {
                 args_set.insert(m_token.m_value_str);
             } else {
-                throw MhdParseException(MhdScriptError::ERR_FUNC_ARG_REDECL);
+                throw MhdParseError(MhdScriptError::ERR_FUNC_ARG_REDECL);
             }
             peek();
         } else {
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
         }
         switch (m_token.m_kind) {
-            case MhdScriptToken::Kind::OP_COMMA:
+            /* Expect another argument. */
+            case MhdScriptKind::OP_COMMA:
                 peek();
                 break;
-            case MhdScriptToken::Kind::OP_PAREN_CLOSE:
+            /* Final argument. */
+            case MhdScriptKind::OP_PAREN_CLOSE:
                 break;
+            /* Error case. */
             default:
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_COMMA,
+                                                       MhdScriptKind::OP_PAREN_CLOSE);
         }
     }
     peek();
@@ -842,7 +868,7 @@ MhdScriptParser::parse_expression_unary_operand_func()
 }
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
-MhdScriptParser::parse_expression_unary_operand_array()
+MhdScriptParser::parse_expression_unary_operand_list()
 {
     ORCHID_ASSERT(0);
     MhdScriptExpr::Ptr expr;
@@ -854,21 +880,24 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_factor()
 {
-    // Parse OPERAND expression FACTOR.
+    /// Parse OPERAND expression FACTOR.
     MhdScriptExpr::Ptr expr = parse_expression_unary_operand();
-    while (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_OPEN ||
-           m_token.m_kind == MhdScriptToken::Kind::OP_BRACKET_OPEN ||
-           m_token.m_kind == MhdScriptToken::Kind::OP_DOT) {
+    while (m_token.m_kind == MhdScriptKind::OP_PAREN_OPEN ||
+           m_token.m_kind == MhdScriptKind::OP_BRACKET_OPEN ||
+           m_token.m_kind == MhdScriptKind::OP_DOT) {
         switch (m_token.m_kind) {
-            case MhdScriptToken::Kind::OP_PAREN_OPEN:
+            /* Call expression. */
+            case MhdScriptKind::OP_PAREN_OPEN:
                 peek();
                 expr = parse_expression_unary_factor_call(expr);
                 break;
-            case MhdScriptToken::Kind::OP_BRACKET_OPEN:
+            /* Index expression. */
+            case MhdScriptKind::OP_BRACKET_OPEN:
                 peek();
                 expr = parse_expression_unary_factor_index(expr);
                 break;
-            case MhdScriptToken::Kind::OP_DOT:
+            /* Subscript expression. */
+            case MhdScriptKind::OP_DOT:
                 peek();
                 expr = parse_expression_unary_factor_subscript(expr);
             default:
@@ -881,23 +910,29 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_factor_call(MhdScriptExpr::Ptr expr)
 {
-    // Parse CALL expression FACTOR.
+    /// Parse CALL expression FACTOR.
     MhdScriptExpr::Vec exprs;
     MhdScriptExprIndex* expr_index;
     if (expr_index = dynamic_cast<MhdScriptExprIndex*>(expr.get()),
         expr_index != nullptr) {
+        /* Subscript or Index is followed by the call.
+         * Pass the accessed object as a first argument. */
         exprs.push_back(expr_index->m_array);
     }
-    while (m_token.m_kind != MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+    while (m_token.m_kind != MhdScriptKind::OP_PAREN_CLOSE) {
         exprs.push_back(parse_expression());
         switch (m_token.m_kind) {
-            case MhdScriptToken::Kind::OP_COMMA:
+            /* Expect another argument. */
+            case MhdScriptKind::OP_COMMA:
                 peek();
                 break;
-            case MhdScriptToken::Kind::OP_PAREN_CLOSE:
+            /* Final argument. */
+            case MhdScriptKind::OP_PAREN_CLOSE:
                 break;
+            /* Error case. */
             default:
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_COMMA,
+                                                       MhdScriptKind::OP_PAREN_CLOSE);
         }
     }
     peek();
@@ -908,18 +943,22 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_factor_index(MhdScriptExpr::Ptr expr)
 {
-    // Parse INDEX expression FACTOR.
+    /// Parse INDEX expression FACTOR.
     MhdScriptExpr::Vec exprs;
-    while (m_token.m_kind != MhdScriptToken::Kind::OP_BRACKET_CLOSE) {
+    while (m_token.m_kind != MhdScriptKind::OP_BRACKET_CLOSE) {
         exprs.push_back(parse_expression());
         switch (m_token.m_kind) {
-            case MhdScriptToken::Kind::OP_COMMA:
+            /* Expect another index. */
+            case MhdScriptKind::OP_COMMA:
                 peek();
                 break;
-            case MhdScriptToken::Kind::OP_BRACKET_CLOSE:
+            /* Final index. */
+            case MhdScriptKind::OP_BRACKET_CLOSE:
                 break;
+            /* Error case. */
             default:
-                throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_COMMA,
+                                                       MhdScriptKind::OP_BRACKET_CLOSE);
         }
     }
     peek();
@@ -930,196 +969,203 @@ MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_unary_factor_subscript(MhdScriptExpr::Ptr expr)
 {
-    // Parse SUBSCRIPT expression FACTOR.
+    /// Parse SUBSCRIPT expression FACTOR.
     MhdScriptExpr::Vec exprs;
     switch (m_token.m_kind) {
-        case MhdScriptToken::Kind::ID:
+        case MhdScriptKind::ID:
+            /* Normal subscript. */
             exprs.push_back(std::make_shared<MhdScriptExprConst>(m_token.m_value_str));
             peek();
             break;
-        case MhdScriptToken::Kind::KW_OPERATOR:
+        case MhdScriptKind::KW_OPERATOR:
+            /* Overloaded operator subscript. */
             peek();
             switch (m_token.m_kind) {
-                case MhdScriptToken::Kind::OP_ADD:
-                    peek();
-                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator+"));
-                    break;
-                case MhdScriptToken::Kind::OP_ADD_ASG:
-                    peek();
-                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator+="));
-                    break;
-                case MhdScriptToken::Kind::OP_INC:
+                case MhdScriptKind::OP_INC:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator++"));
                     break;
-                case MhdScriptToken::Kind::OP_SUB:
-                    peek();
-                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator-"));
-                    break;
-                case MhdScriptToken::Kind::OP_SUB_ASG:
-                    peek();
-                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator-="));
-                    break;
-                case MhdScriptToken::Kind::OP_DEC:
+                case MhdScriptKind::OP_DEC:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator--"));
                     break;
-                case MhdScriptToken::Kind::OP_MUL:
+                case MhdScriptKind::OP_ADD:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator+"));
+                    break;
+                case MhdScriptKind::OP_ADD_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator+="));
+                    break;
+                case MhdScriptKind::OP_SUB:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator-"));
+                    break;
+                case MhdScriptKind::OP_SUB_ASG:
+                    peek();
+                    exprs.push_back(std::make_shared<MhdScriptExprConst>("operator-="));
+                    break;
+                case MhdScriptKind::OP_MUL:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator*"));
                     break;
-                case MhdScriptToken::Kind::OP_MUL_ASG:
+                case MhdScriptKind::OP_MUL_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator*="));
                     break;
-                case MhdScriptToken::Kind::OP_DIV:
+                case MhdScriptKind::OP_DIV:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator/"));
                     break;
-                case MhdScriptToken::Kind::OP_DIV_ASG:
+                case MhdScriptKind::OP_DIV_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator/="));
                     break;
-                case MhdScriptToken::Kind::OP_MOD:
+                case MhdScriptKind::OP_MOD:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator%"));
                     break;
-                case MhdScriptToken::Kind::OP_MOD_ASG:
+                case MhdScriptKind::OP_MOD_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator%="));
                     break;
-                case MhdScriptToken::Kind::OP_NOT:
+                case MhdScriptKind::OP_NOT:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator!"));
                     break;
-                case MhdScriptToken::Kind::OP_NOT_BW:
+                case MhdScriptKind::OP_NOT_BW:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator~"));
                     break;
-                case MhdScriptToken::Kind::OP_EQ:
+                case MhdScriptKind::OP_EQ:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator=="));
                     break;
-                case MhdScriptToken::Kind::OP_NEQ:
+                case MhdScriptKind::OP_NEQ:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator!="));
                     break;
-                case MhdScriptToken::Kind::OP_LT:
+                case MhdScriptKind::OP_LT:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator<"));
                     break;
-                case MhdScriptToken::Kind::OP_LTE:
+                case MhdScriptKind::OP_LTE:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator<="));
                     break;
-                case MhdScriptToken::Kind::OP_GT:
+                case MhdScriptKind::OP_GT:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator>"));
                     break;
-                case MhdScriptToken::Kind::OP_GTE:
+                case MhdScriptKind::OP_GTE:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator>="));
                     break;
-                case MhdScriptToken::Kind::OP_LSHIFT:
+                case MhdScriptKind::OP_LSHIFT:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator<<"));
                     break;
-                case MhdScriptToken::Kind::OP_LSHIFT_ASG:
+                case MhdScriptKind::OP_LSHIFT_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator<<="));
                     break;
-                case MhdScriptToken::Kind::OP_RSHIFT:
+                case MhdScriptKind::OP_RSHIFT:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator>>"));
                     break;
-                case MhdScriptToken::Kind::OP_RSHIFT_ASG:
+                case MhdScriptKind::OP_RSHIFT_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator>>="));
                     break;
-                case MhdScriptToken::Kind::OP_AND:
+                case MhdScriptKind::OP_AND:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator&&"));
                     break;
-                case MhdScriptToken::Kind::OP_AND_BW:
+                case MhdScriptKind::OP_AND_BW:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator&"));
                     break;
-                case MhdScriptToken::Kind::OP_AND_BW_ASG:
+                case MhdScriptKind::OP_AND_BW_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator&="));
                     break;
-                case MhdScriptToken::Kind::OP_OR:
+                case MhdScriptKind::OP_OR:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator||"));
                     break;
-                case MhdScriptToken::Kind::OP_OR_BW:
+                case MhdScriptKind::OP_OR_BW:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator|"));
                     break;
-                case MhdScriptToken::Kind::OP_OR_BW_ASG:
+                case MhdScriptKind::OP_OR_BW_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator|="));
                     break;
-                case MhdScriptToken::Kind::OP_XOR_BW:
+                case MhdScriptKind::OP_XOR_BW:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator^"));
                     break;
-                case MhdScriptToken::Kind::OP_XOR_BW_ASG:
+                case MhdScriptKind::OP_XOR_BW_ASG:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator^="));
                     break;
-                case MhdScriptToken::Kind::OP_PAREN_OPEN:
+                case MhdScriptKind::OP_PAREN_OPEN:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator()"));
-                    if (m_token.m_kind == MhdScriptToken::Kind::OP_PAREN_CLOSE) {
+                    if (m_token.m_kind == MhdScriptKind::OP_PAREN_CLOSE) {
                         peek();
                     } else {
-                        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_PAREN_CLOSE);
                     }
                     break;
-                case MhdScriptToken::Kind::OP_BRACKET_OPEN:
+                case MhdScriptKind::OP_BRACKET_OPEN:
                     peek();
                     exprs.push_back(std::make_shared<MhdScriptExprConst>("operator[]"));
-                    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACKET_CLOSE) {
+                    if (m_token.m_kind == MhdScriptKind::OP_BRACKET_CLOSE) {
                         peek();
                     } else {
-                        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACKET_CLOSE);
                     }
                     break;
-                case MhdScriptToken::Kind::OP_BRACE_OPEN:
+                case MhdScriptKind::OP_BRACE_OPEN:
+                    /* Unary operators. */
                     peek();
                     switch (m_token.m_kind) {
-                        case MhdScriptToken::Kind::OP_ADD:
+                        case MhdScriptKind::OP_ADD:
                             peek();
                             exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{+}"));
                             break;
-                        case MhdScriptToken::Kind::OP_INC:
-                            peek();
-                            exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{++}"));
-                            break;
-                        case MhdScriptToken::Kind::OP_SUB:
+                        case MhdScriptKind::OP_SUB:
                             peek();
                             exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{-}"));
                             break;
-                        case MhdScriptToken::Kind::OP_DEC:
+                        case MhdScriptKind::OP_INC:
+                            peek();
+                            exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{++}"));
+                            break;
+                        case MhdScriptKind::OP_DEC:
                             peek();
                             exprs.push_back(std::make_shared<MhdScriptExprConst>("operator{--}"));
                             break;
                         default:
-                            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_ADD,
+                                                                   MhdScriptKind::OP_SUB,
+                                                                   MhdScriptKind::OP_INC,
+                                                                   MhdScriptKind::OP_DEC);
                     }
-                    if (m_token.m_kind == MhdScriptToken::Kind::OP_BRACE_CLOSE) {
+                    if (m_token.m_kind == MhdScriptKind::OP_BRACE_CLOSE) {
                         peek();
                     } else {
-                        throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACE_CLOSE);
                     }
                     break;
                 default:
-                    throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+                    throw MhdParseUnexpTokenError(m_token, "<operator>", "<{operator}>");
             }
             break;
         default:
-            throw MhdParseException(MhdScriptError::ERR_UNEXP_TOKEN);
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID,
+                                                   MhdScriptKind::KW_OPERATOR);
     }
     expr = std::make_shared<MhdScriptExprIndex>(expr, exprs);
     return expr;
