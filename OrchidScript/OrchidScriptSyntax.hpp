@@ -25,11 +25,13 @@ public:
     explicit MhdScriptExpr() noexcept {}
     virtual ~MhdScriptExpr() noexcept {}
 public:
-    virtual MhdScriptVal eval() const 
+    MHD_INTERFACE
+    virtual MhdScriptVal eval() const
     { 
         throw MhdScriptInvalidOp();
     } 
-    virtual MhdScriptRef eval_ref() const 
+    MHD_INTERFACE
+    virtual MhdScriptRef eval_ref() const
     { 
         throw MhdScriptInvalidOp();
     }
@@ -39,6 +41,12 @@ struct MhdScriptExprEmpty : public MhdScriptExpr
 {
 public:
     MhdScriptExprEmpty() {}
+public:
+    MHD_INTERFACE
+    MhdScriptVal eval() const override final
+    {
+        return MhdScriptVal();
+    }
 };  // struct MhdScriptExprEmpty
 //########################################################################################################
 //########################################################################################################

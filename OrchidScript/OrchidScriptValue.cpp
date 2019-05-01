@@ -14,7 +14,7 @@ template<typename T>
 inline void
 operator_dtor(T& lhs)
 {
-    // Destruct an arbitrary VALUE.
+    /// Destruct an arbitrary VALUE.
     lhs.~T();
 }
 //--------------------------------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ template<typename T>
 inline void
 operator_assignment_move_apply(T& lhs, T& rhs)
 {
-    // Apply MOVE-ASSIGNMENT operator for arbitrary objects.
+    /// Apply MOVE-ASSIGNMENT operator for arbitrary objects.
     new (&lhs) T(std::move(rhs));
 }
 //--------------------------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ MHD_INTERFACE
 MhdScriptVal& 
 MhdScriptVal::operator=(MhdScriptVal&& other) noexcept
 {
-    // Assign VALUE of a VALUE.
+    /// Assign VALUE of a VALUE.
     if (this != &other) {
         this->~MhdScriptVal();
         std::swap(m_type, other.m_type);
@@ -104,14 +104,14 @@ template<typename T>
 inline void
 operator_assignment_apply(T& lhs, const T& rhs)
 {
-    // Apply ASSIGNMENT operator for arbitrary objects.
+    /// Apply ASSIGNMENT operator for arbitrary objects.
     new (&lhs) T(rhs);
 }
 template<typename T, typename U>
 inline void
 operator_assignment_apply(std::valarray<T>& lhs, const std::vector<U>& rhs)
 {
-    // Apply ASSIGNMENT operator for arbitrary value arrays.
+    /// Apply ASSIGNMENT operator for arbitrary value arrays.
     new (&lhs) std::valarray<T>(rhs.size());
     for (std::size_t i = 0; i < rhs.size(); ++i) {
         lhs[i] = static_cast<T>(rhs[i]);
@@ -122,7 +122,7 @@ MHD_INTERFACE
 MhdScriptVal& 
 MhdScriptVal::operator=(const MhdScriptVal& other)
 {
-    // Assign VALUE of a VALUE.
+    /// Assign VALUE of a VALUE.
     if (this != &other) {
         this->~MhdScriptVal();
         m_type = other.m_type;
@@ -159,7 +159,7 @@ MHD_INTERFACE
 MhdScriptVal&
 MhdScriptVal::operator=(const std::vector<MhdScriptVal>& others)
 {
-    // Assign VALUE of an ARRAY OF VALUES.
+    /// Assign VALUE of an ARRAY OF VALUES.
     this->~MhdScriptVal();
     m_type = MhdScriptVal::Type::LGC;
     for (const MhdScriptVal& val : others) {
@@ -196,7 +196,7 @@ MHD_INTERFACE
 MhdScriptVal& 
 MhdScriptVal::operator=(const MhdScriptRef& other)
 {
-    // Assign VALUE of a REFERENCE.
+    /// Assign VALUE of a REFERENCE.
     switch (other.m_type) {
         case MhdScriptVal::Type::LGC:
             *this = *other.m_ref_lgc;
@@ -224,7 +224,7 @@ MHD_INTERFACE
 MhdScriptRef& 
 MhdScriptRef::operator=(const MhdScriptVal& other) 
 { 
-    // Assign VALUE of a VALUE.
+    /// Assign VALUE of a VALUE.
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
             *m_ref_lgc = static_cast<bool>(other);
@@ -254,7 +254,7 @@ inline typename std::enable_if<std::is_arithmetic<T>::value>::type
 operator_arithmetic_apply(MhdScriptKind op,
                           std::valarray<T>& lhs)
 {
-    // Apply an UNARY ARITHMETIC operator for arithmetic value arrays. 
+    /// Apply an UNARY ARITHMETIC operator for arithmetic value arrays. 
     switch (op) {
         case MhdScriptKind::OP_ADD: 
             lhs = std::move(+lhs);
@@ -266,13 +266,12 @@ operator_arithmetic_apply(MhdScriptKind op,
             throw MhdScriptInvalidOp(op);
     }
 }
-//--------------------------------------------------------------------------------------------------------
 template<typename T, typename S, typename U>
 inline void
 operator_arithmetic_apply(MhdScriptKind op, U& val,
                           std::map<T, S>& lhs)
 {
-    // Apply an UNARY ARITHMETIC operator for maps.
+    /// Apply an UNARY ARITHMETIC operator for maps.
     switch (op) {
         case MhdScriptKind::OP_ADD:
             val = lhs[T("operator{+}")]({val});
@@ -284,12 +283,13 @@ operator_arithmetic_apply(MhdScriptKind op, U& val,
             throw MhdScriptInvalidOp(op);
     }
 }
+//--------------------------------------------------------------------------------------------------------
 MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator_arithmetic(MhdScriptKind op,
                                   const MhdScriptVal& lhs)
 {
-    // Apply an UNARY ARITHMETIC operator.
+    /// Apply an UNARY ARITHMETIC operator.
     MhdScriptVal::Type tp;
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
@@ -335,7 +335,7 @@ inline typename std::enable_if<std::is_integral<T>::value>::type
 operator_arithmetic_apply(MhdScriptKind op,
                           std::valarray<T>& lhs, const std::valarray<T>& rhs)
 {
-    // Apply a BINARY ARITHMETIC operator for integer value arrays. 
+    /// Apply a BINARY ARITHMETIC operator for integer value arrays. 
     switch (op) {
         case MhdScriptKind::OP_ADD: 
             lhs += rhs;
@@ -361,7 +361,7 @@ inline typename std::enable_if<std::is_floating_point<T>::value>::type
 operator_arithmetic_apply(MhdScriptKind op,
                           std::valarray<T>& lhs, const std::valarray<T>& rhs)
 {
-    // Apply a BINARY ARITHMETIC operator for floating value arrays. 
+    /// Apply a BINARY ARITHMETIC operator for floating value arrays. 
     switch (op) {
         case MhdScriptKind::OP_ADD: 
             lhs += rhs;
@@ -387,7 +387,7 @@ inline void
 operator_arithmetic_apply(MhdScriptKind op,
                           std::basic_string<T>& lhs, const std::basic_string<T>& rhs)
 {
-    // Apply a BINARY ARITHMETIC operator for strings. 
+    /// Apply a BINARY ARITHMETIC operator for strings. 
     switch (op) {
         case MhdScriptKind::OP_ADD: 
             lhs += rhs;
@@ -401,7 +401,7 @@ inline void
 operator_arithmetic_apply(MhdScriptKind op, 
                           U& lhs, const U& rhs)
 {
-    // Apply an BINARY ARITHMETIC operator for maps.
+    /// Apply an BINARY ARITHMETIC operator for maps.
     switch (op) {
         case MhdScriptKind::OP_ADD:
             lhs = std::move(lhs[U("operator+")]({ lhs, rhs }));
@@ -428,7 +428,7 @@ MhdScriptVal
 MhdScriptVal::operator_arithmetic(MhdScriptKind op,
                                   const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
-    // Apply a BINARY ARITHMETIC operator.
+    /// Apply a BINARY ARITHMETIC operator.
     MhdScriptVal::Type tp;
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
@@ -501,7 +501,7 @@ inline typename std::enable_if<std::is_arithmetic<T>::value>::type
 operator_logical_apply(MhdScriptKind op,
                        U& val, const std::valarray<T>& lhs)
 {
-    // Apply an UNARY LOGICAL operator for arithmetic value array. 
+    /// Apply an UNARY LOGICAL operator for arithmetic value array. 
     switch (op) {
         case MhdScriptKind::OP_NOT:
             val = std::move(!lhs);
@@ -515,7 +515,7 @@ inline void
 operator_logical_apply(MhdScriptKind op,
                        U& val, const T& lhs)
 {
-    // Apply an UNARY LOGICAL operator for arbitrary objects. 
+    /// Apply an UNARY LOGICAL operator for arbitrary objects. 
     switch (op) {
         case MhdScriptKind::OP_NOT: 
             val = std::move(!lhs);
@@ -530,7 +530,7 @@ MhdScriptVal
 MhdScriptVal::operator_logical(MhdScriptKind op,
                                const MhdScriptVal& lhs)
 {
-    // Apply an UNARY LOGICAL operator.
+    /// Apply an UNARY LOGICAL operator.
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
         case MhdScriptVal::Type::INT:
@@ -568,7 +568,7 @@ inline typename std::enable_if<std::is_arithmetic<T>::value>::type
 operator_logical_apply(MhdScriptKind op, U& val, 
                        const std::valarray<T>& lhs, const std::valarray<T>& rhs)
 { 
-    // Apply a BINARY LOGICAL operator for arithmetic value arrays. 
+    /// Apply a BINARY LOGICAL operator for arithmetic value arrays. 
     switch (op) {
         case MhdScriptKind::OP_EQ: 
             val = std::move(lhs == rhs);
@@ -603,7 +603,7 @@ inline void
 operator_logical_apply(MhdScriptKind op, U& val, 
                        const std::basic_string<T>& lhs, const std::basic_string<T>& rhs)
 {
-    // Apply a BINARY LOGICAL operator for strings. 
+    /// Apply a BINARY LOGICAL operator for strings. 
     switch (op) {
         case MhdScriptKind::OP_EQ: 
             val = std::move(lhs == rhs);
@@ -632,7 +632,7 @@ inline void
 operator_logical_apply(MhdScriptKind op, U& val, 
                        const T& lhs, const T& rhs)
 {
-    // Apply a BINARY LOGICAL operator for arbitrary objects. 
+    /// Apply a BINARY LOGICAL operator for arbitrary objects. 
     switch (op) {
         case MhdScriptKind::OP_EQ: 
             val = std::move(lhs == rhs);
@@ -650,7 +650,7 @@ MhdScriptVal
 MhdScriptVal::operator_logical(MhdScriptKind op,
                                const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
-    // Apply a BINARY LOGICAL operator.
+    /// Apply a BINARY LOGICAL operator.
     MhdScriptVal::Type tp;
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
@@ -722,7 +722,7 @@ inline typename std::enable_if<std::is_integral<T>::value>::type
 operator_bitwise_apply(MhdScriptKind op,
                        std::valarray<T>& lhs)
 {
-    // Apply an UNARY BITWISE operator for integer value array. 
+    /// Apply an UNARY BITWISE operator for integer value array. 
     switch (op) {
         case MhdScriptKind::OP_NOT_BW: 
             lhs = std::move(~lhs);
@@ -737,7 +737,7 @@ MhdScriptVal
 MhdScriptVal::operator_bitwise(MhdScriptKind op,
                                const MhdScriptVal& lhs)
 {
-    // Apply an UNARY BITWISE operator.
+    /// Apply an UNARY BITWISE operator.
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
         case MhdScriptVal::Type::INT:
@@ -762,7 +762,7 @@ inline typename std::enable_if<std::is_integral<T>::value>::type
 operator_bitwise_apply(MhdScriptKind op,
                        std::valarray<T>& lhs, const std::valarray<T>& rhs)
 {
-    // Apply a BINARY LOGICAL operator for integer value arrays. 
+    /// Apply a BINARY LOGICAL operator for integer value arrays. 
     switch (op) {
         case MhdScriptKind::OP_AND_BW: 
             lhs &= rhs;
@@ -789,7 +789,7 @@ MhdScriptVal
 MhdScriptVal::operator_bitwise(MhdScriptKind op,
                                const MhdScriptVal& lhs, const MhdScriptVal& rhs)
 {
-    // Apply a BINARY BITWISE operator.
+    /// Apply a BINARY BITWISE operator.
     switch (lhs.m_type) {
         case MhdScriptVal::Type::LGC:
         case MhdScriptVal::Type::INT:
@@ -826,7 +826,7 @@ MHD_INTERFACE
 MhdScriptRef
 MhdScriptVal::operator[](const MhdScriptVal& index)
 {
-    // Apply an INDEX OPERATOR.
+    /// Apply an INDEX OPERATOR.
     /// @TODO Implement me correctly.
     std::size_t idx;
     MhdScriptRef ref;
@@ -864,7 +864,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator[](const MhdScriptVal& index) const
 {
-    // Apply an INDEX operator.
+    /// Apply an INDEX operator.
     return MhdScriptVal(const_cast<MhdScriptVal&>(*this)[index]);
 }
 //--------------------------------------------------------------------------------------------------------
@@ -872,7 +872,7 @@ MHD_INTERFACE
 MhdScriptRef
 MhdScriptVal::operator[](const std::vector<MhdScriptVal>& indices)
 {
-    // Apply an INDEX operator.
+    /// Apply an INDEX operator.
     /// @TODO Implement me correctly.
     return (*this)[indices[0]];
 }
@@ -880,7 +880,7 @@ MHD_INTERFACE
 MhdScriptVal
 MhdScriptVal::operator[](const std::vector<MhdScriptVal>& indices) const
 {
-    // Apply an INDEX operator.
+    /// Apply an INDEX operator.
     return MhdScriptVal(const_cast<MhdScriptVal&>(*this)[indices]);
 }
 //########################################################################################################
@@ -890,7 +890,7 @@ MHD_INTERFACE
 MhdScriptVal 
 MhdScriptVal::operator()(const std::vector<MhdScriptVal>& args) const
 {
-    // Apply a CALL operator.
+    /// Apply a CALL operator.
     if (m_type == MhdScriptVal::Type::FUN) {
         return (*m_val_fun)(args);
     } else {
@@ -905,7 +905,7 @@ inline typename std::enable_if<std::is_convertible<T, X>::value>::type
 operator_cast_apply(U& val,
                     const std::valarray<T>& lhs)
 {
-    // Apply a CAST operator for convertible value arrays. 
+    /// Apply a CAST operator for convertible value arrays. 
     std::valarray<X> rhs_cast(lhs.size());
     for (std::size_t i = 0; i < lhs.size(); ++i) {
         rhs_cast[i] = static_cast<X>(lhs[i]);
@@ -917,7 +917,7 @@ inline typename std::enable_if<std::is_convertible<T, X>::value>::type
 operator_cast_apply(U& val,
                     const T& lhs)
 {
-    // Apply a CAST operator for convertible arbitrary objects. 
+    /// Apply a CAST operator for convertible arbitrary objects. 
     X rhs_cast{std::move(static_cast<X>(lhs))};
     val = std::move(rhs_cast);
 }
@@ -926,7 +926,7 @@ inline void
 operator_cast_apply(U& val,
                     const std::basic_string<T>& lhs)
 {
-    // Apply a CAST operator from string to value. 
+    /// Apply a CAST operator from string to value. 
     X rhs_cast{};
     std::basic_istringstream<T>(lhs) >> rhs_cast;
     val = std::move(rhs_cast);
@@ -937,7 +937,7 @@ inline void
 operator_cast_apply_str(U& val,
                         const std::valarray<T>& lhs)
 {
-    // Cast to STRING operator for value arrays. 
+    /// Cast to STRING operator for value arrays. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast.setf(std::ios::showpoint);
     rhs_cast << "(/";
@@ -955,7 +955,7 @@ inline void
 operator_cast_apply_str(U& val,
                         const std::map<T, S>& lhs)
 {
-    // Cast to STRING operator for maps. 
+    /// Cast to STRING operator for maps. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast.setf(std::ios::showpoint);
     rhs_cast << "{/";
@@ -977,7 +977,7 @@ inline void
 operator_cast_apply_str(U& val,
                         const T& lhs)
 {
-    // Cast to STRING operator for arbitrary objects. 
+    /// Cast to STRING operator for arbitrary objects. 
     std::basic_ostringstream<X> rhs_cast;
     rhs_cast << lhs;
     val = std::move(rhs_cast.str());
@@ -988,7 +988,7 @@ inline void
 operator_cast_apply(MhdScriptVal::Type tp, U& val,
                     const T& lhs)
 {
-    // Apply a CAST operator for arbitrary objects.
+    /// Apply a CAST operator for arbitrary objects.
     switch (tp) {
         case MhdScriptVal::Type::LGC:
             operator_cast_apply<bool>(val, lhs);
@@ -1011,7 +1011,7 @@ inline void
 operator_cast_apply(MhdScriptVal::Type tp, U& val,
                     const std::map<T, S>& lhs)
 {
-    // Apply a CAST operator for arbitrary maps.
+    /// Apply a CAST operator for arbitrary maps.
     switch (tp) {
         case MhdScriptVal::Type::STR:
             operator_cast_apply_str<char>(val, lhs);
@@ -1025,7 +1025,7 @@ inline void
 operator_cast_apply(MhdScriptVal::Type tp, U& val,
                     void* lhs)
 {
-    // Apply a CAST operator for pointers.
+    /// Apply a CAST operator for pointers.
     switch (tp) {
         case MhdScriptVal::Type::LGC:
             operator_cast_apply<bool>(val, lhs != nullptr);
@@ -1043,7 +1043,7 @@ MhdScriptVal
 MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
                             const MhdScriptVal& lhs)
 {
-    // Apply a CAST operator.
+    /// Apply a CAST operator.
     if (lhs.m_type == tp) {
         return lhs;
     }
@@ -1090,7 +1090,7 @@ MhdScriptVal::operator_cast(MhdScriptVal::Type tp,
 MHD_INTERFACE
 MhdScriptVal::operator bool() const 
 {
-    // Cast to BOOL operator.
+    /// Cast to BOOL operator.
     bool val;
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
@@ -1116,7 +1116,7 @@ MhdScriptVal::operator bool() const
 MHD_INTERFACE
 MhdScriptVal::operator int() const 
 {
-    // Cast to INT operator.
+    /// Cast to INT operator.
     int val{};
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
@@ -1136,7 +1136,7 @@ MhdScriptVal::operator int() const
 MHD_INTERFACE
 MhdScriptVal::operator double() const 
 {
-    // Cast to DOUBLE operator.
+    /// Cast to DOUBLE operator.
     double val{};
     switch (m_type) {
         case MhdScriptVal::Type::LGC:
@@ -1157,7 +1157,7 @@ MhdScriptVal::operator double() const
 MHD_INTERFACE
 MhdScriptVal::operator std::string() const 
 {
-    // Cast to STRING operator.
+    /// Cast to STRING operator.
     std::string val;
     if (m_type == MhdScriptVal::Type::STR) {
         val = m_val_str;
@@ -1169,7 +1169,7 @@ MhdScriptVal::operator std::string() const
 MHD_INTERFACE
 MhdScriptVal::operator void*() const 
 {
-    // Cast to POINTER operator.
+    /// Cast to POINTER operator.
     void* val;
     if (m_type == MhdScriptVal::Type::PTR) {
         val = m_val_ptr;

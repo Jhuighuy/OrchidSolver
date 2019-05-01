@@ -49,11 +49,19 @@ public:
     MhdScriptExpr::Ptr parse();
     MHD_INTERFACE
     MhdScriptExpr::Ptr parse_wrap();
+public:
+    MHD_INTERFACE
+    MhdScriptExpr::Ptr parse_program();
+    MHD_INTERFACE
+    MhdScriptExpr::Ptr parse_program_wrap();
 private:
     MhdScriptExpr::Ptr parse_expression();
 private:
     MhdScriptExpr::Ptr parse_expression_compound();
-    MhdScriptExpr::Ptr parse_expression_namespace();
+private:
+    MhdScriptExpr::Ptr parse_expression_decl_function();
+    MhdScriptExpr::Ptr parse_expression_decl_struct();
+    MhdScriptExpr::Ptr parse_expression_decl_namespace();
 private:
     MhdScriptExpr::Ptr parse_expression_cond_if();
     MhdScriptExpr::Ptr parse_expression_cond_switch();

@@ -1,49 +1,40 @@
 // Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
-#pragma once
-
+#include "OrchidScriptStd.hpp"
+#include "OrchidScriptVar.hpp"
 #include "OrchidScriptValue.hpp"
 
-#include <string>
-#include <unordered_map>
-#include <map>
+#include <iostream>
 
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-struct MhdScriptVarScope final
-{
-private:
-	std::size_t m_stack_prev_size;
-	std::unordered_map<std::string, MhdScriptVal> m_stack_vars;
-public:
-	MHD_INTERFACE
-	MhdScriptVarScope(bool from_global = false);
-	MHD_INTERFACE
-	~MhdScriptVarScope();
-public:
-	MHD_INTERFACE
-	static MhdScriptVal& let(const std::string& var_name);
-	MHD_INTERFACE
-	static MhdScriptVal& var(const std::string& var_name);
-public:
-	MHD_INTERFACE
-	static void load(const std::map<MhdScriptVal, MhdScriptVal>& vars);
-	MHD_INTERFACE
-	static MhdScriptVal dump();
-};	// struct MhdScriptVarScope
-//########################################################################################################
-//########################################################################################################
-//########################################################################################################
-struct MhdScript final
+struct MhdScriptInitMe
 {
 public:
-    static MhdScriptVal& evalr(const std::string& var_name)
+    template<typename T>
+    MhdScriptInitMe(const T& t)
     {
-        return MhdScriptVarScope::var(var_name);
+        t();
     }
-};  // struct MhdScript
+};  // struct MhdScriptInitMe
+#define MHD_INIT_ME static MhdScriptInitMe __INIT_ME__##__LINE__ = []
+#define MHD_DEF(name) \
+    MhdScriptVal name(const std::vector<MhdScriptVal>& args); \
+    MHD_INIT_ME() { MhdScript::evalr(#name) = name; }; \
+    MhdScriptVal name(const std::vector<MhdScriptVal>& args) \
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+//MHD_DEF(print)
+//{
+//    for (const MhdScriptVal& arg : args) {
+//        std::cout << static_cast<std::string>(arg);
+//    }
+//    std::cout << std::endl;
+//    return MhdScriptVal{};
+//}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################

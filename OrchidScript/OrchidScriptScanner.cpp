@@ -459,12 +459,46 @@ MhdScriptTokenizer::scan_id(MhdScriptToken& token)
         advance(token);
         token.m_kind = MhdScriptKind::KW_NAMESPACE;
         token.m_value_str = "namespace";
+    } else if (peek()      == 'f' &&
+               peek_next() == 'u' &&
+               peek_next() == 'n' &&
+               peek_next() == 'c' &&
+               peek_next() == 't' &&
+               peek_next() == 'i' &&
+               peek_next() == 'o' &&
+               peek_next() == 'n') {
+        advance(token);
+        token.m_kind = MhdScriptKind::KW_FUNCTION;
+        token.m_value_str = "namespace";
+    } else if (peek()      == 's' &&
+               peek_next() == 't' &&
+               peek_next() == 'r' &&
+               peek_next() == 'u' &&
+               peek_next() == 'c' &&
+               peek_next() == 't') {
+        advance(token);
+        token.m_kind = MhdScriptKind::KW_STRUCT;
+        token.m_value_str = "struct";
+    } else if (peek()      == 'c' &&
+               peek_next() == 'l' &&
+               peek_next() == 'a' &&
+               peek_next() == 's' &&
+               peek_next() == 's') {
+        advance(token);
+        token.m_kind = MhdScriptKind::KW_CLASS;
+        token.m_value_str = "class";
     } else if (peek()      == 'l' &&
                peek_next() == 'e' &&
                peek_next() == 't') {
         advance(token);
         token.m_kind = MhdScriptKind::KW_LET;
         token.m_value_str = "let";
+    } else if (peek()      == 'n' &&
+               peek_next() == 'e' &&
+               peek_next() == 'w') {
+        advance(token);
+        token.m_kind = MhdScriptKind::KW_NEW;
+        token.m_value_str = "new";
     }
     char character = peek();
     while (character = peek(), std::isalnum(character) ||

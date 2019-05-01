@@ -4,25 +4,25 @@
     <Filter Include="Source">
       <UniqueIdentifier>{75c8630d-c734-4539-a8c2-cd6b7b0075f6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Parser">
-      <UniqueIdentifier>{42b2da6c-39ca-49b5-9a8a-104cf8701442}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Runtime">
       <UniqueIdentifier>{59a68068-4085-49e6-bf4a-dc7cb5f4f72d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Compiler">
+      <UniqueIdentifier>{42b2da6c-39ca-49b5-9a8a-104cf8701442}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidScriptSyntax.cpp">
-      <Filter>Source\Parser</Filter>
+      <Filter>Source\Compiler</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScriptParser.cpp">
-      <Filter>Source\Parser</Filter>
+      <Filter>Source\Compiler</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScript.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScriptScanner.cpp">
-      <Filter>Source\Parser</Filter>
+      <Filter>Source\Compiler</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScriptValue.cpp">
       <Filter>Source\Runtime</Filter>
@@ -33,16 +33,22 @@
     <ClCompile Include="OrchidScriptVar.cpp">
       <Filter>Source\Runtime</Filter>
     </ClCompile>
+    <ClCompile Include="OrchidScriptStd.cpp">
+      <Filter>Source\Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="OrchidScriptForeign.cpp">
+      <Filter>Source\Runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OrchidScriptSyntax.hpp">
-      <Filter>Source\Parser</Filter>
+      <Filter>Source\Compiler</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptParser.hpp">
-      <Filter>Source\Parser</Filter>
+      <Filter>Source\Compiler</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptScanner.hpp">
-      <Filter>Source\Parser</Filter>
+      <Filter>Source\Compiler</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptValueC.hxx">
       <Filter>Source\Runtime</Filter>
@@ -55,6 +61,12 @@
     </ClInclude>
     <ClInclude Include="OrchidScript.hpp">
       <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScriptStd.hpp">
+      <Filter>Source\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScriptForeign.hpp">
+      <Filter>Source\Runtime</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

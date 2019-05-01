@@ -3,6 +3,7 @@
 
 #include "OrchidScriptParser.hpp"
 #include "OrchidScriptVar.hpp"
+#include "OrchidScriptForeign.hpp"
 
 #include <fstream>
 #include <cstdio>
@@ -52,8 +53,12 @@ MhdScriptVal assert_(const std::vector<MhdScriptVal>& args)
 }
 extern "C"
 void orchid_solver_scanner_test() {}
+
 int main(int argc, char** argv) 
 {
+    //auto ss = GetProcAddress(LoadLibraryA("msvcrt.dll"), "sin");
+
+
 #if _MSC_VER
     std::ifstream file(/*argv[1]*/"../OrchidScript/test/test_basic.mhd");
 #else
@@ -69,8 +74,9 @@ int main(int argc, char** argv)
     MhdScriptVarScope::var("print") = MhdScriptVal(print);
     MhdScriptVarScope::var("typeof") = MhdScriptVal(type);
     MhdScriptVarScope::var("assert") = MhdScriptVal(assert_);
+    MhdScriptVarScope::var("foreign") = MhdScriptVal(mhd_foreign);
     MhdScriptParser parser(file_text.c_str());
-    auto expr = parser.parse_wrap();
+    auto expr = parser.parse_program_wrap();
     if (expr != nullptr) {
         print({ expr->eval() });
     }

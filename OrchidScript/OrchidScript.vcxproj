@@ -12,6 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OrchidScript.hpp" />
+    <ClInclude Include="OrchidScriptForeign.hpp" />
+    <ClInclude Include="OrchidScriptStd.hpp" />
     <ClInclude Include="OrchidScriptSyntax.hpp" />
     <ClInclude Include="OrchidScriptParser.hpp" />
     <ClInclude Include="OrchidScriptScanner.hpp" />
@@ -21,6 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidScript.cpp" />
+    <ClCompile Include="OrchidScriptForeign.cpp" />
+    <ClCompile Include="OrchidScriptStd.cpp" />
     <ClCompile Include="OrchidScriptSyntax.cpp" />
     <ClCompile Include="OrchidScriptParser.cpp" />
     <ClCompile Include="OrchidScriptScanner.cpp" />

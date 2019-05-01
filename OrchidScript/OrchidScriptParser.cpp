@@ -52,12 +52,13 @@ MHD_INTERFACE
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_wrap()
 {
+    /// Parse statement.
     MhdScriptExpr::Ptr expr;
-    //try {
+    try {
         expr = parse();
-    //} catch (const MhdParseError& parse_exc) {
-    //    printf("%s\n%s\n", parse_exc.what(), m_tokenizer.m_text);
-    //}
+    } catch (const MhdParseError& parse_exc) {
+        printf("%s\n%s\n", parse_exc.what(), m_tokenizer.m_text);
+    }
     return expr;
 }
 //--------------------------------------------------------------------------------------------------------
@@ -83,10 +84,19 @@ MhdScriptParser::parse()
             peek();
             expr = parse_expression_compound();
             return expr;
-        /* Namespace statement. */
+        /* Declaration statement. */
+        case MhdScriptKind::KW_FUNCTION:
+            peek();
+            expr = parse_expression_decl_function();
+            return expr;
+        case MhdScriptKind::KW_STRUCT:
+        case MhdScriptKind::KW_CLASS:
+            peek();
+            expr = parse_expression_decl_struct();
+            return expr;
         case MhdScriptKind::KW_NAMESPACE:
             peek();
-            expr = parse_expression_namespace();
+            expr = parse_expression_decl_namespace();
             return expr;
         /* Selection statement. */
         case MhdScriptKind::KW_IF:
@@ -150,6 +160,38 @@ MhdScriptParser::parse()
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
+MHD_INTERFACE
+MhdScriptExpr::Ptr
+MhdScriptParser::parse_program_wrap()
+{
+    /// Parse program.
+    MhdScriptExpr::Ptr expr;
+    try {
+        expr = parse_program();
+    }
+    catch (const MhdParseError& parse_exc) {
+        printf("%s\n%s\n", parse_exc.what(), m_tokenizer.m_text);
+    }
+    return expr;
+}
+//--------------------------------------------------------------------------------------------------------
+MHD_INTERFACE
+MhdScriptExpr::Ptr
+MhdScriptParser::parse_program()
+{
+    /// Parse program.
+    MhdScriptExpr::Vec exprs;
+    exprs.push_back(parse());
+    while (m_token.m_kind != MhdScriptKind::END) {
+        exprs.push_back(parse());
+    }
+    MhdScriptExpr::Ptr expr;
+    expr = std::make_shared<MhdScriptExprCompound>(exprs);
+    return expr;
+}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 MHD_INTERNAL
 MhdScriptExpr::Ptr 
 MhdScriptParser::parse_expression_compound()
@@ -164,10 +206,69 @@ MhdScriptParser::parse_expression_compound()
     expr = std::make_shared<MhdScriptExprCompound>(exprs);
     return expr; 
 }
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+MHD_INTERNAL
+MhdScriptExpr::Ptr
+MhdScriptParser::parse_expression_decl_function()
+{
+    /// Parse FUNCTION expression.
+    std::string id;
+    if (m_token.m_kind == MhdScriptKind::ID) {
+        id = m_token.m_value_str;
+        peek();
+    } else {
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
+    }
+    MhdScriptExpr::Ptr func;
+    MhdScriptExpr::Ptr expr = std::make_shared<MhdScriptExprIdent>(id, true);
+    while (m_token.m_kind == MhdScriptKind::OP_DOT) {
+        peek();
+        expr = parse_expression_unary_factor_subscript(expr);
+    }
+    func = parse_expression_unary_operand_func();
+    expr = std::make_shared<MhdScriptExprAssignment>(MhdScriptKind::OP_ASG, expr, func);
+    return expr;
+}
 //--------------------------------------------------------------------------------------------------------
 MHD_INTERNAL
-MhdScriptExpr::Ptr 
-MhdScriptParser::parse_expression_namespace()
+MhdScriptExpr::Ptr
+MhdScriptParser::parse_expression_decl_struct()
+{
+    /// Parse STRUCT expression.
+    std::string id;
+    std::string id_base;
+    if (m_token.m_kind == MhdScriptKind::ID) {
+        id = m_token.m_value_str;
+        peek();
+    } else {
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
+    }
+    if (m_token.m_kind == MhdScriptKind::OP_COLON) {
+        peek();
+        if (m_token.m_kind == MhdScriptKind::ID) {
+            id_base = m_token.m_value_str;
+            peek();
+        } else {
+            throw MhdParseUnexpTokenError(m_token, MhdScriptKind::ID);
+        }
+    }
+    if (m_token.m_kind == MhdScriptKind::OP_BRACE_OPEN) {
+        peek();
+    } else {
+        throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACE_OPEN);
+    }
+    while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE) {
+        parse();
+    }
+    peek();
+    return nullptr;
+}
+//--------------------------------------------------------------------------------------------------------
+MHD_INTERNAL
+MhdScriptExpr::Ptr
+MhdScriptParser::parse_expression_decl_namespace()
 {
     /// Parse NAMESPACE expression.
     std::string id;
@@ -180,7 +281,8 @@ MhdScriptParser::parse_expression_namespace()
     }
     if (m_token.m_kind == MhdScriptKind::OP_BRACE_OPEN) {
         peek();
-    } else {
+    }
+    else {
         throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACE_OPEN);
     }
     while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE) {
