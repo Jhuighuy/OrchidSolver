@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <cstdio>
+
 #define ORCHID_ASSERT(...) \
     do { \
         if(!(__VA_ARGS__)) { \

@@ -12,5 +12,5 @@ function A(m, n) {
 };
 
 print(A(3, 3));
-print(A(3, 4));
+//print(A(3, 4));
 //print(A(4, 1));

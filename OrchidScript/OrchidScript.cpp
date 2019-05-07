@@ -3,6 +3,7 @@
 
 #include "OrchidScriptParser.hpp"
 #include "OrchidScriptVar.hpp"
+#include "OrchidScriptVal2.hpp"
 #include "OrchidScriptForeign.hpp"
 
 #include <fstream>
@@ -57,10 +58,8 @@ void orchid_solver_scanner_test() {}
 int main(int argc, char** argv) 
 {
     //auto ss = GetProcAddress(LoadLibraryA("msvcrt.dll"), "sin");
-
-
 #if _MSC_VER
-    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test_basic.mhd");
+    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test__basic.mhd");
 #else
     std::ifstream file(argv[1]);
 #endif

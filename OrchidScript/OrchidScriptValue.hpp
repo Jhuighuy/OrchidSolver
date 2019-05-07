@@ -62,6 +62,31 @@ public:
     MHD_INTERFACE
     ~MhdScriptVal();
 public:
+    MhdScriptVal(Type type)
+        : m_type(type)
+    {
+        switch (m_type) {
+            case MhdScriptVal::Type::LGC:
+                new (&m_val_lgc) std::valarray<bool>(1);
+                break;
+            case MhdScriptVal::Type::INT:
+                new (&m_val_int) std::valarray<int>(1);
+                break;
+            case MhdScriptVal::Type::DBL:
+                new (&m_val_dbl) std::valarray<double>(1);
+                break;
+            case MhdScriptVal::Type::STR:
+                new (&m_val_str) std::string();
+                break;
+            case MhdScriptVal::Type::PTR:
+                new (&m_val_ptr) void* (nullptr);
+                break;
+            default:
+                ORCHID_ASSERT(0);
+                break;
+        }
+    }
+public:
     MhdScriptVal()
         : m_type(Type::PTR)
         , m_val_ptr(nullptr) {}
@@ -143,6 +168,25 @@ public:
         , m_val_ptr(nullptr)
     {
         *this = other;
+    }
+public:
+    MHD_INTERFACE
+    void* data()
+    {
+        switch (m_type) {
+            case MhdScriptVal::Type::LGC:
+                return &m_val_lgc[0];
+            case MhdScriptVal::Type::INT:
+                return &m_val_int[0];
+            case MhdScriptVal::Type::DBL:
+                return &m_val_dbl[0];
+            case MhdScriptVal::Type::STR:
+                return &m_val_str[0];
+            case MhdScriptVal::Type::PTR:
+                return &m_val_ptr;
+            default:
+                return nullptr;
+        }
     }
 public:
     MHD_INTERFACE

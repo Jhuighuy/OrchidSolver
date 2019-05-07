@@ -48,12 +48,30 @@ function a.operator+(this, other) {
     print("overloaded operator+");
     456;
 };
-/* Test foreigns. */
-foreign('void* fopen(char*, char*, int, bool)', '', 3.14);
 +a;
 print(a + a);
 print(a / a);
 a = {};
+/* Test foreigns. */
+function fopen(file, mode)
+{
+	return foreign('void* fopen(char*, char*)', '', file, mode);
+}
+function fputs(file, line)
+{
+	return foreign('int fputs(void*, char*)', '', file, line);
+}
+
+//foreign('int add(int, int)', '', 1, 10);
+//foreign('int puts(char*)', '', 'Hui!');
+f = foreign('void* fopen(char*, char*)', '', 'a.out', 'r');
+print(f);
+f = foreign('void* fopen(char*, char*)', '', 'a.aut', 'r');
+print(f);
+//foreign('int fputs(char*, void*)', '', "123", f);
+//1;
+//f = fopen('1.out', 'w');
+//fputs(f, 'hello!');
 /* Test classes. */
 /*
 class B {
@@ -79,3 +97,52 @@ a = new A(12);
 print(a.f(34), -46);
 print(A.g(4, 2), 2);
 */
+
+namespace std {
+	/**
+	 * Open a file.
+	 * @param path Path to file.
+	 * @param mode Opening mode.
+	 */
+	function fopen(path, mode) {
+		assert(typeof(path) == 'string'));
+		assert(typeof(mode) == 'string'));
+		return foreign('void* fopen(char*, char*)', '', path, mode);
+	}
+	/**
+	 * Close an opened file.
+	 * @param file File to close.
+	 */
+	function fclose(file) {
+		assert(typeof(file) == 'void*');
+		return foreign('int fclose(void*)', '', file);
+	}
+	let file = class();
+	function file.new(this, path, mode) {
+		this.handle_ = stdbase.fopen(path, mode);
+		this;
+	}
+	function file.puts(this, line) {
+		stdbase.
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

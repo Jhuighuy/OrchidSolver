@@ -20,6 +20,7 @@
     <ClInclude Include="OrchidScriptValue.hpp" />
     <ClInclude Include="OrchidScriptValueC.hxx" />
     <ClInclude Include="OrchidScriptVar.hpp" />
+    <ClInclude Include="OrchidScriptVal2.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidScript.cpp" />
@@ -28,6 +29,7 @@
     <ClCompile Include="OrchidScriptSyntax.cpp" />
     <ClCompile Include="OrchidScriptParser.cpp" />
     <ClCompile Include="OrchidScriptScanner.cpp" />
+    <ClCompile Include="OrchidScriptVal2.cpp" />
     <ClCompile Include="OrchidScriptValue.cpp" />
     <ClCompile Include="OrchidScriptValueC.cpp" />
     <ClCompile Include="OrchidScriptVar.cpp" />

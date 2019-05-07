@@ -168,8 +168,7 @@ MhdScriptParser::parse_program_wrap()
     MhdScriptExpr::Ptr expr;
     try {
         expr = parse_program();
-    }
-    catch (const MhdParseError& parse_exc) {
+    } catch (const MhdParseError& parse_exc) {
         printf("%s\n%s\n", parse_exc.what(), m_tokenizer.m_text);
     }
     return expr;
@@ -281,8 +280,7 @@ MhdScriptParser::parse_expression_decl_namespace()
     }
     if (m_token.m_kind == MhdScriptKind::OP_BRACE_OPEN) {
         peek();
-    }
-    else {
+    } else {
         throw MhdParseUnexpTokenError(m_token, MhdScriptKind::OP_BRACE_OPEN);
     }
     while (m_token.m_kind != MhdScriptKind::OP_BRACE_CLOSE) {
