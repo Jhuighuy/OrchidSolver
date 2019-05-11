@@ -58,7 +58,56 @@ private:
     }
     char peek_next()
     {
-        return m_text[m_text_peeked += 1];
+        return m_text[m_text_peeked] == '\0' ? '\0' :
+               m_text[m_text_peeked += 1];
+    }
+private:
+    bool matches_next(char c)
+    {
+        return peek_next() == c;
+    }
+    template<typename T>
+    bool matches_next(const T& func)
+    {
+        return func(peek_next());
+    }
+    template<typename T, typename... Ts>
+    bool matches_next(const T& func, const Ts&... funcs)
+    {
+        return matches_next(func) && matches_next(funcs...);
+    }
+    bool matches(char c)
+    {
+        return peek() == c;
+    }
+    template<typename T>
+    bool matches(const T& func)
+    {
+        return func(peek());
+    }
+    template<typename T, typename... Ts>
+    bool matches(const T& func, const Ts&... funcs)
+    {
+        return matches(func) && matches_next(funcs...);
+    }
+public:
+    template<typename... Ts>
+    bool matched(MhdScriptToken& token, const Ts&... funcs)
+    {
+        if (matches(funcs...)) {
+            advance(token);
+            return true;
+        }
+        return false;
+    }
+    template<typename... Ts>
+    bool make(MhdScriptToken& token, MhdScriptKind kind, const Ts&... funcs)
+    {
+        if (matched(token, funcs...)) {
+            token.m_kind = kind;
+            return true;
+        }
+        return false;
     }
 };	// struct MhdTokenizer
 //########################################################################################################

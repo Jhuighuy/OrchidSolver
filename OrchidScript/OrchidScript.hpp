@@ -27,8 +27,7 @@ enum struct MhdScriptKind : char
     CT_STR,
     CT_INT,
     CT_DBL,
-    CT_LGC,
-    CT_NIL,
+    KW_NULL,
     KW_TRUE,
     KW_FALSE,
     KW_IF,
@@ -53,6 +52,7 @@ enum struct MhdScriptKind : char
     KW_CLASS,
     KW_LET,
     KW_NEW,
+    KW_DELETE,
     OP_DOT,
     OP_COMMA,
     OP_COLON,
@@ -100,6 +100,47 @@ enum struct MhdScriptKind : char
     OP_BRACKET_OPEN,
     OP_BRACKET_CLOSE,
 };	// enum struct MhdScriptKind
+//--------------------------------------------------------------------------------------------------------
+namespace MhdScriptOp {
+static const char* const OP_INC = "operator++";
+static const char* const OP_DEC = "operator--";
+static const char* const OP_ADD = "operator+";
+static const char* const OP_SUB = "operator-";
+static const char* const OP_MUL = "operator*";
+static const char* const OP_DIV = "operator/";
+static const char* const OP_MOD = "operator%";
+static const char* const OP_ADD_ASG = "operator+=";
+static const char* const OP_SUB_ASG = "operator-=";
+static const char* const OP_MUL_ASG = "operator*=";
+static const char* const OP_DIV_ASG = "operator/=";
+static const char* const OP_MOD_ASG = "operator%=";
+static const char* const OP_NOT = "operator!";
+static const char* const OP_NOT_BW = "operator~";
+static const char* const OP_EQ = "operator==";
+static const char* const OP_NEQ = "operator!=";
+static const char* const OP_LT = "operator<";
+static const char* const OP_LTE = "operator<=";
+static const char* const OP_GT = "operator>";
+static const char* const OP_GTE = "operator>=";
+static const char* const OP_LSHIFT = "operator<<";
+static const char* const OP_LSHIFT_ASG = "operator<<=";
+static const char* const OP_RSHIFT = "operator>>";
+static const char* const OP_RSHIFT_ASG = "operator>>=";
+static const char* const OP_AND = "operator&&";
+static const char* const OP_AND_BW = "operator&";
+static const char* const OP_AND_BW_ASG = "operator&=";
+static const char* const OP_OR = "operator||";
+static const char* const OP_OR_BW = "operator|";
+static const char* const OP_OR_BW_ASG = "operator|=";
+static const char* const OP_XOR_BW = "operator^";
+static const char* const OP_XOR_BW_ASG = "operator^=";
+static const char* const OP_CALL = "operator()";
+static const char* const OP_INDEX = "operator[]";
+static const char* const OP_PLUS = "operator{+}";
+static const char* const OP_MINUS = "operator{-}";
+static const char* const OP_INC_POSTFIX = "operator{++}";
+static const char* const OP_DEC_POSTFIX = "operator{--}";
+}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################

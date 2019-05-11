@@ -1,5 +1,5 @@
 // https://en.wikipedia.org/wiki/Ackermann_function
-function A(m, n) {
+A = [](m, n) {
     if (m == 0) {
         return n+1;
     } else {
@@ -12,5 +12,5 @@ function A(m, n) {
 };
 
 print(A(3, 3));
-//print(A(3, 4));
+print(A(3, 4));
 //print(A(4, 1));

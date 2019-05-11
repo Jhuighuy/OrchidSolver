@@ -5,17 +5,29 @@
 
 #include <cstdlib>
 #include <cctype>
+#include <unordered_map>
 
+namespace std {
+    static inline 
+    int isalpha_(int c)
+    {
+        return c == '_' || isalpha(c);
+    }
+    static inline
+    int isalnum_(int c)
+    {
+        return c == '_' || isalnum(c);
+    }
+}
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
 MHD_INTERFACE 
-bool 
-MhdScriptTokenizer::scan(MhdScriptToken& token)
+bool MhdScriptTokenizer::scan(MhdScriptToken& token)
 {
     /// Scan a token.
-    char character;
     token.clear();
+    char character;
     /* Skip a trivia. */
     for (;;) {
         if (character = peek(), std::isspace(character)) {
@@ -300,220 +312,6 @@ MhdScriptTokenizer::scan(MhdScriptToken& token)
 //########################################################################################################
 MHD_INTERNAL 
 bool 
-MhdScriptTokenizer::scan_id(MhdScriptToken& token)
-{
-    /// Scan an idenifier or a keyword.
-    if (peek()      == 't' &&
-        peek_next() == 'r' &&
-        peek_next() == 'u' &&
-        peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::CT_LGC;
-        token.m_value_int = 1;
-        token.m_value_str = "true";
-    } else if (peek()      == 'f' &&
-               peek_next() == 'a' &&
-               peek_next() == 'l' &&
-               peek_next() == 's' &&
-               peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::CT_LGC;
-        token.m_value_int = 0;
-        token.m_value_str = "false";
-    } else if (peek()      == 'i' &&
-               peek_next() == 'f') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_IF;
-        token.m_value_str = "if";
-    } else if (peek()      == 'e' &&
-               peek_next() == 'l' &&
-               peek_next() == 's' &&
-               peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_ELSE;
-        token.m_value_str = "else";
-    } else if (peek()      == 's' &&
-               peek_next() == 'w' &&
-               peek_next() == 'i' &&
-               peek_next() == 't' &&
-               peek_next() == 'c' &&
-               peek_next() == 'h') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_SWITCH;
-        token.m_value_str = "switch";
-    } else if (peek()      == 'c' &&
-               peek_next() == 'a' &&
-               peek_next() == 's' &&
-               peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_CASE;
-        token.m_value_str = "case";
-    } else if (peek()      == 'd' &&
-               peek_next() == 'e' &&
-               peek_next() == 'f' &&
-               peek_next() == 'a' &&
-               peek_next() == 'u' &&
-               peek_next() == 'l' &&
-               peek_next() == 't') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_DEFAULT;
-        token.m_value_str = "default";
-    } else if (peek()      == 'w' &&
-               peek_next() == 'h' &&
-               peek_next() == 'i' &&
-               peek_next() == 'l' &&
-               peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_WHILE;
-        token.m_value_str = "while";
-    } else if (peek()      == 'd' &&
-               peek_next() == 'o') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_DO;
-        token.m_value_str = "do";
-    } else if (peek()      == 'f' &&
-               peek_next() == 'o' &&
-               peek_next() == 'r') {
-        advance(token);
-        if (peek()      == 'e' &&
-            peek_next() == 'a' &&
-            peek_next() == 'c' &&
-            peek_next() == 'h') {
-            advance(token);
-            token.m_kind = MhdScriptKind::KW_FOREACH;
-            token.m_value_str = "foreach";
-        } else {
-            token.m_kind = MhdScriptKind::KW_FOR;
-            token.m_value_str = "for";
-        }
-    } else if (peek()      == 't' &&
-               peek_next() == 'r' &&
-               peek_next() == 'y') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_TRY;
-        token.m_value_str = "try";
-    } else if (peek()      == 'c' &&
-               peek_next() == 'a' &&
-               peek_next() == 't' &&
-               peek_next() == 'c' &&
-               peek_next() == 'h') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_CATCH;
-        token.m_value_str = "catch";
-    } else if (peek()      == 'b' &&
-               peek_next() == 'r' &&
-               peek_next() == 'e' &&
-               peek_next() == 'a' &&
-               peek_next() == 'k') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_BREAK;
-        token.m_value_str = "break";
-    } else if (peek()      == 'c' &&
-               peek_next() == 'o' &&
-               peek_next() == 'n' &&
-               peek_next() == 't' &&
-               peek_next() == 'i' &&
-               peek_next() == 'n' &&
-               peek_next() == 'u' &&
-               peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_CONTINUE;
-        token.m_value_str = "continue";
-    } else if (peek()      == 'r' &&
-               peek_next() == 'e' &&
-               peek_next() == 't' &&
-               peek_next() == 'u' &&
-               peek_next() == 'r' &&
-               peek_next() == 'n') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_RETURN;
-        token.m_value_str = "return";
-    } else if (peek()      == 't' &&
-               peek_next() == 'h' &&
-               peek_next() == 'r' &&
-               peek_next() == 'o' &&
-               peek_next() == 'w') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_THROW;
-        token.m_value_str = "throw";
-    } else if (peek()      == 'o' &&
-               peek_next() == 'p' &&
-               peek_next() == 'e' &&
-               peek_next() == 'r' &&
-               peek_next() == 'a' &&
-               peek_next() == 't' &&
-               peek_next() == 'o' &&
-               peek_next() == 'r') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_OPERATOR;
-        token.m_value_str = "operator";
-    } else if (peek()      == 'n' &&
-               peek_next() == 'a' &&
-               peek_next() == 'm' &&
-               peek_next() == 'e' &&
-               peek_next() == 's' &&
-               peek_next() == 'p' &&
-               peek_next() == 'a' &&
-               peek_next() == 'c' &&
-               peek_next() == 'e') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_NAMESPACE;
-        token.m_value_str = "namespace";
-    } else if (peek()      == 'f' &&
-               peek_next() == 'u' &&
-               peek_next() == 'n' &&
-               peek_next() == 'c' &&
-               peek_next() == 't' &&
-               peek_next() == 'i' &&
-               peek_next() == 'o' &&
-               peek_next() == 'n') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_FUNCTION;
-        token.m_value_str = "namespace";
-    } else if (peek()      == 's' &&
-               peek_next() == 't' &&
-               peek_next() == 'r' &&
-               peek_next() == 'u' &&
-               peek_next() == 'c' &&
-               peek_next() == 't') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_STRUCT;
-        token.m_value_str = "struct";
-    } else if (peek()      == 'c' &&
-               peek_next() == 'l' &&
-               peek_next() == 'a' &&
-               peek_next() == 's' &&
-               peek_next() == 's') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_CLASS;
-        token.m_value_str = "class";
-    } else if (peek()      == 'l' &&
-               peek_next() == 'e' &&
-               peek_next() == 't') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_LET;
-        token.m_value_str = "let";
-    } else if (peek()      == 'n' &&
-               peek_next() == 'e' &&
-               peek_next() == 'w') {
-        advance(token);
-        token.m_kind = MhdScriptKind::KW_NEW;
-        token.m_value_str = "new";
-    }
-    char character = peek();
-    while (character = peek(), std::isalnum(character) ||
-           character == '_' || character == '$') {
-        advance(token);
-        token.m_kind = MhdScriptKind::ID;
-        token.m_value_str.push_back(character);
-    }
-    return true;
-}
-//########################################################################################################
-//########################################################################################################
-//########################################################################################################
-MHD_INTERNAL 
-bool 
 MhdScriptTokenizer::scan_str(MhdScriptToken& token)
 {
     /// Scan a single string token.
@@ -637,6 +435,56 @@ MhdScriptTokenizer::scan_num(MhdScriptToken& token)
             token.m_value_str = "Integer overflow.";
             return false;
         }
+    }
+    return true;
+}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+MHD_INTERNAL 
+bool 
+MhdScriptTokenizer::scan_id(MhdScriptToken& token)
+{
+    /// Scan an idenifier or a keyword.
+    char character = peek();
+    while (character = peek(), std::isalnum(character) ||
+           character == '_' || character == '$') {
+        advance(token);
+        token.m_value_str.push_back(character);
+    }
+    static const std::unordered_map<std::string, MhdScriptKind> keywords{
+        { "null",      MhdScriptKind::KW_NULL      },
+        { "true",      MhdScriptKind::KW_TRUE      },
+        { "false",     MhdScriptKind::KW_FALSE     },
+        { "if",        MhdScriptKind::KW_IF        },
+        { "else",      MhdScriptKind::KW_ELSE      },
+        { "switch",    MhdScriptKind::KW_SWITCH    },
+        { "case",      MhdScriptKind::KW_CASE      },
+        { "default",   MhdScriptKind::KW_DEFAULT   },
+        { "while",     MhdScriptKind::KW_WHILE     },
+        { "do",        MhdScriptKind::KW_DO        },
+        { "for",       MhdScriptKind::KW_FOR       },
+        { "foreach",   MhdScriptKind::KW_FOREACH   },
+        { "try",       MhdScriptKind::KW_TRY       },
+        { "catch",     MhdScriptKind::KW_CATCH     },
+        { "break",     MhdScriptKind::KW_BREAK     },
+        { "continue",  MhdScriptKind::KW_CONTINUE  },
+        { "return",    MhdScriptKind::KW_RETURN    },
+        { "throw",     MhdScriptKind::KW_THROW     },
+        { "operator",  MhdScriptKind::KW_OPERATOR  },
+        { "namespace", MhdScriptKind::KW_NAMESPACE },
+        { "function",  MhdScriptKind::KW_FUNCTION  },
+        { "struct",    MhdScriptKind::KW_STRUCT    },
+        { "class",     MhdScriptKind::KW_CLASS     },
+        { "let",       MhdScriptKind::KW_LET       },
+        { "new",       MhdScriptKind::KW_NEW       },
+        { "delete",    MhdScriptKind::KW_DELETE    },
+    };
+    const auto keyword_iter = keywords.find(token.m_value_str);
+    if (keyword_iter != keywords.cend()) {
+        token.m_kind = keyword_iter->second;
+    } else {
+        token.m_kind = MhdScriptKind::ID;
     }
     return true;
 }

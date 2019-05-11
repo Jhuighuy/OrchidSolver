@@ -90,6 +90,9 @@ public:
     MhdScriptVal()
         : m_type(Type::PTR)
         , m_val_ptr(nullptr) {}
+    explicit MhdScriptVal(std::nullptr_t)
+        : m_type(Type::PTR)
+        , m_val_ptr(nullptr) {}
     explicit MhdScriptVal(void* val)
         : m_type(Type::PTR)
         , m_val_ptr(val) {}

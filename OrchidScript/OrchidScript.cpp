@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 {
     //auto ss = GetProcAddress(LoadLibraryA("msvcrt.dll"), "sin");
 #if _MSC_VER
-    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test__basic.mhd");
+    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test_ackermann.mhd");
 #else
     std::ifstream file(argv[1]);
 #endif

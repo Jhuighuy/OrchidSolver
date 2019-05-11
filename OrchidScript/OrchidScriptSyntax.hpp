@@ -56,9 +56,9 @@ struct MhdScriptExprConst : public MhdScriptExpr
 public:
     MhdScriptVal m_value;
 public:
-    template<typename T>
-    MhdScriptExprConst(const T& value) noexcept
-        : m_value(MhdScriptVal(value)) {}
+    template<typename... T>
+    MhdScriptExprConst(const T&... value) noexcept
+        : m_value(MhdScriptVal(value...)) {}
     MhdScriptExprConst(MhdScriptVal value) noexcept
         : m_value(value) {}
 public:
@@ -240,7 +240,7 @@ struct MhdScriptExprCompound final : public MhdScriptExpr
 public:
     MhdScriptExpr::Vec m_exprs;
 public:
-    MhdScriptExprCompound(const MhdScriptExpr::Vec& exprs) noexcept
+    MhdScriptExprCompound(const MhdScriptExpr::Vec& exprs, bool=true) noexcept
         : m_exprs(exprs) {}
     template<typename... T>
     MhdScriptExprCompound(T... exprs) noexcept
@@ -297,7 +297,7 @@ public:
     MhdScriptExpr::Ptr m_case_default;
 public:
     MhdScriptExprSwitch(MhdScriptExpr::Ptr cond, const MhdScriptExpr::Map& cases, 
-                        MhdScriptExpr::Ptr case_default) noexcept
+                        MhdScriptExpr::Ptr case_default = nullptr) noexcept
         : m_cond(cond)
         , m_cases(cases), m_case_default(case_default) {}
 public:

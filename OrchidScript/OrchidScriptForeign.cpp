@@ -10,6 +10,8 @@
 #include <Windows.h>
 #define WITH_FFI 0
 #endif
+#undef WITH_FFI
+#define WITH_FFI 0
 #ifndef WITH_FFI
 #define WITH_FFI 1
 #endif
@@ -137,6 +139,7 @@ mhd_foreign(const std::vector<MhdScriptVal>& args)
     for (std::size_t i = 0; i < val_args.size(); ++i) {
         val_args[i] = MhdScriptVal::operator_cast(type_args[i].first, val_args[i]);
     }
+#if WITH_FFI
     void* fun_ptr;
     if (name == "fopen") {
         fun_ptr = (void*)fopen1;
@@ -144,7 +147,6 @@ mhd_foreign(const std::vector<MhdScriptVal>& args)
         fun_ptr = (void*)fputs;
     }
     //fun_ptr = (void*)puts;
-#if WITH_FFI
     void* val_ret_ptr;
     ffi_type* val_ret_type;
     /* Prepare FFI return pointer. */
