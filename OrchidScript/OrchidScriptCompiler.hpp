@@ -156,21 +156,21 @@ private:
 private:
     void compile_expression_comma(MhdLangByteCode& bytecode);
     void compile_expression_binary_asg(MhdLangByteCode& bytecode);
-    void compile_expression_ternary(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_binary_or(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_binary_and(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_binary_eq_neq(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_binary_add_sub(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode, bool assigned);
+    void compile_expression_ternary(MhdLangByteCode& bytecode);
+    void compile_expression_binary_or(MhdLangByteCode& bytecode);
+    void compile_expression_binary_and(MhdLangByteCode& bytecode);
+    void compile_expression_binary_eq_neq(MhdLangByteCode& bytecode);
+    void compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode);
+    void compile_expression_binary_add_sub(MhdLangByteCode& bytecode);
+    void compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode);
 private:
-    void compile_expression_unary(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_unary_not(MhdLangByteCode& bytecode, bool assigned);
-    void compile_expression_unary_plus_minus(MhdLangByteCode& bytecode, bool assigned);
+    void compile_expression_unary(MhdLangByteCode& bytecode);
+    void compile_expression_unary_not(MhdLangByteCode& bytecode);
+    void compile_expression_unary_plus_minus(MhdLangByteCode& bytecode);
 private:
     void compile_expression_operand(MhdLangByteCode& bytecode);
 private:
-    void compile_expression_operand_primary(MhdLangByteCode& bytecode, bool assigned);
+    void compile_expression_operand_primary(MhdLangByteCode& bytecode);
     void compile_expression_operand_primary_func();
     void compile_expression_operand_primary_list();
 private:

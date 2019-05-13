@@ -421,11 +421,11 @@ void MhdLangCompiler::compile_expression_ternary(MhdLangByteCode& bytecode)
     } while (false);
 }
 //--------------------------------------------------------------------------------------------------------
-void MhdLangCompiler::compile_expression_binary_or(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_binary_or(MhdLangByteCode& bytecode)
 {
     /// Compile `||` operator.
     /// RHS is evaluated only if LHS is false or is object with an overloaded `||` operator.
-    compile_expression_binary_and(bytecode, assigned);
+    compile_expression_binary_and(bytecode);
     do {
         if (matched(MhdLangKind::OP_OR)) {
             /* @todo Add check for overloaded `||` operator. */
@@ -436,17 +436,17 @@ void MhdLangCompiler::compile_expression_binary_or(MhdLangByteCode& bytecode, bo
             bytecode.emit_code(MhdLangOpcode::LOAD_TRUE);
             bytecode.emit_code(MhdLangOpcode::JUMP);
             bytecode.emit_addr(end_label);
-            compile_expression_binary_and(bytecode, assigned);
+            compile_expression_binary_and(bytecode);
             bytecode.label(end_label);
             continue;
         }
     } while (false);
 }
-void MhdLangCompiler::compile_expression_binary_and(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_binary_and(MhdLangByteCode& bytecode)
 {
     /// Compile `&&` operator.
     /// RHS is evaluated only if LHS is true or is object with an overloaded `&&` operator.
-    compile_expression_binary_eq_neq(bytecode, assigned);
+    compile_expression_binary_eq_neq(bytecode);
     do {
         if (matched(MhdLangKind::OP_AND)) {
             /* @todo Add check for overloaded `&&` operator. */
@@ -458,92 +458,92 @@ void MhdLangCompiler::compile_expression_binary_and(MhdLangByteCode& bytecode, b
             bytecode.emit_code(MhdLangOpcode::JUMP);
             bytecode.emit_addr(end_label);
             bytecode.label(rhs_label);
-            compile_expression_binary_eq_neq(bytecode, assigned);
+            compile_expression_binary_eq_neq(bytecode);
             bytecode.label(end_label);
             continue;
         }
     } while (false);
 }
 //--------------------------------------------------------------------------------------------------------
-void MhdLangCompiler::compile_expression_binary_eq_neq(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_binary_eq_neq(MhdLangByteCode& bytecode)
 {
     /// Compile `==`, `!=` operators.
-    compile_expression_binary_lt_lte_gt_gte(bytecode, assigned);
+    compile_expression_binary_lt_lte_gt_gte(bytecode);
     do {
         if (matched(MhdLangKind::OP_EQ)) {
-            compile_expression_binary_lt_lte_gt_gte(bytecode, assigned);
+            compile_expression_binary_lt_lte_gt_gte(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_EQ);
             continue;
         }
         if (matched(MhdLangKind::OP_NEQ)) {
-            compile_expression_binary_lt_lte_gt_gte(bytecode, assigned);
+            compile_expression_binary_lt_lte_gt_gte(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_NEQ);
             continue;
         }
     } while (false);
 }
-void MhdLangCompiler::compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode)
 {
     /// Compile `&lt;`, `&gt;`, `&lt;=`, `&gt;=` operators.
-    compile_expression_binary_add_sub(bytecode, assigned);
+    compile_expression_binary_add_sub(bytecode);
     do {
         if (matched(MhdLangKind::OP_LT)) {
-            compile_expression_binary_add_sub(bytecode, assigned);
+            compile_expression_binary_add_sub(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_LT);
             continue;
         }
         if (matched(MhdLangKind::OP_GT)) {
-            compile_expression_binary_add_sub(bytecode, assigned);
+            compile_expression_binary_add_sub(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_GT);
             continue;
         }
         if (matched(MhdLangKind::OP_LTE)) {
-            compile_expression_binary_add_sub(bytecode, assigned);
+            compile_expression_binary_add_sub(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_LTE);
             continue;
         }
         if (matched(MhdLangKind::OP_GTE)) {
-            compile_expression_binary_add_sub(bytecode, assigned);
+            compile_expression_binary_add_sub(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_GTE);
             continue;
         }
     } while (false);
 }
 //--------------------------------------------------------------------------------------------------------
-void MhdLangCompiler::compile_expression_binary_add_sub(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_binary_add_sub(MhdLangByteCode& bytecode)
 {
     /// Compile binary `+`, `-` operators.
-    compile_expression_binary_mul_div_mod(bytecode, assigned);
+    compile_expression_binary_mul_div_mod(bytecode);
     do {
         if (matched(MhdLangKind::OP_ADD)) {
-            compile_expression_binary_mul_div_mod(bytecode, assigned);
+            compile_expression_binary_mul_div_mod(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_ADD);
             continue;
         }
         if (matched(MhdLangKind::OP_SUB)) {
-            compile_expression_binary_mul_div_mod(bytecode, assigned);
+            compile_expression_binary_mul_div_mod(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_SUB);
             continue;
         }
     } while (false);
 }
-void MhdLangCompiler::compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode)
 {
     /// Compile `*`, `/`, `%` operators.
-    compile_expression_unary(bytecode, assigned);
+    compile_expression_unary(bytecode);
     do {
         if (matched(MhdLangKind::OP_MUL)) {
-            compile_expression_unary(bytecode, assigned);
+            compile_expression_unary(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_MUL);
             continue;
         }
         if (matched(MhdLangKind::OP_DIV)) {
-            compile_expression_unary(bytecode, assigned);
+            compile_expression_unary(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_DIV);
             continue;
         }
         if (matched(MhdLangKind::OP_MOD)) {
-            compile_expression_unary(bytecode, assigned);
+            compile_expression_unary(bytecode);
             bytecode.emit_code(MhdLangOpcode::OP_MOD);
             continue;
         }
@@ -552,10 +552,10 @@ void MhdLangCompiler::compile_expression_binary_mul_div_mod(MhdLangByteCode& byt
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-void MhdLangCompiler::compile_expression_unary(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_unary(MhdLangByteCode& bytecode)
 {
     /// Compile UNARY expression.
-    /* Logic/Bitwise unary expression. */
+    /* Logic unary expression. */
     if (matches(MhdLangKind::OP_NOT)) {
         compile_expression_unary_not(bytecode);
         return;
@@ -638,38 +638,26 @@ void MhdLangCompiler::compile_expression_operand(MhdLangByteCode& bytecode)
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-void MhdLangCompiler::compile_expression_operand_primary(MhdLangByteCode& bytecode, bool assigned)
+void MhdLangCompiler::compile_expression_operand_primary(MhdLangByteCode& bytecode)
 {
     /// Compile primary operand expression.
     /// Primary operands are constant keywords, like `true`, numeric or string constants,
     /// functions, arrays, lists, maps or identifiers.
     /* Keyword primary operand. */
     if (matched(MhdLangKind::KW_TRUE)) {
-        if (assigned) {
-            unexpected();
-        }
         bytecode.emit_code(MhdLangOpcode::LOAD_TRUE);
         return;
     }
     if (matched(MhdLangKind::KW_FALSE)) {
-        if (assigned) {
-            unexpected();
-        }
         bytecode.emit_code(MhdLangOpcode::LOAD_FALSE);
         return;
     }
     if (matched(MhdLangKind::KW_NULL)) {
-        if (assigned) {
-            unexpected();
-        }
         bytecode.emit_code(MhdLangOpcode::LOAD_NULLPTR);
         return;
     }
     /* Constant primary operand. */
     if (matches(MhdLangKind::CT_INT)) {
-        if (assigned) {
-            unexpected();
-        }
         const unsigned int value{ m_token.m_value_int };
         advance();
         switch (value) {
@@ -691,9 +679,6 @@ void MhdLangCompiler::compile_expression_operand_primary(MhdLangByteCode& byteco
         return;
     }
     if (matches(MhdLangKind::CT_DBL)) {
-        if (assigned) {
-            unexpected();
-        }
         const double value{ m_token.m_value_dbl };
         advance();
         bytecode.emit_code(MhdLangOpcode::LOAD_FP64);
@@ -701,9 +686,6 @@ void MhdLangCompiler::compile_expression_operand_primary(MhdLangByteCode& byteco
         return;
     }
     if (matches(MhdLangKind::CT_STR)) {
-        if (assigned) {
-            unexpected();
-        }
         const std::string value{ m_token.m_value_str };
         advance();
         bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);
@@ -712,17 +694,11 @@ void MhdLangCompiler::compile_expression_operand_primary(MhdLangByteCode& byteco
     }
     /* Function primary operand. */
     if (matched(MhdLangKind::KW_FUNCTION)) {
-        if (assigned) {
-            unexpected();
-        }
         compile_expression_operand_primary_func();
         return;
     }
     if (matched(MhdLangKind::OP_BRACKET_OPEN)) {
         expect(MhdLangKind::OP_BRACKET_CLOSE);
-        if (assigned) {
-            unexpected();
-        }
         compile_expression_operand_primary_func();
         return;
     }

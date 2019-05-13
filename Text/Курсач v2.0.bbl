@@ -1,0 +1,36 @@
+\begin{thebibliography}{1}
+\def\selectlanguageifdefined#1{
+\expandafter\ifx\csname date#1\endcsname\relax
+\else\language\csname l@#1\endcsname\fi}
+\ifx\undefined\url\def\url#1{{\small #1}}\else\fi
+\ifx\undefined\BibUrl\def\BibUrl#1{\url{#1}}\else\fi
+\ifx\undefined\BibAnnote\long\def\BibAnnote#1{(#1)}\else\fi
+\ifx\undefined\BibEmph\def\BibEmph#1{\emph{#1}}\else\fi
+
+\bibitem{ZACHARY1992341}
+\selectlanguageifdefined{russian}
+Zachary~Andrew~L., Colellaz~Phillip. A higher-order godunov method for the
+  equations of ideal magnetohydrodynamics~// Journal of Computational Physics.
+\newblock 1992.
+\newblock Т.~99, {№}~2.
+\newblock {С.}~341 -- 347. URL:
+  http://www.sciencedirect.com/science/article/pii/002199919290213I.
+
+\bibitem{ShengtaiLi}
+\selectlanguageifdefined{russian}
+Li~Shengtai. An HLLC Riemann solver for magneto-hydrodynamics~// Journal of
+  Computational Physics - J COMPUT PHYS.
+\newblock 2005.  02.
+\newblock Т. 203.
+\newblock {С.}~344--357.
+
+\bibitem{MIYOSHI2005315}
+\selectlanguageifdefined{russian}
+Miyoshi~Takahiro, Kusano~Kanya. A multi-state HLL approximate Riemann solver
+  for ideal magnetohydrodynamics~// Journal of Computational Physics.
+\newblock 2005.
+\newblock Т. 208, {№}~1.
+\newblock {С.}~315 -- 344. URL:
+  http://www.sciencedirect.com/science/article/pii/S0021999105001142.
+
+\end{thebibliography}
