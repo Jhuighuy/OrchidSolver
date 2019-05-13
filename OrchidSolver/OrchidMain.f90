@@ -109,7 +109,7 @@ Subroutine print_grid4(ga, g, l)
     Real(8) :: v_x, v_y, v_z, v_l
     Real(8) :: vxy(2), vrp(2), a(2,2), vvv
     Open(NewUnit=output, file='../Results/fields-'//Trim(to_str(l))//'.csv', Status='replace')
-    Write (output, *) 'x,y,z,r,e,u,v,w,bx,by,bz'
+    !Write (output, *) 'x,y,z,r,e,u,v,w,bx,by,bz'
     Do i = ga%ncells_min, ga%ncells_max
        Write(output, '(E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6,A,E12.6)') &
            ga%cells(i)%x, ',', ga%cells(i)%y, ',', ga%cells(i)%z, ',', &
@@ -354,8 +354,8 @@ Program orchid_solver
     Class(MhdHydroSolverDG), Allocatable :: solver
     Class(MhdPoisSolver), Allocatable :: pois
     
-    Call config_test()
-    Stop
+    !Call config_test()
+    !Stop
     
 #ifdef ORCHID_MPI    
     Call MPI_Init(MPI_err)
