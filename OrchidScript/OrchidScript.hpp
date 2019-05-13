@@ -54,6 +54,7 @@ enum struct MhdScriptKind : char
     KW_NEW,
     KW_DELETE,
     OP_DOT,
+    OP_ELLIPSIS,
     OP_COMMA,
     OP_COLON,
     OP_SEMICOLON,

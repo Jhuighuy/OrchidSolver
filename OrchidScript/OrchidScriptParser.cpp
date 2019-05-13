@@ -301,7 +301,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_cond_switch()
             /* End of case. */
             if (matches(MhdScriptKind::KW_CASE,
                         MhdScriptKind::KW_DEFAULT)) {
-                auto expr = std::make_shared<MhdScriptExprCompound>(switch_case_exprs);
+                auto expr = std::make_shared<MhdScriptExprCompound>(switch_case_exprs, false);
                 switch_cases.back().second = expr;
                 break;
             }
@@ -398,7 +398,8 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_loop_foreach()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_try_catch()
 {
-    /// Parse TRY-CATCH expression.
+    /// Parse ``try-catch`` expression.
+    /// Catch section is optional, exception object is also optional.
     MhdScriptExpr::Ptr try_block;
     MhdScriptExpr::Ptr try_catch_block;
     std::string try_catch_arg;
@@ -419,7 +420,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_try_catch()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_break()
 {
-    /// Parse BREAK jump expression.
+    /// Parse ``break`` jump expression.
     if (m_inside_loop == 0 &&
         m_inside_switch == 0) {
         throw MhdParseErrorUnexpBreak(m_token);
@@ -434,7 +435,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_break()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_continue()
 {
-    /// Parse CONTINUE jump expression.
+    /// Parse ``continue`` jump expression.
     if (m_inside_loop == 0) {
         throw MhdParseErrorUnexpContinue(m_token);
     }
@@ -445,7 +446,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_continue()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_return()
 {
-    /// Parse RETURN jump expression.
+    /// Parse ``return`` jump expression.
     if (m_inside_func == 0) {
         throw MhdParseErrorUnexpReturn(m_token);
     }
@@ -460,7 +461,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_return()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_jump_throw()
 {
-    /// Parse THROW jump expression.
+    /// Parse ``try`` jump expression.
     MhdScriptExpr::Ptr expr;
     if (!matched(MhdScriptKind::OP_SEMICOLON)) {
         expr = parse_expression();
@@ -574,8 +575,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_unary()
 {
     /// Parse UNARY expression.
     /* Logic/Bitwise unary expression. */
-    if (matches(MhdScriptKind::OP_NOT,
-                MhdScriptKind::OP_NOT_BW)) {
+    if (matches(MhdScriptKind::OP_NOT)) {
         return parse_expression_unary_not();
     }
     /* Arithmetic unary expression. */
@@ -594,7 +594,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_unary()
         return parse_expression_compound();
     }
     if (matched(MhdScriptKind::OP_PAREN_OPEN)) {
-        MhdScriptExpr::Ptr expr = parse_expression_compound();
+        auto expr{ parse_expression_compound() };
         expect(MhdScriptKind::OP_PAREN_CLOSE);
         return expr;
     }
@@ -626,9 +626,9 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_unary_negate()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand()
 {
-    /// Parse OPERAND expression.
+    /// Parse operand expression.
     MhdScriptExpr::Ptr expr = parse_expression_operand_primary();
-    while (true) {
+    do {
         /* Call expression. */
         if (matched(MhdScriptKind::OP_PAREN_OPEN)) {
             expr = parse_expression_operand_factor_call(expr);
@@ -643,9 +643,8 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand()
             expr = parse_expression_operand_factor_subscript(expr);
             continue;
         }
-        /* No factor. */
-        return expr;
-    }
+    } while (false);
+    return expr;
 }
 //########################################################################################################
 //########################################################################################################
@@ -653,7 +652,9 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_primary()
 {
-    /// Parse primary OPERAND expression.
+    /// Parse primary operand expression.
+    /// Primary operands are constant keywords, like `true`, numeric or string constants,
+    /// functions, arrays, lists, maps or identifiers.
     /* Keyword primary operand. */
     if (matched(MhdScriptKind::KW_TRUE)) {
         return std::make_shared<MhdScriptExprConst>(true);
@@ -666,17 +667,17 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_primary()
     }
     /* Constant primary operand. */
     if (matches(MhdScriptKind::CT_INT)) {
-        auto expr = std::make_shared<MhdScriptExprConst>(m_token.m_value_int);
+        auto expr{ std::make_shared<MhdScriptExprConst>(m_token.m_value_int) };
         advance();
         return expr;
     }
     if (matches(MhdScriptKind::CT_DBL)) {
-        auto expr = std::make_shared<MhdScriptExprConst>(m_token.m_value_dbl);
+        auto expr{ std::make_shared<MhdScriptExprConst>(m_token.m_value_dbl) };
         advance();
         return expr;
     }
     if (matches(MhdScriptKind::CT_STR)) {
-        auto expr = std::make_shared<MhdScriptExprConst>(m_token.m_value_str);
+        auto expr{ std::make_shared<MhdScriptExprConst>(m_token.m_value_str) };
         advance();
         return expr;
     }
@@ -689,14 +690,14 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_primary()
         return parse_expression_operand_primary_func();
     }
     /* Identifier primary operand. */
-    if (matches(MhdScriptKind::ID)) {
-        auto expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str);
+    if (matched(MhdScriptKind::KW_LET)) {
+        expects(MhdScriptKind::ID);
+        auto expr{ std::make_shared<MhdScriptExprIdent>(m_token.m_value_str, true) };
         advance();
         return expr;
     }
-    if (matched(MhdScriptKind::KW_LET)) {
-        expects(MhdScriptKind::ID);
-        auto expr = std::make_shared<MhdScriptExprIdent>(m_token.m_value_str, true);
+    if (matches(MhdScriptKind::ID)) {
+        auto expr{ std::make_shared<MhdScriptExprIdent>(m_token.m_value_str) };
         advance();
         return expr;
     }
@@ -707,7 +708,7 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_primary()
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_primary_func()
 {
-    /// Parse primary FUNCTION OPERAND expression.
+    /// Parse primary function operand expression.
     std::vector<std::string> func_args;
     expect(MhdScriptKind::OP_PAREN_OPEN);
     while (true) {
@@ -774,7 +775,8 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_factor_call(MhdScri
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_factor_index(MhdScriptExpr::Ptr indexed_expr)
 {
-    /// Parse INDEX expression factor.
+    /// Parse index expression factor.
+    /// At least one index is expected.
     MhdScriptExpr::Vec indices;
     while (true) {
         indices.push_back(parse_expression());
@@ -787,14 +789,15 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_factor_index(MhdScr
 MHD_INTERNAL
 MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_factor_subscript(MhdScriptExpr::Ptr indexed_expr)
 {
-    /// Parse SUBSCRIPT expression factor.
+    /// Parse subscript expression factor.
+    /// Subscript factors are translated into the index factors.
     if (matches(MhdScriptKind::ID)) {
-        auto index_expr = std::make_shared<MhdScriptExprConst>(m_token.m_value_str);
+        auto index_expr{ std::make_shared<MhdScriptExprConst>(m_token.m_value_str) };
         advance();
         return std::make_shared<MhdScriptExprIndex>(indexed_expr, MhdScriptExpr::Vec{ index_expr });
     }
     if (matched(MhdScriptKind::KW_OPERATOR)) {
-        auto index_expr = std::make_shared<MhdScriptExprConst>(parse_operator());
+        auto index_expr{ std::make_shared<MhdScriptExprConst>(parse_operator()) };
         return std::make_shared<MhdScriptExprIndex>(indexed_expr, MhdScriptExpr::Vec{ index_expr });
     }
     unexpected();
@@ -806,7 +809,8 @@ MhdScriptExpr::Ptr MhdScriptParser::parse_expression_operand_factor_subscript(Mh
 MHD_INTERNAL
 const char* MhdScriptParser::parse_operator()
 {
-    /// Parse OPERATOR.
+    /// Parse operator.
+    /// Unary or postfix versions of operators (like `+x`, `y--`) are distinguished by the curly braces.
     if (matched(MhdScriptKind::OP_PAREN_OPEN)) {
         expect(MhdScriptKind::OP_PAREN_CLOSE);
         return MhdScriptOp::OP_CALL;

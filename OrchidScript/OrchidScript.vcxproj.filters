@@ -15,9 +15,6 @@
     <ClCompile Include="OrchidScriptSyntax.cpp">
       <Filter>Source\Compiler</Filter>
     </ClCompile>
-    <ClCompile Include="OrchidScriptParser.cpp">
-      <Filter>Source\Compiler</Filter>
-    </ClCompile>
     <ClCompile Include="OrchidScriptScanner.cpp">
       <Filter>Source\Compiler</Filter>
     </ClCompile>
@@ -42,12 +39,15 @@
     <ClCompile Include="OrchidScriptVal2.cpp">
       <Filter>Source\Runtime</Filter>
     </ClCompile>
+    <ClCompile Include="OrchidScriptParser.cpp">
+      <Filter>Source\Compiler</Filter>
+    </ClCompile>
+    <ClCompile Include="OrchidScriptCompiler.cpp">
+      <Filter>Source\Compiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OrchidScriptSyntax.hpp">
-      <Filter>Source\Compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="OrchidScriptParser.hpp">
       <Filter>Source\Compiler</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptScanner.hpp">
@@ -73,6 +73,12 @@
     </ClInclude>
     <ClInclude Include="OrchidScriptVal2.hpp">
       <Filter>Source\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScriptParser.hpp">
+      <Filter>Source\Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="OrchidScriptCompiler.hpp">
+      <Filter>Source\Compiler</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

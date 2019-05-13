@@ -14,8 +14,10 @@ struct MhdScriptToken
 {
 public:
     MhdScriptKind m_kind;
-    int         m_value_int;
-    double      m_value_dbl;
+    union {
+        double  m_value_dbl;
+        int     m_value_int;
+    };
     std::string m_value_str;
     const char* m_loc_file;
     int         m_loc_line;
@@ -23,7 +25,7 @@ public:
 public:
     MhdScriptToken()
         : m_kind(MhdScriptKind::NONE)
-        , m_value_int(0), m_value_dbl(0.0)
+        , m_value_dbl(0.0)
         , m_loc_file("<unknown>"), m_loc_line(1), m_loc_column(0) { }
 public:
     void clear()
