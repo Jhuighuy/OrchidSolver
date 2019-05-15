@@ -5,10 +5,20 @@
 #include "OrchidScriptVar.hpp"
 #include "OrchidScriptVal2.hpp"
 #include "OrchidScriptForeign.hpp"
+#include "OrchidScriptCompiler.hpp"
 
 #include <fstream>
 #include <cstdio>
 
+int main()
+{
+    MhdLangByteCode bytecode;
+    MhdLangCompiler compiler{ "true || (1/0);" };
+    compiler.compile(bytecode);
+    return 0;
+}
+
+#if 0
 MhdScriptVal make_map(const std::vector<MhdScriptVal>&)
 {
     return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>());
@@ -81,3 +91,4 @@ int main(int argc, char** argv)
     }
     return 0;
 }
+#endif

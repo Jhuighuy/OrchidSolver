@@ -8,6 +8,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #ifndef MHD_SCRIPT_SUGAR
 #define MHD_SCRIPT_SUGAR 1
@@ -19,8 +20,14 @@
 
 enum struct MhdLangOpcode : unsigned char
 {
-    NOOP,
+    /** Do nothing. */
+    NOOP = 0x00,
+    /** Discard values on stack. */
     DISCARD_1,
+    DISCARD_2,
+    DISCARD_3,
+    DISCARD_4,
+    /** Load constants onto stack. */
     LOAD_TRUE,
     LOAD_FALSE,
     LOAD_NULLPTR,
@@ -34,10 +41,45 @@ enum struct MhdLangOpcode : unsigned char
     LOAD_FP32,
     LOAD_FP64,
     LOAD_CSTR,
+    LOAD_LIST,
+    LOAD_MAP,
+    /** Duplicate values on top of the stack. */
+    DUP_1X1,
+    DUP_1X2,
+    DUP_2X1,
+    DUP_2X2,
+    /** Perform relative jumps. */
     JUMP,
     JUMP_Z,
     JUMP_NZ,
-    OP_ASG,
+    /** Calls and Indexing. */
+    CALL_0,
+    CALL_1,
+    CALL_2,
+    CALL_3,
+    CALL_N,
+    INDEX_1,
+    INDEX_2,
+    INDEX_3,
+    INDEX_N,
+    INDEX_ASG_1,
+    INDEX_ASG_2,
+    INDEX_ASG_3,
+    INDEX_ASG_N,
+    INDEX_CALL_1_0,
+    INDEX_CALL_1_1,
+    INDEX_CALL_1_2,
+    INDEX_CALL_1_3,
+    INDEX_CALL_1_N,
+    INDEX_CALL_2_0,
+    INDEX_CALL_2_1,
+    INDEX_CALL_2_2,
+    INDEX_CALL_2_3,
+    INDEX_CALL_2_N,
+    INDEX_CALL_M_N,
+    /** Reference variables to separate stack. */
+    REF_CSTR,
+    /** Operators. */
     OP_NOT,
     OP_PLUS,
     OP_MINUS,
@@ -54,28 +96,79 @@ enum struct MhdLangOpcode : unsigned char
     OP_MUL,
     OP_DIV,
     OP_MOD,
-    OP_ADD_ASG,
-    OP_SUB_ASG,
-    OP_MUL_ASG,
-    OP_DIV_ASG,
-    OP_MOD_ASG,
-};
+    /** Assignment operators, L-value is assumed to be on reference stack. */
+    OPREF_ASG,
+    OPREF_ADD_ASG,
+    OPREF_SUB_ASG,
+    OPREF_MUL_ASG,
+    OPREF_DIV_ASG,
+    OPREF_MOD_ASG,
+    /** Extra opcodes. */
+    OP_EXTRA,
+};  // enum struct MhdLangOpcode
+static_assert(static_cast<int>(MhdLangOpcode::OP_EXTRA) <= 0xFF,
+    "Opcode overflow.");
+
 struct MhdLangByteCodeLabel
 {
+    std::vector<std::uint32_t*> references;
+    std::uint32_t value = 0;
     MhdLangByteCodeLabel() {}
+    ~MhdLangByteCodeLabel()
+    {
+        for (auto ref : references) {
+            *ref = value;
+        }
+    }
 };
-struct MhdLangByteCode
+struct MhdLangByteCode : public std::vector<std::uint8_t>
 {
-    void emit_ui8 (unsigned) {}
-    void emit_ui16(unsigned) {}
-    void emit_ui32(unsigned) {}
-    void emit_fp32(float) {}
-    void emit_fp64(double) {}
-    void emit_cstr(const char*) {}
-    void emit_code(MhdLangOpcode) {}
-    void emit_code(MhdLangOpcode, MhdLangByteCodeLabel&) {}
-    void emit_addr(MhdLangByteCodeLabel&) {}
-    void label(MhdLangByteCodeLabel&) {}
+    MhdLangByteCode()
+    {
+        reserve(1000000);
+    }
+    void emit_ui8 (std::uint8_t v) 
+    {
+        this->push_back(v);
+    }
+    void emit_ui16(std::uint16_t v) 
+    {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+    void emit_ui32(std::uint32_t v) 
+    {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+    void emit_fp32(float v) 
+    {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+    void emit_fp64(double v) 
+    {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+    void emit_cstr(const char* v) 
+    {
+        insert(end(), v, v + strlen(v) + 1);
+    }
+    void emit_code(MhdLangOpcode v) 
+    {
+        emit_ui8(static_cast<std::uint8_t>(v));
+    }
+    void emit_addr(MhdLangByteCodeLabel& label) 
+    {
+        label.references.push_back(reinterpret_cast<std::uint32_t*>(&back() + 1));
+        emit_ui32(0);
+    }
+public:
+    void label(MhdLangByteCodeLabel& label)
+    {
+        label.value = size();
+    }
 };
 
 //########################################################################################################
@@ -124,7 +217,7 @@ public:
     MHD_INTERFACE
     void compile(MhdLangByteCode& bytecode);
     MHD_INTERFACE
-    void compile_wrap();
+    void compile_wrap(MhdLangByteCode& bytecode);
 public:
     MHD_INTERFACE
     void compile_program(MhdLangByteCode& bytecode);
@@ -171,8 +264,9 @@ private:
     void compile_expression_operand(MhdLangByteCode& bytecode);
 private:
     void compile_expression_operand_primary(MhdLangByteCode& bytecode);
-    void compile_expression_operand_primary_func();
-    void compile_expression_operand_primary_list();
+    void compile_expression_operand_primary_list(MhdLangByteCode& bytecode);
+    void compile_expression_operand_primary_map(MhdLangByteCode& bytecode);
+    void compile_expression_operand_primary_func(MhdLangByteCode& bytecode);
 private:
     void compile_expression_operand_factor_call(MhdLangByteCode& bytecode);
     void compile_expression_operand_factor_index(MhdLangByteCode& bytecode);
@@ -187,6 +281,7 @@ private:
             throw MhdCompileError(m_token, m_token.m_value_str);
         }
     }
+private:
     bool matches(MhdScriptKind kind) const
     {
         return m_token.m_kind == kind;
@@ -196,21 +291,18 @@ private:
     {
         return matches(kind) || matches(kinds...);
     }
-    bool matched(MhdScriptKind kind)
-    {
-        /// Peek a next token on a match.
-        if (m_token.m_kind == kind) {
-            advance();
-            return true;
-        }
-        return false;
-    }
+private:
     template<typename... T>
     bool matched(MhdScriptKind kind, T... kinds)
     {
         /// Peek a next token on a match.
-        return matched(kind) || matched(kinds...);
+        if (matches(kind, kinds...)) {
+            advance();
+            return true;
+        }
+        return false;;
     }
+private:
     template<typename... T>
     void expect(MhdScriptKind kind, T... kinds)
     {

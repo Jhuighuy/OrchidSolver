@@ -15,8 +15,9 @@ struct MhdScriptToken
 public:
     MhdScriptKind m_kind;
     union {
-        double  m_value_dbl;
+        unsigned int     m_value_uint;
         int     m_value_int;
+        double  m_value_dbl;
     };
     std::string m_value_str;
     const char* m_loc_file;
