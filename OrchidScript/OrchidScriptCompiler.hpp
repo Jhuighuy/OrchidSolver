@@ -7,6 +7,7 @@
 #include "OrchidScriptScanner.hpp"
 
 #include <stdexcept>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -18,96 +19,121 @@
 #define MHD_SCRIPT_BITWISE 0
 #endif
 
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+#define MHD_LANG_OPCODES \
+    /** Do nothing. */ \
+    OP(NOOP) \
+    /** Perform relative jumps. */ \
+    OP(JUMP) \
+    OP(JUMP_Z) \
+    OP(JUMP_NZ) \
+    OP(RET) \
+    /** Discard values on stack. */ \
+    OP(DISCARD_1) \
+    OP(DISCARD_2) \
+    OP(DISCARD_3) \
+    OP(DISCARD_4) \
+    /** Duplicate values on top of the stack. */ \
+    OP(DUP_1X1) \
+    OP(DUP_1X2) \
+    OP(DUP_2X1) \
+    OP(DUP_2X2) \
+    /** Load constants onto stack. */ \
+    OP(LOAD_TRUE) \
+    OP(LOAD_FALSE) \
+    OP(LOAD_NULLPTR) \
+    OP(LOAD_UI_0) \
+    OP(LOAD_UI_1) \
+    OP(LOAD_UI_2) \
+    OP(LOAD_UI_3) \
+    OP(LOAD_UI8) \
+    OP(LOAD_UI16) \
+    OP(LOAD_UI32) \
+    OP(LOAD_FP32) \
+    OP(LOAD_FP64) \
+    OP(LOAD_CSTR) \
+    OP(LOAD_LIST) \
+    OP(LOAD_MAP) \
+    OP(LOAD_FUNC) \
+    OP(LOAD_REF) \
+    OP(LOAD_VAR_CSTR) \
+    /** Calls and Indexing. */ \
+    OP(CALL_0) \
+    OP(CALL_1) \
+    OP(CALL_2) \
+    OP(CALL_3) \
+    OP(CALL_N) \
+    OP(INDEX_1) \
+    OP(INDEX_2) \
+    OP(INDEX_3) \
+    OP(INDEX_N) \
+    OP(INDEXCALL_0) \
+    OP(INDEXCALL_1) \
+    OP(INDEXCALL_2) \
+    OP(INDEXCALL_3) \
+    OP(INDEXCALL_N) \
+    OP(INDEX_CALL_0) \
+    OP(INDEX_CALL_1) \
+    OP(INDEX_CALL_2) \
+    OP(INDEX_CALL_3) \
+    OP(INDEX_CALL_N) \
+    /** Store variables. */ \
+    OP(STORE_VAR_CSTR) \
+    OP(STORE_INDEX_1) \
+    OP(STORE_INDEX_2) \
+    OP(STORE_INDEX_3) \
+    OP(STORE_INDEX_4) \
+    /** Reference variables to separate stack. */ \
+    OP(REF_CSTR) \
+    OP(REF_DISCARD) \
+    /** Operators. */ \
+    OP(OP_NOT) \
+    OP(OP_PLUS) \
+    OP(OP_MINUS) \
+    OP(OP_OR) \
+    OP(OP_AND) \
+    OP(OP_EQ) \
+    OP(OP_NEQ) \
+    OP(OP_LT) \
+    OP(OP_GT) \
+    OP(OP_LTE) \
+    OP(OP_GTE) \
+    OP(OP_ADD) \
+    OP(OP_SUB) \
+    OP(OP_MUL) \
+    OP(OP_DIV) \
+    OP(OP_MOD) \
+    OP(OP_ADD_ASG) \
+    OP(OP_SUB_ASG) \
+    OP(OP_MUL_ASG) \
+    OP(OP_DIV_ASG) \
+    OP(OP_MOD_ASG) \
+    /** Assignment operators, L-value is assumed to be on reference stack. */ \
+    OP(OPREF_ASG) \
+    OP(OPREF_ADD_ASG) \
+    OP(OPREF_SUB_ASG) \
+    OP(OPREF_MUL_ASG) \
+    OP(OPREF_DIV_ASG) \
+    OP(OPREF_MOD_ASG) \
+    /** Debug opcodes. */ \
+    OP(DEBUG_PRINT) \
+    /** Extra opcodes. */ \
+    OP(EXTRA)
+
 enum struct MhdLangOpcode : unsigned char
 {
-    /** Do nothing. */
-    NOOP = 0x00,
-    /** Discard values on stack. */
-    DISCARD_1,
-    DISCARD_2,
-    DISCARD_3,
-    DISCARD_4,
-    /** Load constants onto stack. */
-    LOAD_TRUE,
-    LOAD_FALSE,
-    LOAD_NULLPTR,
-    LOAD_UI_0,
-    LOAD_UI_1,
-    LOAD_UI_2,
-    LOAD_UI_3,
-    LOAD_UI8,
-    LOAD_UI16,
-    LOAD_UI32,
-    LOAD_FP32,
-    LOAD_FP64,
-    LOAD_CSTR,
-    LOAD_LIST,
-    LOAD_MAP,
-    /** Duplicate values on top of the stack. */
-    DUP_1X1,
-    DUP_1X2,
-    DUP_2X1,
-    DUP_2X2,
-    /** Perform relative jumps. */
-    JUMP,
-    JUMP_Z,
-    JUMP_NZ,
-    /** Calls and Indexing. */
-    CALL_0,
-    CALL_1,
-    CALL_2,
-    CALL_3,
-    CALL_N,
-    INDEX_1,
-    INDEX_2,
-    INDEX_3,
-    INDEX_N,
-    INDEX_ASG_1,
-    INDEX_ASG_2,
-    INDEX_ASG_3,
-    INDEX_ASG_N,
-    INDEX_CALL_1_0,
-    INDEX_CALL_1_1,
-    INDEX_CALL_1_2,
-    INDEX_CALL_1_3,
-    INDEX_CALL_1_N,
-    INDEX_CALL_2_0,
-    INDEX_CALL_2_1,
-    INDEX_CALL_2_2,
-    INDEX_CALL_2_3,
-    INDEX_CALL_2_N,
-    INDEX_CALL_M_N,
-    /** Reference variables to separate stack. */
-    REF_CSTR,
-    /** Operators. */
-    OP_NOT,
-    OP_PLUS,
-    OP_MINUS,
-    OP_OR,
-    OP_AND,
-    OP_EQ,
-    OP_NEQ,
-    OP_LT,
-    OP_GT,
-    OP_LTE,
-    OP_GTE,
-    OP_ADD,
-    OP_SUB,
-    OP_MUL,
-    OP_DIV,
-    OP_MOD,
-    /** Assignment operators, L-value is assumed to be on reference stack. */
-    OPREF_ASG,
-    OPREF_ADD_ASG,
-    OPREF_SUB_ASG,
-    OPREF_MUL_ASG,
-    OPREF_DIV_ASG,
-    OPREF_MOD_ASG,
-    /** Extra opcodes. */
-    OP_EXTRA,
+#define OP(opcode) opcode,
+    MHD_LANG_OPCODES
+#undef OP
 };  // enum struct MhdLangOpcode
-static_assert(static_cast<int>(MhdLangOpcode::OP_EXTRA) <= 0xFF,
+static_assert(static_cast<int>(MhdLangOpcode::EXTRA) <= 0xFF,
     "Opcode overflow.");
+
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
 
 struct MhdLangByteCodeLabel
 {
@@ -123,6 +149,7 @@ struct MhdLangByteCodeLabel
 };
 struct MhdLangByteCode : public std::vector<std::uint8_t>
 {
+public:
     MhdLangByteCode()
     {
         reserve(1000000);
@@ -226,6 +253,7 @@ public:
 private:
     void compile_expression_compound(MhdLangByteCode& bytecode);
 private:
+    void compile_expression_decl_var(MhdLangByteCode& bytecode);
     void compile_expression_decl_function(MhdLangByteCode& bytecode);
     void compile_expression_decl_class(MhdLangByteCode& bytecode);
     void compile_expression_decl_namespace(MhdLangByteCode& bytecode);
@@ -246,10 +274,12 @@ private:
     void compile_expression_jump_throw(MhdLangByteCode& bytecode);
 private:
     void compile_expression(MhdLangByteCode& bytecode);
-private:
     void compile_expression_comma(MhdLangByteCode& bytecode);
+private:
     void compile_expression_binary_asg(MhdLangByteCode& bytecode);
-    void compile_expression_ternary(MhdLangByteCode& bytecode);
+    bool compile_expression_binary_asg_end(MhdLangByteCode& bytecode, ...);
+private:
+    void compile_expression_ternary(MhdLangByteCode& bytecode, bool compile_lhs = true);
     void compile_expression_binary_or(MhdLangByteCode& bytecode);
     void compile_expression_binary_and(MhdLangByteCode& bytecode);
     void compile_expression_binary_eq_neq(MhdLangByteCode& bytecode);
@@ -261,16 +291,16 @@ private:
     void compile_expression_unary_not(MhdLangByteCode& bytecode);
     void compile_expression_unary_plus_minus(MhdLangByteCode& bytecode);
 private:
-    void compile_expression_operand(MhdLangByteCode& bytecode);
+    bool compile_expression_operand(MhdLangByteCode& bytecode, bool asg = true);
 private:
-    void compile_expression_operand_primary(MhdLangByteCode& bytecode);
+    bool compile_expression_operand_primary(MhdLangByteCode& bytecode, bool parse_assignment = false);
     void compile_expression_operand_primary_list(MhdLangByteCode& bytecode);
     void compile_expression_operand_primary_map(MhdLangByteCode& bytecode);
     void compile_expression_operand_primary_func(MhdLangByteCode& bytecode);
 private:
     void compile_expression_operand_factor_call(MhdLangByteCode& bytecode);
-    void compile_expression_operand_factor_index(MhdLangByteCode& bytecode);
-    void compile_expression_operand_factor_subscript(MhdLangByteCode& bytecode);
+    bool compile_expression_operand_factor_index(MhdLangByteCode& bytecode, bool assignment);
+    bool compile_expression_operand_factor_subscript(MhdLangByteCode& bytecode, bool assignment);
 private:
     const char* compile_operator();
 private:
@@ -291,6 +321,12 @@ private:
     {
         return matches(kind) || matches(kinds...);
     }
+    bool matches_op_asg() const
+    {
+        return matches(MhdLangKind::OP_ADD_ASG, MhdLangKind::OP_SUB_ASG,
+                       MhdLangKind::OP_MUL_ASG, MhdLangKind::OP_DIV_ASG,
+                       MhdLangKind::OP_MOD_ASG);
+    }
 private:
     template<typename... T>
     bool matched(MhdScriptKind kind, T... kinds)
@@ -300,7 +336,7 @@ private:
             advance();
             return true;
         }
-        return false;;
+        return false;
     }
 private:
     template<typename... T>

@@ -12,25 +12,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="OrchidScriptSyntax.cpp">
-      <Filter>Source\Compiler</Filter>
-    </ClCompile>
     <ClCompile Include="OrchidScriptScanner.cpp">
       <Filter>Source\Compiler</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScriptValue.cpp">
       <Filter>Source\Runtime</Filter>
     </ClCompile>
-    <ClCompile Include="OrchidScriptValueC.cpp">
-      <Filter>Source\Runtime</Filter>
-    </ClCompile>
     <ClCompile Include="OrchidScriptVar.cpp">
-      <Filter>Source\Runtime</Filter>
-    </ClCompile>
-    <ClCompile Include="OrchidScriptStd.cpp">
-      <Filter>Source\Runtime</Filter>
-    </ClCompile>
-    <ClCompile Include="OrchidScriptForeign.cpp">
       <Filter>Source\Runtime</Filter>
     </ClCompile>
     <ClCompile Include="OrchidScript.cpp">
@@ -39,22 +27,13 @@
     <ClCompile Include="OrchidScriptVal2.cpp">
       <Filter>Source\Runtime</Filter>
     </ClCompile>
-    <ClCompile Include="OrchidScriptParser.cpp">
-      <Filter>Source\Compiler</Filter>
-    </ClCompile>
     <ClCompile Include="OrchidScriptCompiler.cpp">
       <Filter>Source\Compiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="OrchidScriptSyntax.hpp">
-      <Filter>Source\Compiler</Filter>
-    </ClInclude>
     <ClInclude Include="OrchidScriptScanner.hpp">
       <Filter>Source\Compiler</Filter>
-    </ClInclude>
-    <ClInclude Include="OrchidScriptValueC.hxx">
-      <Filter>Source\Runtime</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptValue.hpp">
       <Filter>Source\Runtime</Filter>
@@ -65,17 +44,8 @@
     <ClInclude Include="OrchidScript.hpp">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="OrchidScriptStd.hpp">
-      <Filter>Source\Runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="OrchidScriptForeign.hpp">
-      <Filter>Source\Runtime</Filter>
-    </ClInclude>
     <ClInclude Include="OrchidScriptVal2.hpp">
       <Filter>Source\Runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="OrchidScriptParser.hpp">
-      <Filter>Source\Compiler</Filter>
     </ClInclude>
     <ClInclude Include="OrchidScriptCompiler.hpp">
       <Filter>Source\Compiler</Filter>

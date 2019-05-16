@@ -1,24 +1,47 @@
 // Orchid -- 2D / 3D Euler / MagnetoHydroDynamics solver.
 // Copyright(C) Butakov Oleg 2019.
 
-#include "OrchidScriptParser.hpp"
-#include "OrchidScriptVar.hpp"
-#include "OrchidScriptVal2.hpp"
-#include "OrchidScriptForeign.hpp"
 #include "OrchidScriptCompiler.hpp"
+#include "OrchidScriptVM.hpp"
 
 #include <fstream>
 #include <cstdio>
 
 int main()
 {
+    MhdScriptVarScope::var("print") = MhdScriptVal(print);
     MhdLangByteCode bytecode;
-    MhdLangCompiler compiler{ "true || (1/0);" };
-    compiler.compile(bytecode);
+    MhdLangCompiler compiler{ R"(
+// https://en.wikipedia.org/wiki/Ackermann_function
+let A = function(m, n) {
+    if (m == 0) {
+        return n+1;
+    } else {
+        if (n == 0) {
+            return A(m-1, 1);
+        } else {
+            return A(m-1, A(m, n-1));
+        }
+    }
+};
+
+print(A(3, 3));
+print(A(3, 4));
+print(A(4, 1));
+    )" };
+    MhdLangVM vm;
+    compiler.compile_program(bytecode);
+    vm.m_bytecode = bytecode;
+    vm.interpret();
     return 0;
 }
 
 #if 0
+#include "OrchidScriptParser.hpp"
+#include "OrchidScriptVar.hpp"
+#include "OrchidScriptVal2.hpp"
+#include "OrchidScriptForeign.hpp"
+
 MhdScriptVal make_map(const std::vector<MhdScriptVal>&)
 {
     return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>());

@@ -13,27 +13,17 @@
   <ItemGroup>
     <ClInclude Include="OrchidScript.hpp" />
     <ClInclude Include="OrchidScriptCompiler.hpp" />
-    <ClInclude Include="OrchidScriptForeign.hpp" />
-    <ClInclude Include="OrchidScriptStd.hpp" />
-    <ClInclude Include="OrchidScriptSyntax.hpp" />
-    <ClInclude Include="OrchidScriptParser.hpp" />
     <ClInclude Include="OrchidScriptScanner.hpp" />
     <ClInclude Include="OrchidScriptValue.hpp" />
-    <ClInclude Include="OrchidScriptValueC.hxx" />
     <ClInclude Include="OrchidScriptVar.hpp" />
     <ClInclude Include="OrchidScriptVal2.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidScript.cpp" />
     <ClCompile Include="OrchidScriptCompiler.cpp" />
-    <ClCompile Include="OrchidScriptForeign.cpp" />
-    <ClCompile Include="OrchidScriptStd.cpp" />
-    <ClCompile Include="OrchidScriptSyntax.cpp" />
-    <ClCompile Include="OrchidScriptParser.cpp" />
     <ClCompile Include="OrchidScriptScanner.cpp" />
     <ClCompile Include="OrchidScriptVal2.cpp" />
     <ClCompile Include="OrchidScriptValue.cpp" />
-    <ClCompile Include="OrchidScriptValueC.cpp" />
     <ClCompile Include="OrchidScriptVar.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

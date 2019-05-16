@@ -105,6 +105,8 @@ public:
     explicit MhdScriptVal(int val)
         : m_type(Type::INT)
         , m_val_int(&val, 1) {}
+    explicit MhdScriptVal(unsigned int val)
+        : MhdScriptVal((int)val) {}
     explicit MhdScriptVal(const std::valarray<int>& val)
         : m_type(Type::INT)
         , m_val_int(val) {}
