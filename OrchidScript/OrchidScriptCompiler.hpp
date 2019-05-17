@@ -7,9 +7,12 @@
 #include "OrchidScriptScanner.hpp"
 
 #include <stdexcept>
+#include <type_traits>
 #include <cstring>
 #include <string>
 #include <vector>
+
+using MhdLangKind = MhdScriptKind;
 
 #ifndef MHD_SCRIPT_SUGAR
 #define MHD_SCRIPT_SUGAR 1
@@ -18,6 +21,72 @@
 #ifndef MHD_SCRIPT_BITWISE
 #define MHD_SCRIPT_BITWISE 0
 #endif
+
+#define MHD_LANG_KINDS \
+    KIND(NONE,             ""                  ) \
+    KIND(END,              "<end>"             ) \
+    KIND(ID,               "<id>"              ) \
+    KIND(CT_STR,           "<string-constant>" ) \
+    KIND(CT_INT,           "<integer-constant>") \
+    KIND(CT_DBL,           "<double-constant>" ) \
+    KIND(KW_NULL,          "null"              ) \
+    KIND(KW_TRUE,          "true"              ) \
+    KIND(KW_FALSE,         "false"             ) \
+    KIND(KW_IF,            "if"                ) \
+    KIND(KW_ELSE,          "else"              ) \
+    KIND(KW_SWITCH,        "switch"            ) \
+    KIND(KW_CASE,          "case"              ) \
+    KIND(KW_DEFAULT,       "default"           ) \
+    KIND(KW_DO,            "do"                ) \
+    KIND(KW_WHILE,         "while"             ) \
+    KIND(KW_FOR,           "for"               ) \
+    KIND(KW_FOREACH,       "foreach"           ) \
+    KIND(KW_TRY,           "try"               ) \
+    KIND(KW_CATCH,         "catch"             ) \
+    KIND(KW_BREAK,         "break"             ) \
+    KIND(KW_CONTINUE,      "continue"          ) \
+    KIND(KW_RETURN,        "return"            ) \
+    KIND(KW_THROW,         "throw"             ) \
+    KIND(KW_OPERATOR,      "operator"          ) \
+    KIND(KW_NAMESPACE,     "namespace"         ) \
+    KIND(KW_FUNCTION,      "function"          ) \
+    KIND(KW_STRUCT,        "struct"            ) \
+    KIND(KW_CLASS,         "class"             ) \
+    KIND(KW_LET,           "let"               ) \
+    KIND(KW_NEW,           "new"               ) \
+    KIND(KW_DELETE,        "delete"            ) \
+    KIND(OP_DOT,           "."                 ) \
+    KIND(OP_ELLIPSIS,      "..."               ) \
+    KIND(OP_COLON,         ":"                 ) \
+    KIND(OP_COMMA,         ","                 ) \
+    KIND(OP_SEMICOLON,     ";"                 ) \
+    KIND(OP_QUESTION,      "?"                 ) \
+    KIND(OP_NOT,           "!"                 ) \
+    KIND(OP_EQ,            "=="                ) \
+    KIND(OP_NEQ,           "!="                ) \
+    KIND(OP_LT,            "<"                 ) \
+    KIND(OP_LTE,           "<="                ) \
+    KIND(OP_GT,            ">"                 ) \
+    KIND(OP_GTE,           ">="                ) \
+    KIND(OP_ADD,           "+"                 ) \
+    KIND(OP_SUB,           "-"                 ) \
+    KIND(OP_MUL,           "*"                 ) \
+    KIND(OP_DIV,           "/"                 ) \
+    KIND(OP_MOD,           "%"                 ) \
+    KIND(OP_ASG,           "="                 ) \
+    KIND(OP_ADD_ASG,       "+="                ) \
+    KIND(OP_SUB_ASG,       "-="                ) \
+    KIND(OP_MUL_ASG,       "*="                ) \
+    KIND(OP_DIV_ASG,       "/="                ) \
+    KIND(OP_MUL_ASG,       "%="                ) \
+    KIND(OP_INC,           "++"                ) \
+    KIND(OP_DEC,           "--"                ) \
+    KIND(OP_PAREN_OPEN,    "("                 ) \
+    KIND(OP_PAREN_CLOSE,   ")"                 ) \
+    KIND(OP_BRACE_OPEN,    "{"                 ) \
+    KIND(OP_BRACE_CLOSE,   "}"                 ) \
+    KIND(OP_BRACKET_OPEN,  "["                 ) \
+    KIND(OP_BRACKET_CLOSE, "]"                 ) \
 
 //########################################################################################################
 //########################################################################################################
@@ -37,8 +106,10 @@
     OP(DISCARD_4) \
     /** Duplicate values on top of the stack. */ \
     OP(DUP_1X1) \
-    OP(DUP_1X2) \
     OP(DUP_2X1) \
+    OP(DUP_3X1) \
+    OP(DUP_NX1) \
+    OP(DUP_1X2) \
     OP(DUP_2X2) \
     /** Load constants onto stack. */ \
     OP(LOAD_TRUE) \
@@ -84,7 +155,7 @@
     OP(STORE_INDEX_1) \
     OP(STORE_INDEX_2) \
     OP(STORE_INDEX_3) \
-    OP(STORE_INDEX_4) \
+    OP(STORE_INDEX_N) \
     /** Reference variables to separate stack. */ \
     OP(REF_CSTR) \
     OP(REF_DISCARD) \
@@ -130,6 +201,11 @@ enum struct MhdLangOpcode : unsigned char
 };  // enum struct MhdLangOpcode
 static_assert(static_cast<int>(MhdLangOpcode::EXTRA) <= 0xFF,
     "Opcode overflow.");
+static const char* MhdLangOpcodeNames[] = {
+#define OP(opcode) #opcode,
+    MHD_LANG_OPCODES
+#undef OP
+};
 
 //########################################################################################################
 //########################################################################################################
@@ -154,6 +230,14 @@ public:
     {
         reserve(1000000);
     }
+public:
+    template<MhdLangOpcode opcode>
+    typename std::enable_if_t<opcode == MhdLangOpcode::CALL_N> 
+    emit(const std::uint16_t num_args) {
+
+    }
+
+public:
     void emit_ui8 (std::uint8_t v) 
     {
         this->push_back(v);
@@ -191,6 +275,8 @@ public:
         label.references.push_back(reinterpret_cast<std::uint32_t*>(&back() + 1));
         emit_ui32(0);
     }
+
+
 public:
     void label(MhdLangByteCodeLabel& label)
     {
@@ -277,32 +363,108 @@ private:
     void compile_expression_comma(MhdLangByteCode& bytecode);
 private:
     void compile_expression_binary_asg(MhdLangByteCode& bytecode);
-    bool compile_expression_binary_asg_end(MhdLangByteCode& bytecode, ...);
 private:
-    void compile_expression_ternary(MhdLangByteCode& bytecode, bool compile_lhs = true);
-    void compile_expression_binary_or(MhdLangByteCode& bytecode);
-    void compile_expression_binary_and(MhdLangByteCode& bytecode);
-    void compile_expression_binary_eq_neq(MhdLangByteCode& bytecode);
-    void compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode);
-    void compile_expression_binary_add_sub(MhdLangByteCode& bytecode);
-    void compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode);
+    void compile_expression_ternary(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_binary_or(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_binary_and(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_binary_eq_neq(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_binary_add_sub(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode, bool can_assign = false);
 private:
-    void compile_expression_unary(MhdLangByteCode& bytecode);
+    void compile_expression_unary(MhdLangByteCode& bytecode, bool can_assign = false);
     void compile_expression_unary_not(MhdLangByteCode& bytecode);
     void compile_expression_unary_plus_minus(MhdLangByteCode& bytecode);
 private:
-    bool compile_expression_operand(MhdLangByteCode& bytecode, bool asg = true);
+    void compile_operand(MhdLangByteCode& bytecode, bool can_assign = false);
 private:
-    bool compile_expression_operand_primary(MhdLangByteCode& bytecode, bool parse_assignment = false);
-    void compile_expression_operand_primary_list(MhdLangByteCode& bytecode);
-    void compile_expression_operand_primary_map(MhdLangByteCode& bytecode);
-    void compile_expression_operand_primary_func(MhdLangByteCode& bytecode);
+    void compile_operand_primary(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_operand_primary_list(MhdLangByteCode& bytecode);
+    void compile_operand_primary_map(MhdLangByteCode& bytecode);
+    void compile_operand_primary_func(MhdLangByteCode& bytecode);
 private:
-    void compile_expression_operand_factor_call(MhdLangByteCode& bytecode);
-    bool compile_expression_operand_factor_index(MhdLangByteCode& bytecode, bool assignment);
-    bool compile_expression_operand_factor_subscript(MhdLangByteCode& bytecode, bool assignment);
+    void compile_operand_factor_call(MhdLangByteCode& bytecode);
+    void compile_operand_factor_index(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_operand_factor_index_dot(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_operand_factor_index_end(MhdLangByteCode& bytecode, std::uint16_t num_indices = 1, bool can_assign = false);
 private:
     const char* compile_operator();
+private:
+    static void emit_dupx1(MhdLangByteCode& bytecode, std::uint16_t num_dups)
+    {
+        switch (num_dups) {
+            case 1:
+                bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+                return;
+            case 2:
+                bytecode.emit_code(MhdLangOpcode::DUP_2X1);
+                return;
+            case 3:
+                bytecode.emit_code(MhdLangOpcode::DUP_3X1);
+                return;
+            default:
+                bytecode.emit_code(MhdLangOpcode::DUP_NX1);
+                bytecode.emit_ui16(num_dups);
+                return;
+        }
+    }
+    static void emit_call(MhdLangByteCode& bytecode, std::uint16_t num_args)
+    {
+        switch (num_args) {
+            case 0:
+                bytecode.emit_code(MhdLangOpcode::CALL_0);
+                return;
+            case 1:
+                bytecode.emit_code(MhdLangOpcode::CALL_1);
+                return;
+            case 2:
+                bytecode.emit_code(MhdLangOpcode::CALL_2);
+                return;
+            case 3:
+                bytecode.emit_code(MhdLangOpcode::CALL_3);
+                return;
+            default:
+                bytecode.emit_code(MhdLangOpcode::CALL_N);
+                bytecode.emit_ui16(num_args);
+                return;
+        }
+    }
+    static void emit_index(MhdLangByteCode& bytecode, std::uint16_t num_indices)
+    {
+        switch (num_indices) {
+            case 1:
+                bytecode.emit_code(MhdLangOpcode::INDEX_1);
+                return;
+            case 2:
+                bytecode.emit_code(MhdLangOpcode::INDEX_2);
+                return;
+            case 3:
+                bytecode.emit_code(MhdLangOpcode::INDEX_3);
+                return;
+            default:
+                bytecode.emit_code(MhdLangOpcode::INDEX_N);
+                bytecode.emit_ui16(num_indices);
+                return;
+        }
+    }
+    static void emit_index_store(MhdLangByteCode& bytecode, std::uint16_t num_indices)
+    {
+        switch (num_indices) {
+            case 1:
+                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_1);
+                return;
+            case 2:
+                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_2);
+                return;
+            case 3:
+                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_3);
+                return;
+            default:
+                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_N);
+                bytecode.emit_ui16(num_indices);
+                return;
+        }
+    }
 private:
     void advance()
     {

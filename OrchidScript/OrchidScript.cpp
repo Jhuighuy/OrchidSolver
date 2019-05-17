@@ -7,49 +7,9 @@
 #include <fstream>
 #include <cstdio>
 
-int main()
-{
-    MhdScriptVarScope::var("print") = MhdScriptVal(print);
-    MhdLangByteCode bytecode;
-    MhdLangCompiler compiler{ R"(
-// https://en.wikipedia.org/wiki/Ackermann_function
-let A = function(m, n) {
-    if (m == 0) {
-        return n+1;
-    } else {
-        if (n == 0) {
-            return A(m-1, 1);
-        } else {
-            return A(m-1, A(m, n-1));
-        }
-    }
-};
-
-print(A(3, 3));
-print(A(3, 4));
-print(A(4, 1));
-    )" };
-    MhdLangVM vm;
-    compiler.compile_program(bytecode);
-    vm.m_bytecode = bytecode;
-    vm.interpret();
-    return 0;
-}
-
-#if 0
-#include "OrchidScriptParser.hpp"
-#include "OrchidScriptVar.hpp"
-#include "OrchidScriptVal2.hpp"
-#include "OrchidScriptForeign.hpp"
-
 MhdScriptVal make_map(const std::vector<MhdScriptVal>&)
 {
     return MhdScriptVal(std::map<MhdScriptVal, MhdScriptVal>());
-}
-MhdScriptVal print(const std::vector<MhdScriptVal>& args)
-{
-    puts(args[0].operator std::string().c_str());
-    return MhdScriptVal();
 }
 MhdScriptVal type(const std::vector<MhdScriptVal>& args)
 {
@@ -92,7 +52,7 @@ int main(int argc, char** argv)
 {
     //auto ss = GetProcAddress(LoadLibraryA("msvcrt.dll"), "sin");
 #if _MSC_VER
-    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test_ackermann.mhd");
+    std::ifstream file(/*argv[1]*/"../OrchidScript/test/test__basic.mhd");
 #else
     std::ifstream file(argv[1]);
 #endif
@@ -106,12 +66,11 @@ int main(int argc, char** argv)
     MhdScriptVarScope::var("print") = MhdScriptVal(print);
     MhdScriptVarScope::var("typeof") = MhdScriptVal(type);
     MhdScriptVarScope::var("assert") = MhdScriptVal(assert_);
-    MhdScriptVarScope::var("foreign") = MhdScriptVal(mhd_foreign);
-    MhdScriptParser parser(file_text.c_str());
-    auto expr = parser.parse_program_wrap();
-    if (expr != nullptr) {
-        print({ expr->eval() });
-    }
+    MhdLangByteCode bytecode;
+    MhdLangCompiler compiler{ file_text.c_str() };
+    MhdLangVM vm;
+    compiler.compile_program(bytecode);
+    vm.m_bytecode = bytecode;
+    vm.interpret();
     return 0;
 }
-#endif

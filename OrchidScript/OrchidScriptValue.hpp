@@ -229,6 +229,10 @@ public:
     {
         return operator_arithmetic(MhdScriptKind::OP_MOD, *this, other);
     }
+    MhdScriptVal& operator+=(const MhdScriptVal& other)
+    {
+        return *this = *this + other;
+    }
 public:
     MHD_INTERFACE
     static MhdScriptVal operator_logical(MhdScriptKind op,

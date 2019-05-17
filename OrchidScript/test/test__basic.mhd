@@ -21,17 +21,24 @@ a[1] = a;
 // Test comment.
 print(a);
 print(b);
-/* Test conditional statements. */
+// Test conditional statements.
 if (1) {} else {assert(false);}
 if (0) {assert(false);} else {}
-/* Check try-catch. */
+a = make_map();
+print(a);
+a[1] = "Hui";
+print(a);
+a[1] += "Penis";
+print(a);
+/*
+// Check try-catch. 
 try {
     throw 'a bone';
 } catch (what) {
     print('caught');
     assert(what == 'a bone');
 }
-/* Test operators overloading. */
+// Test operators overloading.
 a = make_map();
 a.destruct = [](this) {
     print("dtor");
@@ -51,7 +58,7 @@ function a.operator+(this, other) {
 print(a + a);
 print(a / a);
 a = {};
-
+*/
 
 //foreign('int add(int, int)', '', 1, 10);
 //foreign('int puts(char*)', '', 'Hui!');

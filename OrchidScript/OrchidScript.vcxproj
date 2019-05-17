@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -17,6 +17,7 @@
     <ClInclude Include="OrchidScriptValue.hpp" />
     <ClInclude Include="OrchidScriptVar.hpp" />
     <ClInclude Include="OrchidScriptVal2.hpp" />
+    <ClInclude Include="OrchidScriptVM.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OrchidScript.cpp" />
