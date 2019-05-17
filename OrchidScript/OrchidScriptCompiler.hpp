@@ -365,12 +365,12 @@ private:
     void compile_expression_binary_asg(MhdLangByteCode& bytecode);
 private:
     void compile_expression_ternary(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_expression_binary_or(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_expression_binary_and(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_expression_binary_eq_neq(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_expression_binary_lt_lte_gt_gte(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_expression_binary_add_sub(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_expression_binary_mul_div_mod(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_or(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_and(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_eq_neq(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_lt_lte_gt_gte(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_add_sub(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_expression_mul_div_mod(MhdLangByteCode& bytecode, bool can_assign = false);
 private:
     void compile_expression_unary(MhdLangByteCode& bytecode, bool can_assign = false);
     void compile_expression_unary_not(MhdLangByteCode& bytecode);
