@@ -220,14 +220,14 @@ void MhdLangVM::interpret()
     CASE(JUMP)
         m_ip = decode_ui32();
         BREAK()
-    CASE(JUMP_Z)
+    CASE(JUMP_IF_FALSE)
         if (pop()) {
             decode_ui32();
         } else {
             m_ip = decode_ui32();
         }
         BREAK()
-    CASE(JUMP_NZ)
+    CASE(JUMP_IF_TRUE)
         if (pop()) {
             m_ip = decode_ui32();
         } else {

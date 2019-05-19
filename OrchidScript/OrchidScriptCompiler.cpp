@@ -10,27 +10,113 @@
 
 namespace MhdLangOp = MhdScriptOp;
 
-class MhdIncDec
-{
-    int& m_val;
-public:
-    MhdIncDec(int& val)
-        : m_val(val) { ++m_val; }
-    ~MhdIncDec() { --m_val; }
-};  // class MhdIncDec
-
 #define MhdCompileUnexpTokenError(a,...) MhdCompileError(a)
 #define MhdCompileErrorUnexpContinue(a,...) MhdCompileError(a)
 #define MhdCompileErrorUnexpBreak(a,...) MhdCompileError(a)
 #define MhdCompileErrorUnexpReturn(a,...) MhdCompileError(a)
 
-static const std::unordered_map<MhdLangKind, MhdLangOpcode> assignment_op{
-    { MhdLangKind::OP_ADD_ASG, MhdLangOpcode::OP_ADD_ASG },
-    { MhdLangKind::OP_SUB_ASG, MhdLangOpcode::OP_SUB_ASG },
-    { MhdLangKind::OP_MUL_ASG, MhdLangOpcode::OP_MUL_ASG },
-    { MhdLangKind::OP_DIV_ASG, MhdLangOpcode::OP_DIV_ASG },
-    { MhdLangKind::OP_MOD_ASG, MhdLangOpcode::OP_MOD_ASG },
-};
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+static void emit_dupx1(MhdLangByteCode& bytecode, std::uint16_t num_dups)
+{
+    switch (num_dups) {
+    case 1:
+        bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+        return;
+    case 2:
+        bytecode.emit_code(MhdLangOpcode::DUP_2X1);
+        return;
+    case 3:
+        bytecode.emit_code(MhdLangOpcode::DUP_3X1);
+        return;
+    }
+    bytecode.emit_code(MhdLangOpcode::DUP_NX1);
+    bytecode.emit_ui16(num_dups);
+}
+//--------------------------------------------------------------------------------------------------------
+static void emit_call(MhdLangByteCode& bytecode, std::uint16_t num_args)
+{
+    /// Emit optimised `call` instruction.
+    switch (num_args) {
+    case 0:
+        bytecode.emit_code(MhdLangOpcode::CALL_0);
+        return;
+    case 1:
+        bytecode.emit_code(MhdLangOpcode::CALL_1);
+        return;
+    case 2:
+        bytecode.emit_code(MhdLangOpcode::CALL_2);
+        return;
+    case 3:
+        bytecode.emit_code(MhdLangOpcode::CALL_3);
+        return;
+    }
+    bytecode.emit_code(MhdLangOpcode::CALL_N);
+    bytecode.emit_ui16(num_args);
+}
+static void emit_index_call(MhdLangByteCode& bytecode, std::uint16_t num_args)
+{
+    /// Emit optimised `call` instruction.
+    switch (num_args) {
+        case 0:
+            bytecode.emit_code(MhdLangOpcode::INDEXCALL_0);
+            return;
+        case 1:
+            bytecode.emit_code(MhdLangOpcode::INDEXCALL_1);
+            return;
+        case 2:
+            bytecode.emit_code(MhdLangOpcode::INDEXCALL_2);
+            return;
+        case 3:
+            bytecode.emit_code(MhdLangOpcode::INDEXCALL_3);
+            return;
+    }
+    bytecode.emit_code(MhdLangOpcode::INDEXCALL_N);
+    bytecode.emit_ui16(num_args);
+}
+//--------------------------------------------------------------------------------------------------------
+static void emit_index(MhdLangByteCode& bytecode, std::uint16_t num_indices)
+{
+    /// Emit optimised `index` instruction.
+    ORCHID_ASSERT(num_indices > 0);
+    switch (num_indices) {
+    case 1:
+        bytecode.emit_code(MhdLangOpcode::INDEX_1);
+        return;
+    case 2:
+        bytecode.emit_code(MhdLangOpcode::INDEX_2);
+        return;
+    case 3:
+        bytecode.emit_code(MhdLangOpcode::INDEX_3);
+        return;
+    }
+    bytecode.emit_code(MhdLangOpcode::INDEX_N);
+    bytecode.emit_ui16(num_indices);
+}
+static void emit_index_store(MhdLangByteCode& bytecode, std::uint16_t num_indices)
+{
+    /// Emit optimised `index_store` instruction.
+    ORCHID_ASSERT(num_indices > 0);
+    switch (num_indices) {
+    case 1:
+        bytecode.emit_code(MhdLangOpcode::STORE_INDEX_1);
+        return;
+    case 2:
+        bytecode.emit_code(MhdLangOpcode::STORE_INDEX_2);
+        return;
+    case 3:
+        bytecode.emit_code(MhdLangOpcode::STORE_INDEX_3);
+        return;
+    }
+    bytecode.emit_code(MhdLangOpcode::STORE_INDEX_N);
+    bytecode.emit_ui16(num_indices);
+}
+//########################################################################################################
+//########################################################################################################
+//########################################################################################################
+
+
 
 //########################################################################################################
 //########################################################################################################
@@ -207,13 +293,11 @@ void MhdLangCompiler::compile_expression_cond_if(MhdLangByteCode& bytecode)
     expect(MhdLangKind::OP_PAREN_OPEN);
     compile_expression_comma(bytecode);
     expect(MhdLangKind::OP_PAREN_CLOSE);
-    bytecode.emit_code(MhdLangOpcode::JUMP_Z);
-    bytecode.emit_addr(else_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP_IF_FALSE, else_label);
     compile(bytecode);
     if (matched(MhdLangKind::KW_ELSE)) {
         MhdLangByteCodeLabel end_label{};
-        bytecode.emit_code(MhdLangOpcode::JUMP);
-        bytecode.emit_addr(end_label);
+        bytecode.emit_jump(MhdLangOpcode::JUMP, end_label);
         bytecode.label(else_label);
         compile(bytecode);
         bytecode.label(end_label);
@@ -272,8 +356,7 @@ void MhdLangCompiler::compile_expression_loop_do(MhdLangByteCode& bytecode)
     compile_expression_comma(bytecode);
     expect(MhdLangKind::OP_PAREN_CLOSE);
     expect(MhdLangKind::OP_SEMICOLON);
-    bytecode.emit_code(MhdLangOpcode::JUMP_NZ);
-    bytecode.emit_addr(start_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP_IF_TRUE, start_label);
     bytecode.label(end_label);
 }
 void MhdLangCompiler::compile_expression_loop_while(MhdLangByteCode& bytecode)
@@ -285,11 +368,9 @@ void MhdLangCompiler::compile_expression_loop_while(MhdLangByteCode& bytecode)
     expect(MhdLangKind::OP_PAREN_OPEN);
     compile_expression_comma(bytecode);
     expect(MhdLangKind::OP_PAREN_CLOSE);
-    bytecode.emit_code(MhdLangOpcode::JUMP_Z);
-    bytecode.emit_addr(end_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP_IF_FALSE, end_label);
     compile(bytecode);
-    bytecode.emit_code(MhdLangOpcode::JUMP);
-    bytecode.emit_addr(start_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP, start_label);
     bytecode.label(end_label);
 }
 //--------------------------------------------------------------------------------------------------------
@@ -307,28 +388,23 @@ void MhdLangCompiler::compile_expression_loop_for(MhdLangByteCode& bytecode)
     if (!matched(MhdLangKind::OP_SEMICOLON)) {
         compile_expression_comma(bytecode);
         expect(MhdLangKind::OP_SEMICOLON);
-        bytecode.emit_code(MhdLangOpcode::JUMP_Z);
-        bytecode.emit_addr(end_label);
+        bytecode.emit_jump(MhdLangOpcode::JUMP_IF_FALSE, end_label);
     } 
     if (!matched(MhdLangKind::OP_PAREN_CLOSE)) {
         MhdLangByteCodeLabel body_label{};
         MhdLangByteCodeLabel iter_label{};
-        bytecode.emit_code(MhdLangOpcode::JUMP);
-        bytecode.emit_addr(body_label);
+        bytecode.emit_jump(MhdLangOpcode::JUMP, body_label);
         bytecode.label(iter_label);
         compile_expression_comma(bytecode);
         expect(MhdLangKind::OP_PAREN_CLOSE);
         bytecode.emit_code(MhdLangOpcode::DISCARD_1);
-        bytecode.emit_code(MhdLangOpcode::JUMP);
-        bytecode.emit_addr(start_label);
+        bytecode.emit_jump(MhdLangOpcode::JUMP, start_label);
         bytecode.label(body_label);
         compile(bytecode);
-        bytecode.emit_code(MhdLangOpcode::JUMP);
-        bytecode.emit_addr(iter_label);
+        bytecode.emit_jump(MhdLangOpcode::JUMP, iter_label);
     } else {
         compile(bytecode);
-        bytecode.emit_code(MhdLangOpcode::JUMP);
-        bytecode.emit_addr(start_label);
+        bytecode.emit_jump(MhdLangOpcode::JUMP, start_label);
     }
     bytecode.label(end_label);
 }
@@ -342,10 +418,10 @@ void MhdLangCompiler::compile_expression_loop_foreach(MhdLangByteCode& bytecode)
     expect(MhdLangKind::OP_COLON);
     compile_expression(bytecode);
     bytecode.emit_code(MhdLangOpcode::DUP_1X1);
-    bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);   /* b = y.end(); */
+    bytecode.emit_load(MhdLangOpcode::LOAD_CSTR);   /* b = y.end(); */
     bytecode.emit_cstr("end");
     bytecode.emit_code(MhdLangOpcode::INDEX_CALL_0);
-    bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);   /* a = y.begin(); */
+    bytecode.emit_load(MhdLangOpcode::LOAD_CSTR);   /* a = y.begin(); */
     bytecode.emit_cstr("begin");
     bytecode.emit_code(MhdLangOpcode::INDEX_CALL_0);
     MhdLangByteCodeLabel start_label{};
@@ -353,21 +429,19 @@ void MhdLangCompiler::compile_expression_loop_foreach(MhdLangByteCode& bytecode)
     bytecode.label(start_label);
     bytecode.emit_code(MhdLangOpcode::DUP_2X1);
     bytecode.emit_code(MhdLangOpcode::OP_NEQ);
-    bytecode.emit_code(MhdLangOpcode::JUMP_Z);
-    bytecode.emit_addr(end_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP_IF_FALSE, end_label);
     bytecode.emit_code(MhdLangOpcode::DUP_1X1);
-    bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);   /* x = a.value(); */
+    bytecode.emit_load(MhdLangOpcode::LOAD_CSTR);   /* x = a.value(); */
     bytecode.emit_cstr("value");
     bytecode.emit_code(MhdLangOpcode::INDEX_CALL_0);
     bytecode.emit_code(MhdLangOpcode::REF_CSTR);
     bytecode.emit_cstr(ident.c_str());
     bytecode.emit_code(MhdLangOpcode::OPREF_ASG);
     compile(bytecode);
-    bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);   /* a.advance(); */
+    bytecode.emit_load(MhdLangOpcode::LOAD_CSTR);   /* a.advance(); */
     bytecode.emit_cstr("advance");
     bytecode.emit_code(MhdLangOpcode::INDEX_CALL_0);
-    bytecode.emit_code(MhdLangOpcode::JUMP);
-    bytecode.emit_addr(start_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP, start_label);
     bytecode.emit_code(MhdLangOpcode::DISCARD_2);
     bytecode.label(end_label);
 }
@@ -408,7 +482,7 @@ void MhdLangCompiler::compile_expression_jump_return(MhdLangByteCode& bytecode)
 {
     /// Compile `return x;` jump expression.
     if (matched(MhdLangKind::OP_SEMICOLON)) {
-        bytecode.emit_code(MhdLangOpcode::LOAD_NULLPTR);
+        bytecode.emit_load(MhdLangOpcode::LOAD_NULLPTR);
     } else {
         compile_expression(bytecode);
         expect(MhdLangKind::OP_SEMICOLON);
@@ -458,11 +532,9 @@ void MhdLangCompiler::compile_expression_ternary(MhdLangByteCode& bytecode, bool
         if (matched(MhdLangKind::OP_QUESTION)) {
             MhdLangByteCodeLabel else_label{};
             MhdLangByteCodeLabel end_label{};
-            bytecode.emit_code(MhdLangOpcode::JUMP_Z);
-            bytecode.emit_addr(else_label);
+            bytecode.emit_jump(MhdLangOpcode::JUMP_IF_FALSE, else_label);
             compile_expression(bytecode);
-            bytecode.emit_code(MhdLangOpcode::JUMP);
-            bytecode.emit_addr(end_label);
+            bytecode.emit_jump(MhdLangOpcode::JUMP, end_label);
             bytecode.label(else_label);
             expect(MhdLangKind::OP_COLON);
             compile_expression(bytecode);
@@ -483,11 +555,9 @@ void MhdLangCompiler::compile_expression_or(MhdLangByteCode& bytecode, bool can_
             /* @todo Add check for overloaded `||` operator. */
             MhdLangByteCodeLabel rhs_label{};
             MhdLangByteCodeLabel end_label{};
-            bytecode.emit_code(MhdLangOpcode::JUMP_Z);
-            bytecode.emit_addr(rhs_label);
-            bytecode.emit_code(MhdLangOpcode::LOAD_TRUE);
-            bytecode.emit_code(MhdLangOpcode::JUMP);
-            bytecode.emit_addr(end_label);
+            bytecode.emit_jump(MhdLangOpcode::JUMP_IF_FALSE, rhs_label);
+            bytecode.emit_load(MhdLangOpcode::LOAD_TRUE);
+            bytecode.emit_jump(MhdLangOpcode::JUMP, end_label);
             bytecode.label(rhs_label);
             compile_expression_and(bytecode);
             bytecode.label(end_label);
@@ -506,11 +576,9 @@ void MhdLangCompiler::compile_expression_and(MhdLangByteCode& bytecode, bool can
             /* @todo Add check for overloaded `&&` operator. */
             MhdLangByteCodeLabel rhs_label{};
             MhdLangByteCodeLabel end_label{};
-            bytecode.emit_code(MhdLangOpcode::JUMP_NZ);
-            bytecode.emit_addr(rhs_label);
-            bytecode.emit_code(MhdLangOpcode::LOAD_FALSE);
-            bytecode.emit_code(MhdLangOpcode::JUMP);
-            bytecode.emit_addr(end_label);
+            bytecode.emit_jump(MhdLangOpcode::JUMP_IF_TRUE, rhs_label);
+            bytecode.emit_load(MhdLangOpcode::LOAD_FALSE);
+            bytecode.emit_jump(MhdLangOpcode::JUMP, end_label);
             bytecode.label(rhs_label);
             compile_expression_eq_neq(bytecode);
             bytecode.label(end_label);
@@ -670,16 +738,16 @@ void MhdLangCompiler::compile_operand(MhdLangByteCode& bytecode, bool can_assign
     while (true) {
         /* Call expression factor. */
         if (matched(MhdLangKind::OP_PAREN_OPEN)) {
-            compile_operand_factor_call(bytecode);
+            compile_factor_call(bytecode);
             continue;
         }
         /* Index expression factor. */
         if (matched(MhdLangKind::OP_BRACKET_OPEN)) {
-            compile_operand_factor_index(bytecode, can_assign);
+            compile_factor_index(bytecode, can_assign);
             continue;
         }
         if (matched(MhdLangKind::OP_DOT)) {
-            compile_operand_factor_index_dot(bytecode, can_assign);
+            compile_factor_indexdot(bytecode, can_assign);
             continue;
         }
         break;
@@ -695,51 +763,34 @@ void MhdLangCompiler::compile_operand_primary(MhdLangByteCode& bytecode, bool ca
     /// functions, arrays, lists, maps or identifiers.
     /* Keyword primary operand. */
     if (matched(MhdLangKind::KW_TRUE)) {
-        bytecode.emit_code(MhdLangOpcode::LOAD_TRUE);
+        bytecode.emit_load(MhdLangOpcode::LOAD_TRUE);
         return;
     }
     if (matched(MhdLangKind::KW_FALSE)) {
-        bytecode.emit_code(MhdLangOpcode::LOAD_FALSE);
+        bytecode.emit_load(MhdLangOpcode::LOAD_FALSE);
         return;
     }
     if (matched(MhdLangKind::KW_NULL)) {
-        bytecode.emit_code(MhdLangOpcode::LOAD_NULLPTR);
+        bytecode.emit_load(MhdLangOpcode::LOAD_NULLPTR);
         return;
     }
     /* Constant primary operand. */
     if (matches(MhdLangKind::CT_INT)) {
-        const unsigned int value{ m_token.m_value_uint };
+        const std::uint32_t value{ m_token.m_value_uint };
         advance();
-        switch (value) {
-        case 0:
-            bytecode.emit_code(MhdLangOpcode::LOAD_UI_0);
-            return;
-        case 1:
-            bytecode.emit_code(MhdLangOpcode::LOAD_UI_1);
-            return;
-        case 2:
-            bytecode.emit_code(MhdLangOpcode::LOAD_UI_2);
-            return;
-        case 3:
-            bytecode.emit_code(MhdLangOpcode::LOAD_UI_3);
-            return;
-        }
-        bytecode.emit_code(MhdLangOpcode::LOAD_UI32);
-        bytecode.emit_ui32(value);
+        bytecode.emit_load(MhdLangOpcode::LOAD_UI32, value);
         return;
     }
     if (matches(MhdLangKind::CT_DBL)) {
         const double value{ m_token.m_value_dbl };
         advance();
-        bytecode.emit_code(MhdLangOpcode::LOAD_FP64);
-        bytecode.emit_fp64(value);
+        bytecode.emit_load(MhdLangOpcode::LOAD_FP64, value);
         return;
     }
     if (matches(MhdLangKind::CT_STR)) {
         const std::string value{ m_token.m_value_str };
         advance();
-        bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);
-        bytecode.emit_cstr(value.c_str());
+        bytecode.emit_load(MhdLangOpcode::LOAD_CSTR, value);
         return;
     }
     /* List/Map primary operand. */
@@ -772,9 +823,49 @@ void MhdLangCompiler::compile_operand_primary(MhdLangByteCode& bytecode, bool ca
             bytecode.emit_cstr(ident.c_str());
             return;
         }
+        /* Assignment with operation. */
+        if (can_assign && matched(MhdLangKind::OP_ADD_ASG)) {
+            bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+            compile_expression(bytecode);
+            bytecode.emit_code(MhdLangOpcode::OP_ADD_ASG);
+            bytecode.emit_code(MhdLangOpcode::STORE_VAR_CSTR);
+            bytecode.emit_cstr(ident.c_str());
+            return;
+        }
+        if (can_assign && matched(MhdLangKind::OP_SUB_ASG)) {
+            bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+            compile_expression(bytecode);
+            bytecode.emit_code(MhdLangOpcode::OP_SUB_ASG);
+            bytecode.emit_code(MhdLangOpcode::STORE_VAR_CSTR);
+            bytecode.emit_cstr(ident.c_str());
+            return;
+        }
+        if (can_assign && matched(MhdLangKind::OP_MUL_ASG)) {
+            bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+            compile_expression(bytecode);
+            bytecode.emit_code(MhdLangOpcode::OP_MUL_ASG);
+            bytecode.emit_code(MhdLangOpcode::STORE_VAR_CSTR);
+            bytecode.emit_cstr(ident.c_str());
+            return;
+        }
+        if (can_assign && matched(MhdLangKind::OP_DIV_ASG)) {
+            bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+            compile_expression(bytecode);
+            bytecode.emit_code(MhdLangOpcode::OP_DIV_ASG);
+            bytecode.emit_code(MhdLangOpcode::STORE_VAR_CSTR);
+            bytecode.emit_cstr(ident.c_str());
+            return;
+        }
+        if (can_assign && matched(MhdLangKind::OP_MOD_ASG)) {
+            bytecode.emit_code(MhdLangOpcode::DUP_1X1);
+            compile_expression(bytecode);
+            bytecode.emit_code(MhdLangOpcode::OP_MOD_ASG);
+            bytecode.emit_code(MhdLangOpcode::STORE_VAR_CSTR);
+            bytecode.emit_cstr(ident.c_str());
+            return;
+        }
         /* No assignment. */
-        bytecode.emit_code(MhdLangOpcode::LOAD_VAR_CSTR);
-        bytecode.emit_cstr(ident.c_str());
+        bytecode.emit_load(MhdLangOpcode::LOAD_VAR_CSTR, ident);
         return;
     }
     unexpected();
@@ -793,8 +884,8 @@ void MhdLangCompiler::compile_operand_primary_map(MhdLangByteCode& bytecode)
 //--------------------------------------------------------------------------------------------------------
 void MhdLangCompiler::compile_operand_primary_func(MhdLangByteCode& bytecode)
 {
-    /// Compile function operand `[](){}`.
-    /// Arguments are assumed to be passed in direct order.
+    /// Compile function operand `function(){}`.
+    /// Arguments are assumed to be passed in direct order on stack.
     std::vector<std::string> func_args;
     expect(MhdLangKind::OP_PAREN_OPEN);
     while (true) {
@@ -815,27 +906,24 @@ void MhdLangCompiler::compile_operand_primary_func(MhdLangByteCode& bytecode)
     }
     MhdLangByteCodeLabel func_label{};
     MhdLangByteCodeLabel end_label{};
-    bytecode.emit_code(MhdLangOpcode::JUMP);
-    bytecode.emit_addr(end_label);
+    bytecode.emit_jump(MhdLangOpcode::JUMP, end_label);
     bytecode.label(func_label);
     std::for_each(func_args.crbegin(), func_args.crend(), 
                   [&](const std::string& func_arg) {
-        bytecode.emit_code(MhdLangOpcode::REF_CSTR);
+        bytecode.emit_code(MhdLangOpcode::STORE_VAR_CSTR);
         bytecode.emit_cstr(func_arg.c_str());
-        bytecode.emit_code(MhdLangOpcode::OPREF_ASG);
         bytecode.emit_code(MhdLangOpcode::DISCARD_1);
     });
     compile(bytecode);
-    bytecode.emit_code(MhdLangOpcode::LOAD_NULLPTR);
+    bytecode.emit_load(MhdLangOpcode::LOAD_NULLPTR);
     bytecode.emit_code(MhdLangOpcode::RET);
     bytecode.label(end_label);
-    bytecode.emit_code(MhdLangOpcode::LOAD_FUNC);
-    bytecode.emit_addr(func_label);
+    bytecode.emit_load(MhdLangOpcode::LOAD_FUNC, func_label, func_args.size());
 }
 //########################################################################################################
 //########################################################################################################
 //########################################################################################################
-void MhdLangCompiler::compile_operand_factor_call(MhdLangByteCode& bytecode)
+void MhdLangCompiler::compile_factor_call(MhdLangByteCode& bytecode, bool index_call)
 {
     /// Compile call `x()` factor.
     std::uint16_t num_args{ 0 };
@@ -848,10 +936,14 @@ void MhdLangCompiler::compile_operand_factor_call(MhdLangByteCode& bytecode)
             continue;
         }
     }
-    emit_call(bytecode, num_args);
+    if (index_call) {
+        emit_index_call(bytecode, num_args);
+    } else {
+        emit_call(bytecode, num_args);
+    }
 }
 //--------------------------------------------------------------------------------------------------------
-void MhdLangCompiler::compile_operand_factor_index(MhdLangByteCode& bytecode, bool can_assign)
+void MhdLangCompiler::compile_factor_index(MhdLangByteCode& bytecode, bool can_assign)
 {
     /// Compile index `x[y]` factor.
     std::uint16_t num_indices{ 1 };
@@ -862,31 +954,36 @@ void MhdLangCompiler::compile_operand_factor_index(MhdLangByteCode& bytecode, bo
         }
         expect(MhdLangKind::OP_COMMA);
     }
-    compile_operand_factor_index_end(bytecode, num_indices, can_assign);
+    compile_factor_index_end(bytecode, num_indices, can_assign);
 }
-void MhdLangCompiler::compile_operand_factor_index_dot(MhdLangByteCode& bytecode, bool can_assign)
+void MhdLangCompiler::compile_factor_indexdot(MhdLangByteCode& bytecode, bool can_assign)
 {
     /// Compile index `x.y`, `x.operator_` factor.
     if (matches(MhdLangKind::ID)) {
         const std::string index{ m_token.m_value_str };
         advance();
-        bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);
+        bytecode.emit_load(MhdLangOpcode::LOAD_CSTR);
         bytecode.emit_cstr(index.c_str());
         bytecode.emit_code(MhdLangOpcode::INDEX_1);
-        compile_operand_factor_index_end(bytecode, 1, can_assign);
+        compile_factor_index_end(bytecode, 1, can_assign);
     }
     if (matched(MhdLangKind::KW_OPERATOR)) {
         const std::string index{ compile_operator() };
-        bytecode.emit_code(MhdLangOpcode::LOAD_CSTR);
+        bytecode.emit_load(MhdLangOpcode::LOAD_CSTR);
         bytecode.emit_cstr(index.c_str());
         bytecode.emit_code(MhdLangOpcode::INDEX_1);
-        compile_operand_factor_index_end(bytecode, 1, can_assign);
+        compile_factor_index_end(bytecode, 1, can_assign);
     }
     unexpected();
 }
-void MhdLangCompiler::compile_operand_factor_index_end(MhdLangByteCode& bytecode, std::uint16_t num_indices, bool can_assign)
+void MhdLangCompiler::compile_factor_index_end(MhdLangByteCode& bytecode, std::uint16_t num_indices, bool can_assign)
 {
-    /// Compile subscript `x.y` factor -- emit load or store code.
+    /// Compile index factor end -- emit load or store code.
+    /* Index Call. */
+    if (matched(MhdLangKind::OP_PAREN_OPEN)) {
+        compile_factor_call(bytecode, true);
+        return;
+    }
     /* Assignment. */
     if (can_assign && matched(MhdLangKind::OP_ASG)) {
         compile_expression(bytecode);
@@ -899,6 +996,38 @@ void MhdLangCompiler::compile_operand_factor_index_end(MhdLangByteCode& bytecode
         emit_index(bytecode, num_indices);
         compile_expression(bytecode);
         bytecode.emit_code(MhdLangOpcode::OP_ADD_ASG);
+        emit_index_store(bytecode, num_indices);
+        return;
+    }
+    if (can_assign && matched(MhdLangKind::OP_SUB_ASG)) {
+        emit_dupx1(bytecode, num_indices + 1);
+        emit_index(bytecode, num_indices);
+        compile_expression(bytecode);
+        bytecode.emit_code(MhdLangOpcode::OP_SUB_ASG);
+        emit_index_store(bytecode, num_indices);
+        return;
+    }
+    if (can_assign && matched(MhdLangKind::OP_MUL_ASG)) {
+        emit_dupx1(bytecode, num_indices + 1);
+        emit_index(bytecode, num_indices);
+        compile_expression(bytecode);
+        bytecode.emit_code(MhdLangOpcode::OP_MUL_ASG);
+        emit_index_store(bytecode, num_indices);
+        return;
+    }
+    if (can_assign && matched(MhdLangKind::OP_DIV_ASG)) {
+        emit_dupx1(bytecode, num_indices + 1);
+        emit_index(bytecode, num_indices);
+        compile_expression(bytecode);
+        bytecode.emit_code(MhdLangOpcode::OP_DIV_ASG);
+        emit_index_store(bytecode, num_indices);
+        return;
+    }
+    if (can_assign && matched(MhdLangKind::OP_MOD_ASG)) {
+        emit_dupx1(bytecode, num_indices + 1);
+        emit_index(bytecode, num_indices);
+        compile_expression(bytecode);
+        bytecode.emit_code(MhdLangOpcode::OP_MOD_ASG);
         emit_index_store(bytecode, num_indices);
         return;
     }

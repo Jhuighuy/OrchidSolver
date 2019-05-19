@@ -11,6 +11,8 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <limits>
+#include <cmath>
 
 using MhdLangKind = MhdScriptKind;
 
@@ -96,8 +98,8 @@ using MhdLangKind = MhdScriptKind;
     OP(NOOP) \
     /** Perform relative jumps. */ \
     OP(JUMP) \
-    OP(JUMP_Z) \
-    OP(JUMP_NZ) \
+    OP(JUMP_IF_TRUE) \
+    OP(JUMP_IF_FALSE) \
     OP(RET) \
     /** Discard values on stack. */ \
     OP(DISCARD_1) \
@@ -122,9 +124,13 @@ using MhdLangKind = MhdScriptKind;
     OP(LOAD_UI8) \
     OP(LOAD_UI16) \
     OP(LOAD_UI32) \
+    OP(LOAD_FP_0) \
+    OP(LOAD_FP_1) \
+    OP(LOAD_FPm1) \
     OP(LOAD_FP32) \
     OP(LOAD_FP64) \
     OP(LOAD_CSTR) \
+    OP(LOAD_CSTR_EMPTY) \
     OP(LOAD_LIST) \
     OP(LOAD_MAP) \
     OP(LOAD_FUNC) \
@@ -199,6 +205,9 @@ enum struct MhdLangOpcode : unsigned char
     MHD_LANG_OPCODES
 #undef OP
 };  // enum struct MhdLangOpcode
+static MhdLangOpcode operator+(MhdLangOpcode op, std::uint32_t v) {
+    return static_cast<MhdLangOpcode>(static_cast<std::uint32_t>(op) + v);
+}
 static_assert(static_cast<int>(MhdLangOpcode::EXTRA) <= 0xFF,
     "Opcode overflow.");
 static const char* MhdLangOpcodeNames[] = {
@@ -216,8 +225,7 @@ struct MhdLangByteCodeLabel
     std::vector<std::uint32_t*> references;
     std::uint32_t value = 0;
     MhdLangByteCodeLabel() {}
-    ~MhdLangByteCodeLabel()
-    {
+    ~MhdLangByteCodeLabel() {
         for (auto ref : references) {
             *ref = value;
         }
@@ -226,60 +234,114 @@ struct MhdLangByteCodeLabel
 struct MhdLangByteCode : public std::vector<std::uint8_t>
 {
 public:
-    MhdLangByteCode()
-    {
+    MhdLangByteCode() {
         reserve(1000000);
     }
 public:
-    template<MhdLangOpcode opcode>
-    typename std::enable_if_t<opcode == MhdLangOpcode::CALL_N> 
-    emit(const std::uint16_t num_args) {
-
-    }
-
-public:
-    void emit_ui8 (std::uint8_t v) 
-    {
-        this->push_back(v);
-    }
-    void emit_ui16(std::uint16_t v) 
-    {
-        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
-                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
-    }
-    void emit_ui32(std::uint32_t v) 
-    {
-        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
-                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
-    }
-    void emit_fp32(float v) 
-    {
-        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
-                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
-    }
-    void emit_fp64(double v) 
-    {
-        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
-                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
-    }
-    void emit_cstr(const char* v) 
-    {
-        insert(end(), v, v + strlen(v) + 1);
-    }
-    void emit_code(MhdLangOpcode v) 
-    {
+    void emit_code(MhdLangOpcode v) {
         emit_ui8(static_cast<std::uint8_t>(v));
     }
-    void emit_addr(MhdLangByteCodeLabel& label) 
-    {
+public:
+    /// Emit various `JUMP*` instructions.
+    void emit_jump(MhdLangOpcode op, MhdLangByteCodeLabel& label) {
+        ORCHID_ASSERT(op == MhdLangOpcode::JUMP ||
+                      op == MhdLangOpcode::JUMP_IF_TRUE ||
+                      op == MhdLangOpcode::JUMP_IF_FALSE);
+        emit_code(op);
+        emit_addr(label);
+    }
+public:
+    /// Emit various `LOAD*` instructions.
+    void emit_load(MhdLangOpcode op) {
+        ORCHID_ASSERT(op == MhdLangOpcode::LOAD_UI_0 ||
+                      op == MhdLangOpcode::LOAD_UI_1 ||
+                      op == MhdLangOpcode::LOAD_UI_2 ||
+                      op == MhdLangOpcode::LOAD_UI_3 ||
+                      op == MhdLangOpcode::LOAD_TRUE ||
+                      op == MhdLangOpcode::LOAD_FALSE ||
+                      op == MhdLangOpcode::LOAD_NULLPTR);
+        emit_code(op);
+    }
+    void emit_load(MhdLangOpcode op, std::uint32_t value) {
+        ORCHID_ASSERT(op == MhdLangOpcode::LOAD_UI32);
+        if (value <= 3) {
+            emit_code(MhdLangOpcode::LOAD_UI_0 + value);
+            return;
+        }
+        if (value <= std::numeric_limits<std::uint8_t>::max()) {
+            emit_code(MhdLangOpcode::LOAD_UI8);
+            emit_ui8 (static_cast<std::uint8_t>(value));
+            return;
+        }
+        if (value <= std::numeric_limits<std::uint16_t>::max()) {
+            emit_code(MhdLangOpcode::LOAD_UI16);
+            emit_ui16(static_cast<std::uint16_t>(value));
+            return;
+        }
+        emit_code(MhdLangOpcode::LOAD_UI32);
+        emit_ui32(value);
+    }
+    void emit_load(MhdLangOpcode op, double value) {
+        ORCHID_ASSERT(op == MhdLangOpcode::LOAD_FP64);
+        if (value == 0.0 && !std::signbit(value)) {
+            emit_code(MhdLangOpcode::LOAD_FP_0);
+            return;
+        }
+        const auto fvalue{ static_cast<float>(value) };
+        if (fvalue == value) {
+            emit_code(MhdLangOpcode::LOAD_FP32);
+            emit_fp32(fvalue);
+            return;
+        }
+        emit_code(MhdLangOpcode::LOAD_FP64);
+        emit_fp64(value);
+    }
+    void emit_load(MhdLangOpcode op, const std::string& value) {
+        ORCHID_ASSERT(op == MhdLangOpcode::LOAD_CSTR ||
+                      op == MhdLangOpcode::LOAD_VAR_CSTR);
+        if (value.empty()) {
+            emit_code(MhdLangOpcode::LOAD_CSTR_EMPTY);
+            return;
+        }
+        emit_code(op);
+        emit_cstr(value.c_str());
+    }
+    void emit_load(MhdLangOpcode op, MhdLangByteCodeLabel& label, std::size_t num_args = 0) {
+        ORCHID_ASSERT(op == MhdLangOpcode::LOAD_FUNC);
+        emit_code(op);
+        emit_addr(label);
+    }
+public:
+    void emit_ui8 (std::uint8_t v) {
+        push_back(v);
+    }
+    void emit_ui16(std::uint16_t v) {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+    void emit_ui32(std::uint32_t v) {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+public:
+    void emit_fp32(float v) {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+    void emit_fp64(double v) {
+        insert(end(), reinterpret_cast<std::uint8_t*>(&v),
+                      reinterpret_cast<std::uint8_t*>(&v) + sizeof(v));
+    }
+public:
+    void emit_cstr(const char* v) {
+        insert(end(), v, v + strlen(v) + 1);
+    }
+    void emit_addr(MhdLangByteCodeLabel& label) {
         label.references.push_back(reinterpret_cast<std::uint32_t*>(&back() + 1));
         emit_ui32(0);
     }
-
-
 public:
-    void label(MhdLangByteCodeLabel& label)
-    {
+    void label(MhdLangByteCodeLabel& label) {
         label.value = size();
     }
 };
@@ -383,117 +445,30 @@ private:
     void compile_operand_primary_map(MhdLangByteCode& bytecode);
     void compile_operand_primary_func(MhdLangByteCode& bytecode);
 private:
-    void compile_operand_factor_call(MhdLangByteCode& bytecode);
-    void compile_operand_factor_index(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_operand_factor_index_dot(MhdLangByteCode& bytecode, bool can_assign = false);
-    void compile_operand_factor_index_end(MhdLangByteCode& bytecode, std::uint16_t num_indices = 1, bool can_assign = false);
+    void compile_factor_call(MhdLangByteCode& bytecode, bool index_call = false);
+    void compile_factor_index(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_factor_indexdot(MhdLangByteCode& bytecode, bool can_assign = false);
+    void compile_factor_index_end(MhdLangByteCode& bytecode, std::uint16_t num_indices = 1, bool can_assign = false);
 private:
     const char* compile_operator();
 private:
-    static void emit_dupx1(MhdLangByteCode& bytecode, std::uint16_t num_dups)
-    {
-        switch (num_dups) {
-            case 1:
-                bytecode.emit_code(MhdLangOpcode::DUP_1X1);
-                return;
-            case 2:
-                bytecode.emit_code(MhdLangOpcode::DUP_2X1);
-                return;
-            case 3:
-                bytecode.emit_code(MhdLangOpcode::DUP_3X1);
-                return;
-            default:
-                bytecode.emit_code(MhdLangOpcode::DUP_NX1);
-                bytecode.emit_ui16(num_dups);
-                return;
-        }
-    }
-    static void emit_call(MhdLangByteCode& bytecode, std::uint16_t num_args)
-    {
-        switch (num_args) {
-            case 0:
-                bytecode.emit_code(MhdLangOpcode::CALL_0);
-                return;
-            case 1:
-                bytecode.emit_code(MhdLangOpcode::CALL_1);
-                return;
-            case 2:
-                bytecode.emit_code(MhdLangOpcode::CALL_2);
-                return;
-            case 3:
-                bytecode.emit_code(MhdLangOpcode::CALL_3);
-                return;
-            default:
-                bytecode.emit_code(MhdLangOpcode::CALL_N);
-                bytecode.emit_ui16(num_args);
-                return;
-        }
-    }
-    static void emit_index(MhdLangByteCode& bytecode, std::uint16_t num_indices)
-    {
-        switch (num_indices) {
-            case 1:
-                bytecode.emit_code(MhdLangOpcode::INDEX_1);
-                return;
-            case 2:
-                bytecode.emit_code(MhdLangOpcode::INDEX_2);
-                return;
-            case 3:
-                bytecode.emit_code(MhdLangOpcode::INDEX_3);
-                return;
-            default:
-                bytecode.emit_code(MhdLangOpcode::INDEX_N);
-                bytecode.emit_ui16(num_indices);
-                return;
-        }
-    }
-    static void emit_index_store(MhdLangByteCode& bytecode, std::uint16_t num_indices)
-    {
-        switch (num_indices) {
-            case 1:
-                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_1);
-                return;
-            case 2:
-                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_2);
-                return;
-            case 3:
-                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_3);
-                return;
-            default:
-                bytecode.emit_code(MhdLangOpcode::STORE_INDEX_N);
-                bytecode.emit_ui16(num_indices);
-                return;
-        }
-    }
-private:
-    void advance()
-    {
+    void advance() {
         /// Peek a next token.
         if (!m_tokenizer.scan(m_token)) {
             throw MhdCompileError(m_token, m_token.m_value_str);
         }
     }
 private:
-    bool matches(MhdScriptKind kind) const
-    {
+    bool matches(MhdScriptKind kind) const {
         return m_token.m_kind == kind;
     }
     template<typename... T>
-    bool matches(MhdScriptKind kind, T... kinds) const
-    {
+    bool matches(MhdScriptKind kind, T... kinds) const {
         return matches(kind) || matches(kinds...);
-    }
-    bool matches_op_asg() const
-    {
-        return matches(MhdLangKind::OP_ADD_ASG, MhdLangKind::OP_SUB_ASG,
-                       MhdLangKind::OP_MUL_ASG, MhdLangKind::OP_DIV_ASG,
-                       MhdLangKind::OP_MOD_ASG);
     }
 private:
     template<typename... T>
-    bool matched(MhdScriptKind kind, T... kinds)
-    {
-        /// Peek a next token on a match.
+    bool matched(MhdScriptKind kind, T... kinds) {
         if (matches(kind, kinds...)) {
             advance();
             return true;
@@ -501,23 +476,20 @@ private:
         return false;
     }
 private:
+    void unexpected() {
+        throw MhdCompileError(m_token, "unexpected token");
+    }
     template<typename... T>
-    void expect(MhdScriptKind kind, T... kinds)
-    {
+    void expect(MhdScriptKind kind, T... kinds) {
         if (!matched(kind, kinds...)) {
-            throw MhdCompileError(m_token);
+            unexpected();
         }
     }
     template<typename... T>
-    void expects(MhdScriptKind kind, T... kinds)
-    {
+    void expects(MhdScriptKind kind, T... kinds) {
         if (!matches(kind, kinds...)) {
-            throw MhdCompileError(m_token);
+            unexpected();
         }
-    }
-    void unexpected()
-    {
-        expects(MhdScriptKind::ERR);
     }
 };	// struct MhdScriptParser
 //########################################################################################################
